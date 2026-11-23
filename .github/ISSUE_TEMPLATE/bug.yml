@@ -1,0 +1,27 @@
+name: Bug report
+description: Report a reproducible defect
+body:
+  - type: textarea
+    id: section_1
+    attributes:
+      label: Environment and version
+    validations:
+      required: true
+  - type: textarea
+    id: section_2
+    attributes:
+      label: Steps to reproduce
+    validations:
+      required: true
+  - type: textarea
+    id: section_3
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: section_4
+    attributes:
+      label: Actual behavior and redacted evidence
+    validations:
+      required: false
