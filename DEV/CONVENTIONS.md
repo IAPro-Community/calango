@@ -5,7 +5,9 @@
 - **Repository language is English.** Code, identifiers, comments, commit messages, issues, pull requests, `DEV/` docs, ADRs, specs and the public docs are written in English.
 - The product interface ships in three languages: English (default), Brazilian Portuguese (`pt-BR`) and Spanish (`es`). Every user-facing string goes through the catalog in `packages/i18n`. No hard-coded text on screen.
 - Locale detection order: explicit user choice > saved preference > browser/OS language (first supported match) > `en`.
-- Small commits, imperative messages. Never commit secrets (`.env` stays out of git).
+- Small imperative commits; PR title and squash commit use Conventional Commits: `type(scope): description`, with `!` and BREAKING CHANGE for incompatible changes. Scopes follow modules (core, api, store, config, agents, gateway, harness, memory, routines, approvals, mcp, maestro, auth, vault, audit, pairing, desktop, mobile, web, cloud, ade, browser, terminal, teams, billing, licensing, ci, deploy, release, deps).
+- Issue-linked short-lived branches; mandatory independent human review and CI before squash merge. See [governance](../GOVERNANCE.md).
+- Never commit secrets (`.env` stays out of git).
 
 ## Go (`cmd/`, `internal/`)
 
