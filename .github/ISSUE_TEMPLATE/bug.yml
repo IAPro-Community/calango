@@ -24,4 +24,4 @@ body:
     attributes:
       label: Actual behavior and redacted evidence
     validations:
-      required: false
+      required: true
