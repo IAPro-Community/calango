@@ -1,0 +1,27 @@
+name: Documentation
+description: Improve documentation
+body:
+  - type: textarea
+    id: section_1
+    attributes:
+      label: Audience and problem
+    validations:
+      required: true
+  - type: textarea
+    id: section_2
+    attributes:
+      label: Scope and target documents
+    validations:
+      required: true
+  - type: textarea
+    id: section_3
+    attributes:
+      label: Acceptance criteria
+    validations:
+      required: true
+  - type: textarea
+    id: section_4
+    attributes:
+      label: Dependencies
+    validations:
+      required: false
