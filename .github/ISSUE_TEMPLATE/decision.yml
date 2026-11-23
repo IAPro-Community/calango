@@ -1,0 +1,27 @@
+name: Decision
+description: Request a product or architecture decision
+body:
+  - type: textarea
+    id: section_1
+    attributes:
+      label: Decision required
+    validations:
+      required: true
+  - type: textarea
+    id: section_2
+    attributes:
+      label: Alternatives and trade-offs
+    validations:
+      required: true
+  - type: textarea
+    id: section_3
+    attributes:
+      label: Recommendation and impact
+    validations:
+      required: true
+  - type: textarea
+    id: section_4
+    attributes:
+      label: Decision owner and blocking dependencies
+    validations:
+      required: false
