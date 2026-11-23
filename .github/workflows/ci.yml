@@ -1,4 +1,4 @@
-# Minimal CI. Not executed yet: validate on GitHub after the first push.
+# CI: require the stable quality-gate only after a real PR run is verified.
 name: ci
 
 on:
@@ -87,3 +87,15 @@ jobs:
       - uses: actions/checkout@v4
       - name: Build the node image
         run: docker build -f deploy/Dockerfile.node -t calango/calango:ci .
+
+  quality-gate:
+    name: quality-gate
+    if: ${{ always() }}
+    needs: [openapi, generated-contracts, go, cross-build, site-image, node-image]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require all validation jobs to succeed
+        env:
+          JOB_RESULTS: ${{ toJSON(needs) }}
+        run: |
+          printf '%s\n' "$JOB_RESULTS" | jq -e 'all(.[]; .result == "success")'
