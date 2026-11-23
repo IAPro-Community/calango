@@ -1,63 +1,237 @@
 package auth
 
 import (
+	"bytes"
+	"context"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
+
+	"calango/internal/core"
+	"calango/internal/store"
+	"calango/internal/vault"
 )
 
-func TestLoadOrCreateTokenCreatesPrivateFileAndReusesIt(t *testing.T) {
-	dir := t.TempDir()
+const testOwner = "owner-1"
 
-	first, err := LoadOrCreateToken(dir)
+// newTestVault returns a vault service over an in-memory store, as the node wires it.
+func newTestVault(t *testing.T) *vault.Service {
+	t.Helper()
+	ctx := context.Background()
+	db, err := store.OpenMemory(ctx)
+	if err != nil {
+		t.Fatalf("open store: %v", err)
+	}
+	t.Cleanup(func() { _ = db.Close() })
+
+	keys, err := vault.NewMasterKeys(map[int][]byte{1: bytes.Repeat([]byte{0x42}, 32)})
+	if err != nil {
+		t.Fatalf("master keys: %v", err)
+	}
+	svc, err := vault.NewService(db, keys, testOwner, db, time.Now, core.NewID)
+	if err != nil {
+		t.Fatalf("vault service: %v", err)
+	}
+	return svc
+}
+
+func writeLegacyToken(t *testing.T, dir, token string, mode os.FileMode) string {
+	t.Helper()
+	path := filepath.Join(dir, TokenFileName)
+	if err := os.WriteFile(path, []byte(token+"\n"), mode); err != nil {
+		t.Fatalf("write legacy token: %v", err)
+	}
+	if err := os.Chmod(path, mode); err != nil {
+		t.Fatalf("chmod legacy token: %v", err)
+	}
+	return path
+}
+
+func TestLoadOrCreateVaultTokenCreatesOnceAndReuses(t *testing.T) {
+	ctx := context.Background()
+	secrets := newTestVault(t)
+
+	first, err := LoadOrCreateVaultToken(ctx, secrets)
 	if err != nil {
 		t.Fatalf("create token: %v", err)
 	}
 	if len(first) < 32 {
 		t.Fatalf("token has %d characters; want at least 32", len(first))
 	}
-
-	info, err := os.Stat(filepath.Join(dir, TokenFileName))
-	if err != nil {
-		t.Fatalf("stat token file: %v", err)
-	}
-	if perm := info.Mode().Perm(); perm != 0o600 {
-		t.Fatalf("token file mode = %o, want 600", perm)
-	}
-
-	second, err := LoadOrCreateToken(dir)
+	second, err := LoadOrCreateVaultToken(ctx, secrets)
 	if err != nil {
 		t.Fatalf("reload token: %v", err)
 	}
 	if second != first {
 		t.Fatal("second call must return the stored token, not a new one")
 	}
+	stored, err := secrets.Reveal(ctx, VaultTokenName)
+	if err != nil || stored != first {
+		t.Fatalf("vault holds %q (err %v), want the token", stored, err)
+	}
 }
 
-func TestLoadOrCreateTokenRejectsGroupOrWorldReadableFile(t *testing.T) {
+func TestImportFileTokenMovesLegacyFileIntoVault(t *testing.T) {
+	ctx := context.Background()
 	dir := t.TempDir()
-	path := filepath.Join(dir, TokenFileName)
-	if err := os.WriteFile(path, []byte("secret-token-value-0123456789"), 0o644); err != nil {
-		t.Fatalf("write token: %v", err)
+	secrets := newTestVault(t)
+	path := writeLegacyToken(t, dir, "legacy-token-value-0123456789abcdef", 0o600)
+
+	imported, err := ImportFileToken(ctx, dir, secrets)
+	if err != nil || !imported {
+		t.Fatalf("import = %v, %v; want true, nil", imported, err)
 	}
-	if err := os.Chmod(path, 0o644); err != nil {
-		t.Fatalf("chmod token: %v", err)
+	got, err := secrets.Reveal(ctx, VaultTokenName)
+	if err != nil || got != "legacy-token-value-0123456789abcdef" {
+		t.Fatalf("vault token = %q (err %v), want the legacy value", got, err)
+	}
+	if _, err := os.Stat(path); !os.IsNotExist(err) {
+		t.Fatalf("legacy file still present after import: %v", err)
 	}
 
-	_, err := LoadOrCreateToken(dir)
+	again, err := ImportFileToken(ctx, dir, secrets)
+	if err != nil || again {
+		t.Fatalf("second import = %v, %v; want false, nil", again, err)
+	}
+}
+
+func TestImportFileTokenRefusesConflictingVaultTokenAndKeepsBoth(t *testing.T) {
+	ctx := context.Background()
+	dir := t.TempDir()
+	secrets := newTestVault(t)
+	if _, err := secrets.Set(ctx, VaultTokenName, "vault-token-value-0123456789abcdef"); err != nil {
+		t.Fatalf("seed vault: %v", err)
+	}
+	path := writeLegacyToken(t, dir, "legacy-token-value-0123456789abcdef", 0o600)
+
+	imported, err := ImportFileToken(ctx, dir, secrets)
+	if err == nil || imported {
+		t.Fatalf("import = %v, %v; want a refusal", imported, err)
+	}
+	if _, statErr := os.Stat(path); statErr != nil {
+		t.Fatalf("legacy file must survive a refused import: %v", statErr)
+	}
+	got, err := secrets.Reveal(ctx, VaultTokenName)
+	if err != nil || got != "vault-token-value-0123456789abcdef" {
+		t.Fatalf("vault token changed to %q (err %v)", got, err)
+	}
+}
+
+func TestImportFileTokenFinishesInterruptedImport(t *testing.T) {
+	ctx := context.Background()
+	dir := t.TempDir()
+	secrets := newTestVault(t)
+	const token = "same-token-value-0123456789abcdef"
+	if _, err := secrets.Set(ctx, VaultTokenName, token); err != nil {
+		t.Fatalf("seed vault: %v", err)
+	}
+	path := writeLegacyToken(t, dir, token, 0o600)
+
+	imported, err := ImportFileToken(ctx, dir, secrets)
+	if err != nil || !imported {
+		t.Fatalf("import = %v, %v; want true, nil", imported, err)
+	}
+	if _, err := os.Stat(path); !os.IsNotExist(err) {
+		t.Fatalf("file with an already-imported token must be removed: %v", err)
+	}
+}
+
+func TestImportFileTokenRejectsGroupOrWorldReadableFile(t *testing.T) {
+	ctx := context.Background()
+	dir := t.TempDir()
+	secrets := newTestVault(t)
+	path := writeLegacyToken(t, dir, "secret-token-value-0123456789", 0o644)
+
+	_, err := ImportFileToken(ctx, dir, secrets)
 	if err == nil || !strings.Contains(err.Error(), "chmod 600") {
 		t.Fatalf("err = %v, want a refusal that names chmod 600", err)
 	}
+	if _, statErr := os.Stat(path); statErr != nil {
+		t.Fatalf("file must not be removed on refusal: %v", statErr)
+	}
 }
 
-func TestLoadOrCreateTokenRejectsEmptyFile(t *testing.T) {
+func TestImportFileTokenWithoutFileIsNoop(t *testing.T) {
+	imported, err := ImportFileToken(context.Background(), t.TempDir(), newTestVault(t))
+	if err != nil || imported {
+		t.Fatalf("import = %v, %v; want false, nil", imported, err)
+	}
+}
+
+func TestImportFileTokenRejectsEmptyFile(t *testing.T) {
 	dir := t.TempDir()
 	if err := os.WriteFile(filepath.Join(dir, TokenFileName), nil, 0o600); err != nil {
 		t.Fatalf("write empty token: %v", err)
 	}
 
-	if _, err := LoadOrCreateToken(dir); err == nil {
+	if _, err := ImportFileToken(context.Background(), dir, newTestVault(t)); err == nil {
 		t.Fatal("empty token file must be rejected, not used as a bearer secret")
+	}
+}
+
+func TestLocalTokenRotationSurvivesARestart(t *testing.T) {
+	ctx := context.Background()
+	secrets := newTestVault(t)
+	first, err := LoadOrCreateVaultToken(ctx, secrets)
+	if err != nil {
+		t.Fatalf("create token: %v", err)
+	}
+	live, err := NewLocalToken(first, secrets)
+	if err != nil {
+		t.Fatalf("local token: %v", err)
+	}
+
+	rotated, err := live.Rotate(ctx)
+	if err != nil {
+		t.Fatalf("rotate: %v", err)
+	}
+	if live.Matches(first) {
+		t.Fatal("old token still matches after rotation")
+	}
+	if !live.Matches(rotated) {
+		t.Fatal("rotated token does not match")
+	}
+
+	// A restart reloads the token from the vault and must find the rotated one.
+	reloaded, err := LoadOrCreateVaultToken(ctx, secrets)
+	if err != nil {
+		t.Fatalf("reload token: %v", err)
+	}
+	if reloaded != rotated {
+		t.Fatal("restart loaded the old token; the vault and the live token diverged")
+	}
+}
+
+func TestLocalTokenKeepsOldTokenWhenVaultWriteFails(t *testing.T) {
+	ctx := context.Background()
+	db, err := store.OpenMemory(ctx)
+	if err != nil {
+		t.Fatalf("open store: %v", err)
+	}
+	keys, err := vault.NewMasterKeys(map[int][]byte{1: bytes.Repeat([]byte{0x42}, 32)})
+	if err != nil {
+		t.Fatalf("master keys: %v", err)
+	}
+	secrets, err := vault.NewService(db, keys, testOwner, db, time.Now, core.NewID)
+	if err != nil {
+		t.Fatalf("vault service: %v", err)
+	}
+	const seed = "seed-token-0123456789"
+	live, err := NewLocalToken(seed, secrets)
+	if err != nil {
+		t.Fatalf("local token: %v", err)
+	}
+	if err := db.Close(); err != nil {
+		t.Fatalf("close store: %v", err)
+	}
+
+	// The vault write fails, so rotation must fail and the old token must keep working.
+	if _, err := live.Rotate(ctx); err == nil {
+		t.Fatal("rotate succeeded although the vault write failed")
+	}
+	if !live.Matches(seed) {
+		t.Fatal("old token stopped matching although no new token was stored")
 	}
 }

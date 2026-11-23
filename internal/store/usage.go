@@ -118,7 +118,9 @@ func (s *Store) UsageTotals(ctx context.Context, ownerID string, q usage.Query) 
 	rows, err := s.db.QueryContext(ctx, `
 		SELECT `+key+`,
 			COALESCE(SUM(u.tokens_in), 0), COALESCE(SUM(u.tokens_out), 0),
-			COALESCE(SUM(u.cost_micros), 0), COUNT(CASE WHEN u.cost_status = 'unknown' THEN 1 END)
+			COALESCE(SUM(u.cost_micros), 0), COUNT(CASE WHEN u.cost_status = 'unknown' THEN 1 END),
+			COALESCE(SUM(CASE WHEN u.cost_status = 'known' THEN u.cost_micros END), 0),
+			COALESCE(SUM(CASE WHEN u.cost_status = 'estimated' THEN u.cost_micros END), 0)
 		FROM usage u JOIN agents a ON a.id = u.agent_id
 		WHERE `+strings.Join(where, " AND ")+`
 		GROUP BY `+key+`
@@ -131,7 +133,7 @@ func (s *Store) UsageTotals(ctx context.Context, ownerID string, q usage.Query) 
 	var out []usage.Row
 	for rows.Next() {
 		var r usage.Row
-		if err := rows.Scan(&r.Key, &r.TokensIn, &r.TokensOut, &r.CostMicros, &r.UnknownCostRows); err != nil {
+		if err := rows.Scan(&r.Key, &r.TokensIn, &r.TokensOut, &r.CostMicros, &r.UnknownCostRows, &r.CostKnownMicros, &r.CostEstimatedMicros); err != nil {
 			return nil, fmt.Errorf("scan usage row: %w", err)
 		}
 		out = append(out, r)

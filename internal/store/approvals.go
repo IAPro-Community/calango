@@ -228,21 +228,6 @@ func (s *Store) ListAudit(ctx context.Context, action string) ([]core.AuditEvent
 	return out, nil
 }
 
-// insertAudit appends one audit event inside the caller's transaction.
-func insertAudit(ctx context.Context, tx *sql.Tx, ev core.AuditEvent) error {
-	facts, err := json.Marshal(ev.Facts)
-	if err != nil {
-		return fmt.Errorf("encode audit facts: %w", err)
-	}
-	if _, err := tx.ExecContext(ctx, `INSERT INTO audit_log
-		(id, at, actor_kind, actor_id, action, subject, facts_json) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-		ev.ID, ev.At.UTC().Format(usageTimeLayout), ev.ActorKind, nullIfEmpty(ev.ActorID),
-		ev.Action, ev.Subject, string(facts)); err != nil {
-		return fmt.Errorf("append audit %s: %w", ev.Action, err)
-	}
-	return nil
-}
-
 func collectApprovals(rows *sql.Rows) ([]core.Approval, error) {
 	defer rows.Close()
 	var out []core.Approval

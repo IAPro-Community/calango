@@ -29,6 +29,8 @@ tags:
     description: Reviewable agent memories.
   - name: usage
     description: Model usage and costs.
+  - name: vault
+    description: Secret names and dates. Values are never returned.
 paths:
   /healthz:
     get:
@@ -124,6 +126,23 @@ paths:
         "204": { description: Revoked }
         "403": { $ref: "#/components/responses/Error" }
         "404": { $ref: "#/components/responses/Error" }
+  /v1/auth/rotate-token:
+    post:
+      operationId: rotateToken
+      tags: [auth]
+      summary: Replaces the local API token; the old token stops working at once
+      description: Requires the local token or a device with full scope. The new token is returned only in this response and is stored in the vault. If the response is lost, the caller has no token and no route returns the new one; restore access on the node by hand.
+      responses:
+        "200":
+          description: Rotated
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [token]
+                properties:
+                  token: { type: string }
+        "403": { $ref: "#/components/responses/Error" }
   /v1/agents:
     get:
       operationId: listAgents
@@ -434,12 +453,75 @@ paths:
       responses:
         "204": { description: Deleted }
         "404": { $ref: "#/components/responses/Error" }
+  /v1/vault:
+    get:
+      operationId: listVault
+      tags: [vault]
+      summary: List vault item names and dates
+      description: Requires a device with full scope. Returns names and dates only; no route returns a value.
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/VaultItem" }
+        "403": { $ref: "#/components/responses/Error" }
+  /v1/vault/{name}:
+    parameters:
+      - name: name
+        in: path
+        required: true
+        schema: { type: string, pattern: "^[a-z0-9][a-z0-9_.-]{0,62}$" }
+    put:
+      operationId: setVault
+      tags: [vault]
+      summary: Store or replace a secret
+      description: "Requires a device with full scope. Writes an audit event before the secret changes; if the audit write fails nothing is stored. The name api-token is reserved for the local API token and returns 409."
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/VaultSetInput" }
+      responses:
+        "200":
+          description: Stored. The response has the name and dates, never the value.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/VaultItem" }
+        "400": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+    delete:
+      operationId: deleteVault
+      tags: [vault]
+      summary: Delete a secret
+      description: "Requires a device with full scope. Writes an audit event before the secret is removed. The name api-token is reserved and returns 409."
+      responses:
+        "204": { description: Deleted }
+        "400": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+  /v1/audit/verify:
+    get:
+      operationId: verifyAudit
+      tags: [audit]
+      summary: Verify the audit chain
+      description: "Recomputes the hash chain over every audit entry and reports the first break. ok is false when an entry was changed, removed or reordered, or when the tail was truncated. Entries written before the chain existed have no hash and are reported as a break."
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AuditVerification" }
   /v1/usage:
     get:
       operationId: getUsage
       tags: [usage]
       summary: Aggregated usage and cost
-      description: "Sums the usage rows of the owner's agents. from is inclusive and to is exclusive. Rows with unknown cost add nothing to cost_micros and are counted in cost_unknown_rows. An empty key means the row has no value for group_by."
+      description: "Sums the usage rows of the owner's agents. from is inclusive and to is exclusive. Rows with unknown cost add nothing to cost_micros and are counted in cost_unknown_rows. cost_known_micros and cost_estimated_micros split cost_micros by status; an estimate is never a billed amount. An empty key means the row has no value for group_by."
       parameters:
         - name: from
           in: query
@@ -584,14 +666,43 @@ components:
         scope_id: { type: string }
         kind: { type: string, enum: [fact, preference, decision] }
         text: { type: string, maxLength: 2000 }
+    AuditVerification:
+      type: object
+      required: [ok, entries_checked, first_break]
+      properties:
+        ok: { type: boolean }
+        entries_checked: { type: integer }
+        first_break:
+          description: Null when ok is true.
+          type: [object, "null"]
+          required: [seq, id, reason]
+          properties:
+            seq: { type: integer }
+            id: { type: string }
+            reason: { type: string }
+    VaultItem:
+      type: object
+      required: [name, created_at, updated_at]
+      description: Metadata of a secret. The value is never part of this schema.
+      properties:
+        name: { type: string }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+    VaultSetInput:
+      type: object
+      required: [value]
+      properties:
+        value: { type: string, writeOnly: true, description: "The secret. Stored sealed; never returned." }
     UsageRow:
       type: object
-      required: [key, tokens_in, tokens_out, cost_micros, cost_unknown_rows]
+      required: [key, tokens_in, tokens_out, cost_micros, cost_known_micros, cost_estimated_micros, cost_unknown_rows]
       properties:
         key: { type: string }
         tokens_in: { type: integer }
         tokens_out: { type: integer }
         cost_micros: { type: integer, description: "Sum of known and estimated costs" }
+        cost_known_micros: { type: integer }
+        cost_estimated_micros: { type: integer, description: "Sum of estimated costs; a figure, not a billed amount" }
         cost_unknown_rows: { type: integer }
     DeviceScope:
       type: string

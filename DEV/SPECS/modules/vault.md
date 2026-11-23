@@ -2,13 +2,17 @@
 
 Phase 1 · Package `internal/vault` · Table `vault_items` (reference only)
 
+Source: ADR 0011 (P1) and ADR 0012 (storage design). Ported from `backend/app/core/vault.py` in `vstorm-co/agenticos` at a4b0b3c.
+
 ## Goal
 Store secrets (model keys, connector tokens, site passwords) in the operating system's vault.
 
 ## Rules
-- Backends: Windows Credential Manager (DPAPI), macOS Keychain, Linux Secret Service. On the VPS (no OS vault): an encrypted file with a key from an environment variable or Docker secret, kept outside the data volume.
-- Linux without an unlocked keyring: refuse to save and explain how to unlock it. Never fall back to plain text.
+- Storage: each value is an envelope (AES-256-GCM, wrapped data key bound to owner and key version) in table `vault_items`. The master key comes from the OS keyring on the desktop (`calango` / `vault-master-v<N>`) or from `CALANGO_VAULT_KEY_FILE` / `CALANGO_VAULT_KEY` on the VPS (Docker secret, outside the data volume). Backends: Windows Credential Manager, macOS Keychain, Linux Secret Service via `zalando/go-keyring`.
+- Linux without an unlocked keyring, or no master key configured: refuse to save and explain how to unlock it. Never fall back to plain text.
 - The API returns only the name and date; the value never comes back.
+- HTTP (`/v1/vault`): list names and dates; set and delete on `/v1/vault/{name}`. Full scope only. No route returns a value. The name `api-token` is reserved: set and delete return 409. The local token changes only through `POST /v1/auth/rotate-token`, which writes the vault item directly.
+- Set, reveal and delete append an audit event (`vault.set`, `vault.reveal`, `vault.delete`; actor and name only, never the value) before they act. If the audit write fails the action is refused: a secret is never changed or revealed unrecorded.
 - The agent uses a secret by reference (`vault://name`); the value is resolved at the time of the call and masked in logs and steps.
 - An agent can ask the person for a secret (`request_secret`): a card where the person fills it in; the agent is notified when the value is available.
 

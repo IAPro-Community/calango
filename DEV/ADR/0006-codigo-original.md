@@ -1,9 +1,9 @@
 # ADR 0006 — Original code; references for reading only
 
-Status: accepted · 2026-11-23
+Status: accepted · 2026-11-23 · amended by [ADR 0011](0011-reuso-agenticos.md) for `vstorm-co/agenticos` (Apache-2.0)
 
 ## Context
-The product is inspired by Tucano (Apache-2.0) and agentes.chat (AGPL-3.0, with a registered trademark and a CLA).
+The product is inspired by agentes.chat (AGPL-3.0, with a registered trademark and a CLA) and other reference projects.
 
 ## Decision
 No code, text, test, prompt or asset from the reference projects enters this repository. They serve only to understand the product and its problems (issues, changelog, ADRs). The specs describe behavior in our own words.

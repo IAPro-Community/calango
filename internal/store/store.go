@@ -74,6 +74,10 @@ func open(ctx context.Context, dsn string, memory bool) (*Store, error) {
 	query.Add("_pragma", "foreign_keys(ON)")
 	query.Add("_pragma", "busy_timeout("+sqliteBusyTimeout+")")
 	query.Add("_pragma", "synchronous(NORMAL)")
+	// IMMEDIATE takes the write lock at BEGIN. A deferred transaction that reads the audit
+	// head and then writes fails at once under WAL when another writer commits first, and
+	// busy_timeout does not retry that case; IMMEDIATE queues writers and lets it wait.
+	query.Add("_txlock", "immediate")
 	parsed.RawQuery = query.Encode()
 
 	db, err := sql.Open("sqlite", parsed.String())

@@ -2,6 +2,8 @@
 
 Phase 1 · Package `internal/approvals` · Tables `approvals`, `approval_rules`, `audit_log`
 
+Source: ADR 0011. Approvals (P2) from `backend/app/services/approvals.py` and `backend/app/agents/approval.py`; audit chain (P1) from `backend/app/core/audit.py` and `backend/app/services/audit.py`; `vstorm-co/agenticos` at a4b0b3c.
+
 ## Goal
 No sensitive action happens without a person approving it.
 

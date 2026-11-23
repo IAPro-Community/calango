@@ -27,6 +27,7 @@ func TestUsageTotalsScopesToOwnerAndCountsUnknownCost(t *testing.T) {
 	}
 
 	known := int64(1000)
+	estimated := int64(250)
 	jan := time.Date(2026, 1, 5, 10, 0, 0, 0, time.UTC)
 	dec := time.Date(2026, 12, 5, 10, 0, 0, 0, time.UTC)
 	records := []gateway.Record{
@@ -35,7 +36,7 @@ func TestUsageTotalsScopesToOwnerAndCountsUnknownCost(t *testing.T) {
 		{ID: strings.Repeat("2", 26), At: jan, Caller: gateway.Caller{AgentID: mine},
 			Provider: "fake", Model: "m", TokensIn: 1, TokensOut: 1, CostStatus: gateway.CostUnknown},
 		{ID: strings.Repeat("3", 26), At: dec, Caller: gateway.Caller{AgentID: mine, RoutineID: "routine-1"},
-			Provider: "fake", Model: "m", TokensIn: 100, CostStatus: gateway.CostUnknown},
+			Provider: "fake", Model: "m", TokensIn: 100, CostMicros: &estimated, CostStatus: gateway.CostEstimated, PricingVersion: "v1"},
 		{ID: strings.Repeat("4", 26), At: jan, Caller: gateway.Caller{AgentID: theirs},
 			Provider: "fake", Model: "m", TokensIn: 1000, CostStatus: gateway.CostUnknown},
 	}
@@ -53,7 +54,7 @@ func TestUsageTotalsScopesToOwnerAndCountsUnknownCost(t *testing.T) {
 	if err != nil {
 		t.Fatalf("UsageTotals(agent) error = %v", err)
 	}
-	want := []usage.Row{{Key: mine, TokensIn: 11, TokensOut: 6, CostMicros: 1000, UnknownCostRows: 1}}
+	want := []usage.Row{{Key: mine, TokensIn: 11, TokensOut: 6, CostMicros: 1000, CostKnownMicros: 1000, UnknownCostRows: 1}}
 	if len(byAgent) != 1 || byAgent[0] != want[0] {
 		t.Fatalf("UsageTotals(agent, to=June) = %+v, want %+v", byAgent, want)
 	}
@@ -65,7 +66,7 @@ func TestUsageTotalsScopesToOwnerAndCountsUnknownCost(t *testing.T) {
 	}
 	wantRoutine := []usage.Row{
 		{Key: "", TokensIn: 1, TokensOut: 1, CostMicros: 0, UnknownCostRows: 1},
-		{Key: "routine-1", TokensIn: 110, TokensOut: 5, CostMicros: 1000, UnknownCostRows: 1},
+		{Key: "routine-1", TokensIn: 110, TokensOut: 5, CostMicros: 1250, CostKnownMicros: 1000, CostEstimatedMicros: 250},
 	}
 	if len(byRoutine) != len(wantRoutine) {
 		t.Fatalf("UsageTotals(routine) = %+v, want %+v", byRoutine, wantRoutine)

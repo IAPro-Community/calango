@@ -2,7 +2,7 @@
 
 ## 2026-11-22 — foundation (phase 0)
 
-- Reference scan: Dot (closed), Grok Bot, Tucano, agentes.chat. Read README, CHANGELOG, ADRs, open issues and PRs. Clones stay outside the project, as reference only.
+- Reference scan: Dot (closed), Grok Bot, agentes.chat. Read README, CHANGELOG, ADRs, open issues and PRs. Clones stay outside the project, as reference only.
 - Decided: core in Go, one `calango` binary; pure-Go SQLite; Wails for desktop; native mobile consuming the API (Flutter vs React Native still open at the time).
 - Created skeleton: `go.mod`, `internal/core` (agent with budget, routine scheduler), `internal/api` (`/healthz`), `cmd/calangod`.
 - Tests written, not run: Go was not installed on this machine.
@@ -71,3 +71,65 @@
 - Plan grid at ≤920 px uses `minmax(0,1fr)`: the cards overflowed the viewport at 320 px in Spanish.
 - Language detection normalizes `?lang=`, `localStorage` and `navigator.languages` to the base code: `?lang=pt-BR` now selects PT.
 - Kept the two-letter "PT" label; "PT-BR" widens the switcher and reopens the 320 px collision.
+
+## 2026-11-23 — AgenticOS reuse (ADR 0011) and audit chain (F1-T18 partial)
+
+- Decided ADR 0011: Apache-2.0 code from `vstorm-co/agenticos` at commit a4b0b3c may be ported to Go, TypeScript and Dart with per-file attribution. Not ported: prompts, brand marks, Tauri, sandbox, channels, voice, workflows, Vstorm deploy and the Python runtime.
+- Removed a third-party reference name from all documentation (ADR 0006 applies). Older git history still contains it.
+- Created `third_party/agenticos/LICENSE` and `NOTICE` (byte-for-byte copies) and the AgenticOS entry in the root `NOTICE`. Port checklist added as item 10 of ADR 0011.
+- F1-T18 audit chain, first port (from `core/audit.py` and `services/audit.py`): migration `0008_audit_chain.sql`; `internal/audit` (canonical SHA-256 hash over prev hash and fields, `Verify`); `internal/store/audit.go` (`insertAudit` moved out of `approvals.go`, `VerifyAudit`). The hash excludes row id and sequence number.
+- The schema contract test in `internal/store/store_test.go` lists `audit_checkpoints`.
+- Documentation aligned: AGENTS.md exception, TODO_V1 and ROADMAP link P1–P3 items to ADR 0011, module specs carry source references, F1-T18 marked partial.
+- Not done: HTTP verify route, export, UI. `modules/usage.md` does not exist; the F1-T17 source is recorded in TODO_V1 and ROADMAP.
+
+## 2026-11-23 — Vault storage and API token (F1-T10 partial, F1-T14 partial, Q12–Q14)
+
+- Licence check for the OS keyring (Q12): `github.com/zalando/go-keyring` v0.2.8 (MIT) with `github.com/godbus/dbus/v5` (BSD-2-Clause) and `github.com/danieljoos/wincred` (MIT); `golang.org/x/sys` (BSD-3-Clause). Listed in root `NOTICE`.
+- ADR 0012 (envelope): values in migration `0009_vault_items.sql`, AES-256-GCM, data key wrapped with HKDF-SHA256 bound to owner and key version; `Rewrap` for rotation. Code: `internal/vault` (envelope, keys, service, bootstrap) and `internal/store/vault.go`.
+- Master key sources: OS keyring, or `CALANGO_VAULT_KEY` / `CALANGO_VAULT_KEY_FILE` (mutually exclusive). Both are read only in `internal/config`, not in `main`, per `DEV/SPECS/modules/config.md`. No plain-text fallback.
+- API token moved to the vault as `api-token` (`internal/auth`). A legacy `DataDir/api-token` is imported and removed; a conflicting vault value refuses the start and neither value is deleted.
+- Startup change: the daemon refuses to start without a master key. Linux without Secret Service needs `CALANGO_VAULT_KEY_FILE` (or an unlocked keyring) before the first start. Owner acknowledgement pending.
+- `cmd/calango/main.go` wires the vault and the token import; the listen log no longer names a file.
+- Not done: vault audit events (Q28), vault HTTP routes (Q29), `api-token` rotation and revocation (Q30), master-key rotation at startup (Q31).
+
+## 2026-11-23 — Audit verify route and concurrent appends (F1-T18 partial, Q07, Q10)
+
+- `GET /v1/audit/verify` (read scope): recomputes the chain through `Store.VerifyAudit` and returns `ok`, `entries_checked` and `first_break` (`seq`, `id`, `reason`; null when intact). Handler in `internal/api/audit.go`; `Config.Audit` is the verifier interface. OpenAPI: `verifyAudit` and `AuditVerification` (`first_break` nullable, OpenAPI 3.1 type list).
+- Concurrent appends surfaced `SQLITE_BUSY` ("database is locked"). A deferred transaction reads the audit head and then writes; under WAL a stale snapshot fails at once and `busy_timeout` does not retry it. Fix: `_txlock=immediate` in the store DSN, so every transaction takes the write lock at `BEGIN`. Applies to all store transactions; reads outside transactions are unchanged.
+- `internal/store/audit_concurrency_test.go`: 8 writers × 25 appends on a file database, no error, chain verifies with 200 entries. The same test failed before the fix.
+- Not done: export (Q08), desktop view (Q09), decision on pre-0008 rows (Q11). The route exposes the first break only, never entry contents.
+
+## 2026-11-23 — Vault audit events (F1-T10 partial, Q28)
+
+- `internal/vault`: `Service.Set`, `Reveal` and `Delete` append an audit event before they act (`vault.set`, `vault.reveal`, `vault.delete`). Actor is `owner` with the owner id; subject `vault:<name>`; facts hold only the name. `NewService` now takes an `Auditor` and an id source; `store.Store` satisfies both (`AppendAudit`, `core.NewID`).
+- Fail-closed: if the audit write fails, the action does not run and the error is returned. An attempt that fails afterwards (for example, deleting an unknown name) stays on record.
+- Wired in `cmd/calango/main.go` and `internal/auth/token_test.go`.
+- Tests: `internal/vault/service_audit_test.go` checks event order, that the plain value appears in no event, and that a refused audit blocks set, reveal and delete.
+- Not done: vault HTTP routes (Q29), `api-token` rotation (Q30), master-key rotation at startup (Q31), audit export (Q08).
+- Vault events carry no request context: in-process callers record as `owner`. A routine that reads `vault://` will need its own actor kind when that path exists.
+
+## 2026-11-23 — Vault HTTP routes (F1-T10 partial, Q29)
+
+- Routes in `internal/api/vault.go`: `GET /v1/vault` (names and dates), `PUT /v1/vault/{name}` (set; 200 with name and dates) and `DELETE /v1/vault/{name}` (204; 404 for an unknown name). All require full scope (`PermWrite`), as devices do. No route returns a value; there is no reveal over HTTP.
+- Contract: tag `vault`, paths and schemas `VaultItem` and `VaultSetInput` (`value` is `writeOnly`) in `api/openapi.yaml`. Redocly lint valid.
+- `api-token` is reserved: PUT and DELETE return 409 (`conflict`) until rotation (Q30) exists. Replacing or deleting it would change or lock out the token without a rotation.
+- Error mapping: `vault.ErrInvalidName` and `ErrEmptyValue` now wrap `core.ErrInvalidInput` (400; they were 500). `Reveal` and `Delete` validate the name before writing the audit event, so an invalid name leaves no audit row.
+- `internal/api/api_test.go`: `newTestEnv` returns the handler and the store; `newTestHandler` wraps it. `internal/api/vault_test.go` adds 7 tests.
+- `cmd/calango/main.go` passes the vault service as `Vault`.
+- Not done: `api-token` rotation (Q30), master-key rotation at startup (Q31), audit export (Q08).
+
+## 2026-11-23 — Token rotation (F1-T14, Q30)
+
+- `auth.LocalToken` (`internal/auth/token.go`) holds the live local token in memory. `Matches` compares in constant time; `Rotate` generates a token, stores it in the vault as `api-token` (the vault audits it as `vault.set`), and only then swaps it in. A mutex serialises rotations so the vault and memory always end on the same token. The vault write fails closed: if it fails, the old token stays live.
+- Route `POST /v1/auth/rotate-token` (`internal/api/auth.go`): full scope (`PermWrite`); 200 with `{token}`, the only response that carries a token. Read and approve_only devices get 403. Contract in `api/openapi.yaml`.
+- `api.Config.Token` is now `*auth.LocalToken` instead of a string. `cmd/calango/main.go` wraps the token it loads from the vault.
+- The reserved-name guard for `api-token` still refuses PUT and DELETE. Rotation calls the vault service directly, so it is the only route that changes that item.
+- Risk: if the rotation response is lost, the client has no token and no route returns the new one. Recovering needs a local operator; V1 has no tool for that. Owner decision pending.
+- Not built: a route that revokes the local token without replacing it (it would leave no local client); master-key rotation at startup (Q31).
+
+## 2026-11-23 — Usage known/estimated split (F1-T17, Q18)
+
+- `GET /v1/usage` rows carry `cost_known_micros` and `cost_estimated_micros` next to `cost_micros` (still known plus estimated). The store sums each status with `CASE`; the schema already forces unknown cost to NULL.
+- Changed: `usage.Row`, `store.UsageTotals`, `api.usageRow`, `api/openapi.yaml` (`UsageRow` and `GET /v1/usage` description). No migration.
+- `TestUsageTotalsScopesToOwnerAndCountsUnknownCost` now includes an estimated row and checks the split.
+- Not done: desktop panel (F1-T17) and projects group (no table in V1).

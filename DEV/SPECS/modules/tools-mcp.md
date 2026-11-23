@@ -2,6 +2,8 @@
 
 Phase 1 · Packages `internal/tools`, `internal/mcpgw` · Tables `connectors`, `agent_tools`
 
+Source: ADR 0011 (P3). Ported from `backend/app/agents/mcp.py`, `services/mcp_connection.py` and `services/mcp_audit.py` in `vstorm-co/agenticos` at a4b0b3c; the MCP client comes from the official Go SDK where it covers the protocol.
+
 ## Goal
 Agent tools via MCP, scoped per agent, with approval for anything that writes.
 

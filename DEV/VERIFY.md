@@ -214,3 +214,120 @@ Environment: Go 1.27.4 linux/amd64.
 | Redocly lint `api/openapi.yaml --max-problems=0` | valid, no warnings |
 | Smoke: built `calango`, temporary `CALANGO_DATA_DIR`, `CALANGO_ADDR=127.0.0.1:7398` | `GET /v1/usage` with token 200 `[]`; `group_by=provider` 400; `to` before `from` 400; no token 401; `group_by=model` with `from` 200 `[]`; token file mode 600; process stopped |
 | Limits | No known/estimated split in the response or the store query. No panel (desktop screens). Smoke returns empty lists because the binary has no HTTP route that creates usage; non-empty results are covered by store and service tests only. The `project` group always yields the empty key in V1 (no projects table) |
+
+## Audit chain and AgenticOS attribution (2026-11-23)
+
+Environment: Go 1.27.4 linux/amd64.
+
+| Check | Result |
+|---|---|
+| `gofmt -l .` | ok, no files |
+| `go vet ./...` | ok, no output |
+| `go test ./... -count=1` | ok, 14 packages; `internal/audit` 8 tests, `internal/store` audit tests 4 (chain verifies, edit after dropping `audit_log_reject_update` is detected, truncation after dropping `audit_log_reject_delete` is detected, checkpoint rewind refused by trigger) |
+| `git diff --check` | ok |
+| Secret pattern scan over `internal`, `third_party`, `DEV`, `NOTICE`, `AGENTS.md` | no matches |
+| Redocly lint | not run: no API contract change in this slice |
+
+Pure cases in `internal/audit/chain_test.go`: edited entry, deleted middle entry (link break), truncated tail (checkpoint), legacy row without hash, key-order independence of the hash, malformed facts, empty chain. Reordering is caught by the link check; there is no dedicated reorder test.
+
+Not verified: concurrent appends under load (`SQLITE_BUSY` on stale snapshots is by design and not exercised); the HTTP verify route (not built). The upstream scenarios were read from `verify_chain`, not run against the upstream Python tests.
+
+## Vault and API token (F1-T10 partial, F1-T14 partial, 2026-11-23)
+
+Environment: Go 1.27.4, linux/amd64; smoke data dirs under `/tmp`, removed afterwards.
+
+| Check | Result |
+|---|---|
+| `gofmt -l .` | no files listed |
+| `go vet ./...` | clean |
+| `go test ./... -count=1` | 15 packages ok (includes `internal/vault`, `internal/auth`, `internal/config`, `internal/store`) |
+| Cross-compile `./cmd/calango` | `windows/amd64`, `darwin/arm64`, `linux/arm64` build OK; the keyring backend compiles there but is not run |
+| Smoke on the built binary, `CALANGO_VAULT_KEY` (random 32 bytes), legacy `api-token` file (0600) | First start logs "moved the api token … into the vault"; `/healthz` 200; legacy token on `/v1/agents` 200; wrong token 401; legacy file removed; token string not found in `calango.db`. Second start with the same key: token still 200 from the vault; no import line |
+| `git diff --check` | clean |
+| Secret pattern scan (`internal`, `third_party`, `cmd`, `DEV`, `NOTICE`, `AGENTS.md`) | no matches |
+
+Limits:
+
+- The OS keyring backend (`OSKeyring`) did not run on Windows, macOS or a Linux Secret Service. The smoke used `CALANGO_VAULT_KEY` on purpose, so no real entry was written to this machine's keyring.
+- No vault audit events (Q28), no vault HTTP routes (Q29), no `api-token` rotation or revocation (Q30), no master-key rotation at startup (Q31). `LoadMasterKeys` supplies key version 1 only.
+- Startup is stricter: without a master key the daemon does not start. Owner acknowledgement pending.
+
+## Audit verify route and concurrent appends (F1-T18 partial, Q07, Q10, 2026-11-23)
+
+| Check | Result |
+|---|---|
+| `go test ./internal/store -run TestConcurrentAuditAppends -count=3 -v` | PASS on 3 runs. Before the `_txlock=immediate` change the same test failed with `database is locked (SQLITE_BUSY)`. |
+| `go test ./internal/api` (`audit_test.go`: first-break mapping, read scope, intact empty chain on a real store) | PASS |
+| `gofmt -l .` | empty |
+| `go vet ./...` | clean |
+| `go test ./... -count=1` | all packages ok |
+| `npx @redocly/cli@2.81.0 lint --extends minimal api/openapi.yaml --max-problems=0` | valid |
+
+Limits:
+
+- The HTTP break path uses a fake verifier; tamper cases over the real database are covered by `internal/audit` and `internal/store` tests, not over HTTP.
+- `_txlock=immediate` applies to every store transaction. No write-latency measurement under load was taken.
+
+## Vault audit events (F1-T10 partial, Q28, 2026-11-23)
+
+| Check | Result |
+|---|---|
+| `go test ./internal/vault -count=1` | PASS, including `TestServiceAuditsEachActionWithNameOnly`, `TestServiceFailsClosedWhenAuditIsRefused`, `TestServiceRequiresAuditorAndIDSource` |
+| `go test ./... -count=1` | 15 packages ok (`internal/auth` and `cmd/calango` build with the new `NewService` signature) |
+| `gofmt -l .` | empty |
+| `go vet ./...` | clean |
+
+Limits:
+
+- Tests use an in-memory audit recorder and a fixed id source. No event was checked in a real database file or over HTTP.
+- In-process callers always record as actor `owner`.
+
+## Vault HTTP routes (F1-T10 partial, Q29, 2026-11-23)
+
+| Check | Result |
+|---|---|
+| `go test ./internal/api -run Vault -count=1 -v` | PASS, 7 tests: value absent from PUT, GET and audit rows; set replaces the same name; bad name and empty value 400 `invalid_input`; delete 204 then list `[]`, unknown delete 404; read and approve_only devices 403; `api-token` PUT and DELETE 409 `conflict`; `vault.set` and `vault.delete` audit rows with subject `vault:github` and no value |
+| `go test ./... -count=1` | 15 packages ok |
+| `gofmt -l .` | empty |
+| `go vet ./...` | clean |
+| `npx @redocly/cli@2.81.0 lint --extends minimal api/openapi.yaml --max-problems=0` | valid |
+| `git diff --check` | clean |
+| Forbidden-name scan (ADR 0006) over `DEV/`, `README.md`, `AGENTS.md`, `NOTICE` | no matches |
+
+Limits:
+
+- The routes were tested on the in-memory store (`OpenMemory`), not a database file. The binary was not started for this slice; the earlier smoke test predates the routes.
+- No route returns a value and `Reveal` is not on `VaultStore`, so reveal is not reachable over HTTP. This is by design until a consumer needs it.
+- `api-token` cannot be set or deleted through these routes until rotation (Q30) exists.
+
+## Token rotation (F1-T14, Q30, 2026-11-23)
+
+| Check | Result |
+|---|---|
+| `gofmt -l .` | clean |
+| `go vet ./...` | clean |
+| `go test ./internal/auth -count=1` | ok; includes `TestLocalTokenRotationSurvivesARestart`, `TestLocalTokenKeepsOldTokenWhenVaultWriteFails` |
+| `go test ./internal/api -count=1` | ok; includes `TestRotateTokenRetiresTheOldToken`, `TestRotateTokenNeedsFullScope`, audit verify test using `newTestLocalToken` |
+| `go test ./... -count=1` | 15 packages ok |
+| `npx @redocly/cli@2.81.0 lint --extends minimal api/openapi.yaml --max-problems=0` | valid |
+| Binary smoke: built `cmd/calango`, legacy `api-token` file imported, `POST /v1/auth/rotate-token` 200, old token 401, new token 200, both after a restart; no token in the logs | as stated |
+
+Limits:
+
+- The fail-closed test uses a closed store, so the vault write fails before the swap. It does not inject a failure in the middle of the write.
+- A lost rotation response leaves the client with no token; no V1 route recovers it. Owner decision pending.
+- The smoke ran on Linux only; the keyring backends were not involved (key file used).
+
+## Usage known/estimated split (F1-T17, Q18, 2026-11-23)
+
+- `gofmt -l` on `internal/usage`, `internal/store`, `internal/api`: empty.
+- `go vet ./...`: clean.
+- `go test` on the usage, store and API packages, filter `Usage`: PASS.
+- `go test ./... -count=1`: 15 packages ok.
+- Redocly lint `api/openapi.yaml` (minimal, max-problems 0): valid.
+- Limit: the split is covered by store and API tests only; the built binary was not smoke-tested after this change. The desktop panel is not built.
+
+## Cross-compile after Q29 and Q30 (2026-11-23)
+
+- `CGO_ENABLED=0 GOOS/GOARCH go build ./cmd/calango`: OK for windows/amd64, darwin/arm64, darwin/amd64, linux/amd64.
+- Limit: a successful build does not run the keyring backends. The Windows Credential Manager, macOS Keychain and Linux Secret Service paths have not been exercised at runtime (Q13).

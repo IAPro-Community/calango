@@ -22,6 +22,7 @@ import (
 	"calango/internal/memory"
 	"calango/internal/store"
 	"calango/internal/usage"
+	"calango/internal/vault"
 )
 
 const (
@@ -51,7 +52,26 @@ func main() {
 		}
 	}()
 
-	token, err := auth.LoadOrCreateToken(cfg.DataDir)
+	keys, err := vault.LoadMasterKeys(cfg.VaultKey, cfg.VaultKeyFile, vault.OSKeyring{})
+	if err != nil {
+		log.Fatalf("vault master key: %v", err)
+	}
+	secrets, err := vault.NewService(database, keys, localOwnerID, database, time.Now, core.NewID)
+	if err != nil {
+		log.Fatalf("vault service: %v", err)
+	}
+	imported, err := auth.ImportFileToken(ctx, cfg.DataDir, secrets)
+	if err != nil {
+		log.Fatalf("api token import: %v", err)
+	}
+	if imported {
+		log.Printf("moved the api token from %s into the vault", filepath.Join(cfg.DataDir, auth.TokenFileName))
+	}
+	token, err := auth.LoadOrCreateVaultToken(ctx, secrets)
+	if err != nil {
+		log.Fatalf("local api token: %v", err)
+	}
+	localToken, err := auth.NewLocalToken(token, secrets)
 	if err != nil {
 		log.Fatalf("local api token: %v", err)
 	}
@@ -81,7 +101,9 @@ func main() {
 		Approvals: approvalSvc,
 		Devices:   devicesSvc,
 		Usage:     usageSvc,
-		Token:     token,
+		Vault:     secrets,
+		Audit:     database,
+		Token:     localToken,
 		OwnerID:   localOwnerID,
 		DeviceID:  localDeviceID,
 	})
@@ -102,7 +124,7 @@ func main() {
 		_ = srv.Shutdown(shutdownCtx)
 	}()
 
-	log.Printf("calango listening on %s (api token in %s)", cfg.Addr, filepath.Join(cfg.DataDir, auth.TokenFileName))
+	log.Printf("calango listening on %s (api token in the vault)", cfg.Addr)
 	if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		log.Fatal(err)
 	}

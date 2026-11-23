@@ -19,8 +19,9 @@ Do not load the whole `DEV/` folder. Read what the task needs.
 
 ## Non-negotiable rules
 
-- **Original code.** Tucano (`eduwxyz/tucano`) and agentes.chat (`agentes-chat/agentes-chat`) were read only as product references. Do not copy code, text, tests or assets from them. agentes.chat is AGPL; any copied fragment would contaminate the license.
+- **Original code.** agentes.chat (`agentes-chat/agentes-chat`) was read only as a product reference. Do not copy code, text, tests or assets from it. agentes.chat is AGPL; any copied fragment would contaminate the license.
 - **Exception: Orquestrador Maestro** (`IAPro-Community/Orquestrador-Maestro`, Apache-2.0). Do not copy the repository: consume it from the official npm package (ADR 0009). Keep `NOTICE` up to date.
+- **Exception: AgenticOS** (`vstorm-co/agenticos`, Apache-2.0): only the modules listed in ADR 0011, rewritten in Go, TypeScript and Dart with attribution. Keep `NOTICE` and `third_party/agenticos/` up to date.
 - **The binary is called `calango`** (not `calangod`). Entry point in `cmd/calango`.
 - **Clients do not run agents.** Desktop, mobile and web only talk to the `calango` API.
 - **Every model call goes through the gateway** (`internal/gateway`): budget checked before, cost recorded after.

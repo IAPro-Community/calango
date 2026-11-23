@@ -10,4 +10,20 @@ Orquestrador Maestro
   Installed from the npm package @iapro/orquestrador-maestro-cli.
   Calango consumes the official version through the npm channel; the project's code is not copied into this repository.
 
+AgenticOS
+  Copyright 2026 Vstorm
+  Licensed under the Apache License, Version 2.0
+  https://github.com/vstorm-co/agenticos
+  Full licence text: third_party/agenticos/LICENSE. Upstream notice: third_party/agenticos/NOTICE.
+  Calango rewrites the logic of selected upstream modules (ADR 0011). Each derived file names its upstream path and commit a4b0b3c in its header.
+  Upstream third-party assets (brand marks, bundled libraries, Tauri code) are not included.
+
+Go modules reviewed so far (see go.mod)
+  modernc.org/sqlite v1.35.0, BSD-3-Clause (Copyright 2017 The SQLite Authors)
+  github.com/zalando/go-keyring v0.2.8, MIT (Copyright 2016 Zalando SE)
+  github.com/godbus/dbus/v5 v5.2.2, BSD-2-Clause (Copyright 2013 Georg Reinke, Google)
+  github.com/danieljoos/wincred v1.2.3, MIT (Copyright 2014 Daniel Joos)
+  golang.org/x/sys v0.28.0, BSD-3-Clause (Copyright 2009 The Go Authors)
+  Other indirect modules (go.sum) are not yet listed here; review their licences before the first release.
+
 The trademarks and names of the projects mentioned belong to their owners.

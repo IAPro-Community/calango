@@ -20,7 +20,7 @@ The competitive landscape has changed: self-hosted products, agent desktops and 
 3. **Nothing sensitive without approval.** Sending, deleting, publishing, paying, deploying: always an approval card.
 4. **All cost is visible.** Every model call is measured, has an owner and has a limit.
 5. **Silence is a valid answer.** A routine with no news does not notify anyone.
-6. **Original code.** Tucano and agentes.chat are read-only references.
+6. **Original code.** agentes.chat is a read-only reference.
 
 ---
 
@@ -76,7 +76,7 @@ The competitive landscape has changed: self-hosted products, agent desktops and 
 - **Renderer (React + TypeScript + Vite)**: the entire interface. Talks to `calango` through the API, just like the phone.
 - **Internal browser**: real tabs with `WebContentsView`. The agent drives the same tab through the Electron debugging protocol, and the person can **take over** the tab at any time (and hand it back).
 - **ADE editor**: Monaco. **Terminal**: xterm.js connected to the daemon's PTY.
-- **Windows**: signed NSIS installer (code-signing certificate from the first public release; Tucano suffers from SmartScreen warnings because it does not sign), starts with the system, tray icon.
+- **Windows**: signed NSIS installer (code-signing certificate from the first public release, so SmartScreen does not block the install), starts with the system, tray icon.
 - **macOS**: signed and notarized. **Linux**: `.deb` and AppImage (AppImage is restricted on Ubuntu 24.04+, so `.deb` is the main path there).
 
 ### 4.3 Mobile — iOS and Android

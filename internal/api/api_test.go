@@ -1,6 +1,7 @@
 package api
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"net/http"
@@ -11,11 +12,13 @@ import (
 
 	"calango/internal/agents"
 	"calango/internal/approvals"
+	"calango/internal/auth"
 	"calango/internal/core"
 	"calango/internal/devices"
 	"calango/internal/memory"
 	"calango/internal/store"
 	"calango/internal/usage"
+	"calango/internal/vault"
 )
 
 const (
@@ -25,6 +28,13 @@ const (
 )
 
 func newTestHandler(t *testing.T) http.Handler {
+	t.Helper()
+	h, _ := newTestEnv(t)
+	return h
+}
+
+// newTestEnv returns the handler and the store behind it, so a test can read the audit trail.
+func newTestEnv(t *testing.T) (http.Handler, *store.Store) {
 	t.Helper()
 	database, err := store.OpenMemory(context.Background())
 	if err != nil {
@@ -53,20 +63,34 @@ func newTestHandler(t *testing.T) http.Handler {
 	if err != nil {
 		t.Fatalf("usage service: %v", err)
 	}
+	keys, err := vault.NewMasterKeys(map[int][]byte{1: bytes.Repeat([]byte{7}, 32)})
+	if err != nil {
+		t.Fatalf("master keys: %v", err)
+	}
+	vaultSvc, err := vault.NewService(database, keys, testOwner, database, now, core.NewID)
+	if err != nil {
+		t.Fatalf("vault service: %v", err)
+	}
+	localToken, err := auth.NewLocalToken(testToken, vaultSvc)
+	if err != nil {
+		t.Fatalf("local token: %v", err)
+	}
 	h, err := NewHandler(Config{
 		Agents:    agentSvc,
 		Memories:  memorySvc,
 		Approvals: approvalSvc,
 		Devices:   devicesSvc,
 		Usage:     usageSvc,
-		Token:     testToken,
+		Vault:     vaultSvc,
+		Audit:     database,
+		Token:     localToken,
 		OwnerID:   testOwner,
 		DeviceID:  testDeviceID,
 	})
 	if err != nil {
 		t.Fatalf("new handler: %v", err)
 	}
-	return h
+	return h, database
 }
 
 // call sends one request. An empty token sends no Authorization header.

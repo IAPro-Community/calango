@@ -2,6 +2,8 @@
 
 Phase 1 · Package `internal/memory` · Tables `memories`, `skills`
 
+Source: ADR 0011 (P2). Ported from `backend/app/repositories/memory.py`, `backend/app/agents/memory_scope.py` and `backend/app/schemas/memory.py` in `vstorm-co/agenticos` at a4b0b3c.
+
 ## Goal
 The agent remembers facts, preferences and decisions, and the person controls everything.
 

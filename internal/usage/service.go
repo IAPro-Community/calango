@@ -34,11 +34,13 @@ type Query struct {
 
 // Row is the total of one group. Key is empty when the row has no value for the group.
 type Row struct {
-	Key             string
-	TokensIn        int64
-	TokensOut       int64
-	CostMicros      int64
-	UnknownCostRows int64
+	Key                 string
+	TokensIn            int64
+	TokensOut           int64
+	CostMicros          int64 // known plus estimated; unknown rows add nothing
+	CostKnownMicros     int64
+	CostEstimatedMicros int64
+	UnknownCostRows     int64
 }
 
 // Repository is the persistence the service needs. The SQLite store implements it.

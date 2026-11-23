@@ -5,7 +5,6 @@ package api
 
 import (
 	"context"
-	"crypto/subtle"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -17,6 +16,7 @@ import (
 
 	"calango/internal/agents"
 	"calango/internal/approvals"
+	"calango/internal/auth"
 	"calango/internal/core"
 	"calango/internal/devices"
 	"calango/internal/memory"
@@ -33,9 +33,13 @@ type Config struct {
 	Approvals *approvals.Service
 	Devices   *devices.Service
 	Usage     *usage.Service
-	// Token is the local bearer token of the desktop that runs the node. It must be
-	// non-empty and acts with full scope.
-	Token string
+	// Vault stores secrets for the /v1/vault routes. It never returns a value.
+	Vault VaultStore
+	// Audit verifies the audit chain for GET /v1/audit/verify.
+	Audit AuditVerifier
+	// Token is the live local bearer token of the desktop that runs the node. It acts
+	// with full scope and is replaced through POST /v1/auth/rotate-token.
+	Token *auth.LocalToken
 	// OwnerID scopes every read and write to one owner.
 	OwnerID string
 	// DeviceID identifies the desktop when the local token is used; approval decisions
@@ -49,7 +53,9 @@ type handler struct {
 	approvals  *approvals.Service
 	devices    *devices.Service
 	usage      *usage.Service
-	localToken string
+	audit      AuditVerifier
+	vault      VaultStore
+	localToken *auth.LocalToken
 	ownerID    string
 	deviceID   string
 	pairLimit  *attemptLimiter
@@ -58,9 +64,9 @@ type handler struct {
 // NewHandler validates cfg and returns the node's HTTP handler.
 func NewHandler(cfg Config) (http.Handler, error) {
 	switch {
-	case cfg.Agents == nil, cfg.Memories == nil, cfg.Approvals == nil, cfg.Devices == nil, cfg.Usage == nil:
-		return nil, errors.New("api: agents, memories, approvals, devices and usage services are required")
-	case cfg.Token == "":
+	case cfg.Agents == nil, cfg.Memories == nil, cfg.Approvals == nil, cfg.Devices == nil, cfg.Usage == nil, cfg.Vault == nil, cfg.Audit == nil:
+		return nil, errors.New("api: agents, memories, approvals, devices, usage, vault and audit services are required")
+	case cfg.Token == nil:
 		return nil, errors.New("api: bearer token is required")
 	case cfg.OwnerID == "", cfg.DeviceID == "":
 		return nil, errors.New("api: owner and device ids are required")
@@ -72,6 +78,8 @@ func NewHandler(cfg Config) (http.Handler, error) {
 		approvals:  cfg.Approvals,
 		devices:    cfg.Devices,
 		usage:      cfg.Usage,
+		vault:      cfg.Vault,
+		audit:      cfg.Audit,
 		localToken: cfg.Token,
 		ownerID:    cfg.OwnerID,
 		deviceID:   cfg.DeviceID,
@@ -83,6 +91,9 @@ func NewHandler(cfg Config) (http.Handler, error) {
 	h.registerApprovals(v1)
 	h.registerDevices(v1)
 	h.registerUsage(v1)
+	h.registerVault(v1)
+	h.registerAuth(v1)
+	h.registerAudit(v1)
 
 	root := http.NewServeMux()
 	root.HandleFunc("GET /healthz", healthz)
@@ -115,14 +126,13 @@ func principalOf(ctx context.Context) principal {
 // authenticate resolves the bearer token to a principal. The local token is compared in
 // constant time and acts with full scope. Any other token must belong to an active device.
 func (h *handler) authenticate(next http.Handler) http.Handler {
-	local := []byte(h.localToken)
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		token := bearerToken(r)
 		if token == "" {
 			unauthorized(w)
 			return
 		}
-		if subtle.ConstantTimeCompare([]byte(token), local) == 1 {
+		if h.localToken.Matches(token) {
 			next.ServeHTTP(w, r.WithContext(withPrincipal(r.Context(), principal{h.deviceID, core.ScopeFull})))
 			return
 		}

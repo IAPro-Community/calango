@@ -16,6 +16,10 @@ const defaultAddr = "127.0.0.1:7317"
 type Config struct {
 	Addr    string
 	DataDir string
+	// VaultKey and VaultKeyFile hold the vault master key when no OS keyring is used.
+	// They are secrets: never log or print a Config.
+	VaultKey     string
+	VaultKeyFile string
 }
 
 // Load reads supported CALANGO_* environment variables and validates them.
@@ -41,7 +45,9 @@ func Load() (Config, error) {
 		return Config{}, fmt.Errorf("CALANGO_DATA_DIR: resolve path: %w", err)
 	}
 
-	cfg := Config{Addr: addr, DataDir: dataDir}
+	vaultKey := os.Getenv("CALANGO_VAULT_KEY")
+	vaultKeyFile := os.Getenv("CALANGO_VAULT_KEY_FILE")
+	cfg := Config{Addr: addr, DataDir: dataDir, VaultKey: vaultKey, VaultKeyFile: vaultKeyFile}
 	if err := cfg.Validate(); err != nil {
 		return Config{}, err
 	}
@@ -58,6 +64,9 @@ func (c Config) Validate() error {
 	}
 	if !filepath.IsAbs(c.DataDir) {
 		return fmt.Errorf("CALANGO_DATA_DIR: path must be absolute")
+	}
+	if c.VaultKey != "" && c.VaultKeyFile != "" {
+		return fmt.Errorf("CALANGO_VAULT_KEY and CALANGO_VAULT_KEY_FILE are mutually exclusive; set one")
 	}
 	return nil
 }

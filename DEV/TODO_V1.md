@@ -10,6 +10,58 @@ Execution order: each block starts only when the previous one meets the exit cri
 
 ---
 
+
+## Queue: everything still to do (ordered)
+
+Blocked by owner decision; do not start before the answer:
+- [ ] Q01 Owner confirms ADR 0011 status (recorded as "accepted"; legal review D1b open) or sets it to "proposed".
+- [ ] Q02 Owner answers D3 (first harness). Unblocks F1-T04/05, F1-T07 guide/steer, F1-T09 executor, F1-T11 `memory_save`, `/v1/conversations*`, `/v1/runs/*`, `/v1/routines*`.
+- [ ] Q03 Owner answers D2, D4, D5 and D6 (section 0).
+
+Git (only on explicit owner request):
+- [ ] Q04 Commit and push the uncommitted batch (ADR 0011, audit chain, docs, NOTICE, `third_party/agenticos/`). Nothing committed since `6c62ceb`.
+- [ ] Q05 Run GitHub CI on the pushed commit; it has never run.
+- [ ] Q06 Delete `/tmp/agenticos` after the P1–P3 ports (ask first; it is a temporary clone).
+
+P1, audit (F1-T18):
+- [x] Q07 HTTP route to verify the audit chain. Done: `GET /v1/audit/verify` (`internal/api/audit.go`, read scope); `verifyAudit` and `AuditVerification` in `api/openapi.yaml`; Redocly lint passes.
+- [ ] Q08 Audit export; format in `DEV/SPECS/modules/approvals.md`.
+- [ ] Q09 Audit view in the desktop (with F1-T23).
+- [x] Q10 Test concurrent appends under load. Done: `_txlock=immediate` in the store DSN; `internal/store/audit_concurrency_test.go` (8 writers × 25 appends) passes. Before the change, `SQLITE_BUSY` reached callers.
+- [ ] Q11 Decide the path for databases with audit rows from before migration 0008 (today: break reported from the first row). Accept for pre-release or reset.
+
+P1, vault (F1-T10):
+- [x] Q12 Check the licence of OS keychain library candidates (e.g. `github.com/zalando/go-keyring`) before adding; update `NOTICE`. Done: `go-keyring` v0.2.8 (MIT) and its dependencies are listed in `NOTICE`.
+- [ ] Q13 Port `core/vault.py` (343 lines) to `internal/vault`: Windows Credential Manager, macOS Keychain, Linux Secret Service; refuses plain text; ADR 0011 header. Partial: envelope, service, store, bootstrap, audit (Q28) and HTTP (Q29) done (ADR 0012); the keyring backends compile for Windows and macOS but have not run there.
+- [x] Q14 Move the API token into the vault. Done: stored as `api-token`, legacy file imported and removed; rotation replaces it (Q30).
+- [x] Q28 Vault audit events for set, reveal and delete, in the audit chain (F1-T18); record names and actors only, never values. Done: `Service.Set`, `Reveal` and `Delete` append an event before acting (`vault.set`, `vault.reveal`, `vault.delete`; facts hold the name only); a refused audit write refuses the action (`internal/vault/service_audit_test.go`).
+- [x] Q29 Vault HTTP routes: list names and dates, set, delete; scopes in `api/openapi.yaml`; no route returns a value; Redocly lint. Done: `GET /v1/vault`, `PUT /v1/vault/{name}` and `DELETE /v1/vault/{name}` (`internal/api/vault.go`; full scope only; 404 for unknown names). Responses carry name and dates, never the value. The reserved name `api-token` returns 409 until Q30. Tests: `internal/api/vault_test.go`; Redocly lint valid.
+- [x] Q30 Rotation of the local `api-token`: a rotate action replaces the vault item and the live token; the old token fails on the next call. Done: `POST /v1/auth/rotate-token` (full scope; `api/openapi.yaml` operationId `rotateToken`), `auth.LocalToken` (`internal/auth/token.go`), `internal/api/auth.go`. The new token is returned once and is never stored in plain text. No separate revocation route: the rotate action revokes the old token, and revoking without a replacement would leave no local client. Tests: `internal/api/auth_test.go`, `internal/auth/token_test.go`; binary smoke (old 401, new 200, both after restart).
+- [ ] Q31 Master-key rotation at startup: `LoadMasterKeys` supplies only version 1; wire `Service.Rotate` when a second key version is configured.
+
+P2:
+- [ ] Q15 Approvals: card, `waiting_approval` on runs, reconciliation of approved actions without receipt (F1-T08). Reference: `services/approvals.py` (883 lines) and `agent` (143).
+- [ ] Q16 Routines: HTTP routes, client events, manual run, `routine_finish`, event triggers (F1-T09). Reference: `routine_actions.py` (505), `routine_delivery.py` (241), `routine_authority.py` (674), `routine_sources.py` (1106); port only what V1 uses.
+- [ ] Q17 Memory: `memory_save` tool (needs D3), purge schedule, project scope decision (F1-T11). Reference: `repositories/memory.py` (291), `agents/memory_scope.py` (125).
+- [ ] Q18 Usage: desktop panel (F1-T17). Known/estimated split done in `GET /v1/usage` and the store query (`cost_known_micros`, `cost_estimated_micros`). Reference: `services/usage_report.py` (365).
+- [ ] Q19 Pairing: make `/v1/pair` rate limit proxy-aware (keys on `RemoteAddr` today) before any VPS deployment (F1-T15).
+
+P3:
+- [ ] Q20 MCP (F1-T12): check go-sdk licence (moving MIT to Apache-2.0) before adding; connect server, gateway per turn, scopes none/read/write. Reference: `agents/mcp.py` (1040), `services/mcp_connection.py` (3655), `services/mcp_audit.py` (517), `agents/mcp_oauth.py` (676); port in slices.
+- [ ] Q21 Screens (F1-T23): routines widget reference `dashboard/widgets/routines.tsx` (225).
+
+Blocked by D3 (conversations and events):
+- [ ] Q22 Conversations and runs HTTP routes, guide/steer, one reply at a time per agent (F1-T07, F1-T13). Depends on Q02.
+- [ ] Q23 WebSocket `/v1/events`: choose the dependency; check its licence and Go 1.22 support; no SSE substitute (F1-T13).
+
+Maestro:
+- [ ] Q24 Maestro (F1-T16): validate install destination, JSON format and non-interactive `update`; D6 default.
+
+Verification and site:
+- [ ] Q25 Docker bridge networking test on a compatible machine (only `--network host` verified).
+- [ ] Q26 Site review on phone and in dark mode.
+- [ ] Q27 Owner site items: CLA legal name, contacts (`licenca@`, `seguranca@`, `conduta@`), Caddy domain, Terms of Service link.
+
 ## 0. Owner decisions (block parts of V1)
 
 - [x] D1 Calango code will be **open** (decided by the owner on 2026-11-23).
@@ -48,23 +100,23 @@ Execution order: each block starts only when the previous one meets the exit cri
 - [ ] F1-T05 `internal/harness` with the adapter for the harness chosen in D3. → `modules/harness.md`
 - [x] F1-T06 Agents: CRUD, global pause, monthly limit (service and store; HTTP wiring in F1-T13/T15, pause enforcement on runs in F1-T07). → `modules/agents.md`
 - [ ] F1-T07 Conversations and runs: DM, persisted/streamed steps, stop, guide, retry with instructions; reconnection restores state and resending does not duplicate the run. → `modules/conversations.md`. Partial: guide and reconnection pending.
-- [ ] F1-T08 Approvals: card with an immutable canonical payload, digest checked before execution, decision, separate receipt, "always approve", 24 h expiry. → `modules/approvals.md`. Partial: domain, store, service and tests done; card, HTTP and `waiting_approval` pending (F1-T13).
-- [ ] F1-T09 Routines: cron and interval, ID per occurrence, idempotent retries with backoff, notify_on, quiet window, missed execution without repetition. → `modules/routines.md`. Partial: domain, store, service and tests done; HTTP, client events, real executor and `routine_finish` pending (F1-T13 / D3).
-- [ ] F1-T10 Vault: Windows Credential Manager, macOS Keychain, Linux Secret Service; refuses plain text. → `modules/vault.md`
-- [ ] F1-T11 Memory: save, list, edit, delete; injection under a token budget. → `modules/memory.md`. Partial: service, store and budgeted injection done; `memory_save` tool (D3), HTTP and project scope pending.
-- [ ] F1-T12 MCP: connect a server, local MCP gateway per turn, scopes none/read/write. → `modules/tools-mcp.md`
+- [ ] F1-T08 Approvals: card with an immutable canonical payload, digest checked before execution, decision, separate receipt, "always approve", 24 h expiry. → `modules/approvals.md`; source ADR 0011 (P2). Partial: domain, store, service and tests done; card, HTTP and `waiting_approval` pending (F1-T13).
+- [ ] F1-T09 Routines: cron and interval, ID per occurrence, idempotent retries with backoff, notify_on, quiet window, missed execution without repetition. → `modules/routines.md`; source ADR 0011 (P2). Partial: domain, store, service and tests done; HTTP, client events, real executor and `routine_finish` pending (F1-T13 / D3).
+- [ ] F1-T10 Vault: Windows Credential Manager, macOS Keychain, Linux Secret Service; refuses plain text. → `modules/vault.md`; source ADR 0011 (P1, `core/vault.py`). Partial: envelope, store, service and master-key bootstrap done (ADR 0012); the keyring backend compiles for Windows, macOS and Linux but has not run on Windows or macOS; audit (Q28) and HTTP (Q29) done; master-key rotation (Q31) pending.
+- [ ] F1-T11 Memory: save, list, edit, delete; injection under a token budget. → `modules/memory.md`; source ADR 0011 (P2). Partial: service, store and budgeted injection done; `memory_save` tool (D3), HTTP and project scope pending.
+- [ ] F1-T12 MCP: connect a server, local MCP gateway per turn, scopes none/read/write. → `modules/tools-mcp.md`; source ADR 0011 (P3).
 - [ ] F1-T13 API v1 per `api/openapi.yaml` and WebSocket `/v1/events`. Partial: REST for agents, memories, approvals, devices and usage (`GET /v1/usage`) served behind bearer auth and tested; conversations, runs, routines and `/v1/events` not implemented (D3).
-- [ ] F1-T14 Local desktop token, stored in the vault. Partial: token file (0600) generated on first start and required by every `/v1` route; vault storage (F1-T10), rotation and revocation pending.
+- [ ] F1-T14 Local desktop token, stored in the vault. Partial: token is the vault item `api-token`, created on first start; a legacy `DataDir/api-token` file is imported and removed; every `/v1` route requires it. Rotation and revocation pending (Q30).
 - [ ] F1-T15 Device pairing and authentication (local version, no phone yet). → `modules/pairing-auth.md`. Partial: pairing codes, device tokens, device list, revocation and scopes served and tested; QR code, mobile app and VPS administrator password pending.
 - [ ] F1-T16 Maestro integration: install the V1 line, `verify`, link to agents, update card. → `modules/maestro.md`, ADR 0009
-- [ ] F1-T17 Usage/cost panel per agent, routine, project, model and node; real, estimated or unknown cost is never shown as zero without evidence. → ADR 0007, DATA_MODEL `usage`. Partial: `GET /v1/usage` with the five groupings and unknown-cost counting served and tested; known and estimated not split yet; panel pending (desktop screens).
-- [ ] F1-T18 Append-only audit of approvals, receipts, remote actions, permission changes and devices; no secrets or unnecessary content. → SECURITY
+- [ ] F1-T17 Usage/cost panel per agent, routine, project, model and node; real, estimated or unknown cost is never shown as zero without evidence. → ADR 0007, DATA_MODEL `usage`; source ADR 0011 (P2, `services/usage_report.py`). Partial: `GET /v1/usage` with the five groupings, unknown-cost counting and the known/estimated split (`cost_known_micros`, `cost_estimated_micros`) served and tested; panel pending (desktop screens).
+- [ ] F1-T18 Append-only audit of approvals, receipts, remote actions, permission changes and devices; no secrets or unnecessary content. → SECURITY. Partial: hash chain, checkpoint and `VerifyAudit` in the store (ADR 0011, `core/audit.py`); HTTP verify route, export and UI pending.
 
 ### Desktop (Electron)
 - [ ] F1-T20 `apps/desktop`: Electron + Vite + React + TS strict; `contextIsolation`, `sandbox`, strict CSP. → `modules/desktop-electron.md`
 - [ ] F1-T21 Main process starts and watches `calango`; restarts with backoff; state in the tray.
 - [ ] F1-T22 `packages/sdk-ts` generated from OpenAPI; `packages/tokens` generating CSS.
-- [ ] F1-T23 Screens: sidebar, conversations, approval card, routines, agents, usage, settings (you, agents, models, connections, vault), "About" with credit to Maestro.
+- [ ] F1-T23 Screens: sidebar, conversations, approval card, routines, agents, usage, settings (you, agents, models, connections, vault), "About" with credit to Maestro. Source: ADR 0011 (P3, screen reference only).
 - [ ] F1-T24 Tray, start with the system, global shortcut for quick conversation.
 - [ ] F1-T25 **Signed** Windows NSIS installer + signed auto-update; Linux `.deb`; notarized macOS DMG.
 - [ ] F1-T26 i18n: pt-BR, en and es from the first screen; single catalog in `packages/i18n`, with deterministic generation and drift checking in CI.
@@ -167,7 +219,7 @@ Execution order: each block starts only when the previous one meets the exit cri
 - [ ] Validate `docker build` and `docker run` of the site `Dockerfile` and `deploy/Dockerfile.node` (blocked: Docker daemon unavailable in this environment; the user needs to grant daemon access).
 - [ ] Validate the `.github/workflows/ci.yml` workflow after the first push.
 - [ ] Full visual review of the site in light and dark with the browser pane visible (pending from the previous session).
-- [ ] Remove any trace of reference code: review PRs against copies of Tucano and agentes.chat (ADR 0006).
+- [ ] Remove any trace of reference code: review PRs against copies of agentes.chat (ADR 0006).
 
 ---
 

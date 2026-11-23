@@ -53,6 +53,8 @@
 | [0008](ADR/0008-replicacao-por-eventos.md) | Node-to-node replication by events; code through git |
 | [0009](ADR/0009-orquestrador-maestro.md) | Orquestrador Maestro embedded, updated through the official npm channel |
 | [0010](ADR/0010-licenca-agpl-dupla.md) | Open source under AGPL-3.0, with commercial license, CLA and trademark policy |
+| [0011](ADR/0011-reuso-agenticos.md) | Port Apache-2.0 code from AgenticOS into Go, TypeScript and Dart; amends ADR 0006 for that source |
+| [0012](ADR/0012-vault-envelope.md) | Vault stores envelope-encrypted values in SQLite; master key from the OS keyring or a deployment secret |
 
 ## Module specs (`SPECS/modules/`)
 

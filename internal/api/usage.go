@@ -11,11 +11,13 @@ import (
 
 // usageRow is the UsageRow schema.
 type usageRow struct {
-	Key             string `json:"key"`
-	TokensIn        int64  `json:"tokens_in"`
-	TokensOut       int64  `json:"tokens_out"`
-	CostMicros      int64  `json:"cost_micros"`
-	UnknownCostRows int64  `json:"cost_unknown_rows"`
+	Key                 string `json:"key"`
+	TokensIn            int64  `json:"tokens_in"`
+	TokensOut           int64  `json:"tokens_out"`
+	CostMicros          int64  `json:"cost_micros"`
+	CostKnownMicros     int64  `json:"cost_known_micros"`
+	CostEstimatedMicros int64  `json:"cost_estimated_micros"`
+	UnknownCostRows     int64  `json:"cost_unknown_rows"`
 }
 
 func (h *handler) registerUsage(mux *http.ServeMux) {
@@ -46,11 +48,13 @@ func (h *handler) getUsage(w http.ResponseWriter, r *http.Request) {
 	out := make([]usageRow, 0, len(rows))
 	for _, row := range rows {
 		out = append(out, usageRow{
-			Key:             row.Key,
-			TokensIn:        row.TokensIn,
-			TokensOut:       row.TokensOut,
-			CostMicros:      row.CostMicros,
-			UnknownCostRows: row.UnknownCostRows,
+			Key:                 row.Key,
+			TokensIn:            row.TokensIn,
+			TokensOut:           row.TokensOut,
+			CostMicros:          row.CostMicros,
+			CostKnownMicros:     row.CostKnownMicros,
+			CostEstimatedMicros: row.CostEstimatedMicros,
+			UnknownCostRows:     row.UnknownCostRows,
 		})
 	}
 	writeJSON(w, http.StatusOK, out)

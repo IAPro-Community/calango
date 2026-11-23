@@ -2,6 +2,8 @@
 
 Phase 1 (cron/interval) · Phase 3 (events, hybrid) · Packages `internal/core` (`routine.go`, `cron.go`) + `internal/routines` · Tables `routines`, `routine_runs`
 
+Source: ADR 0011 (P2). Ported from `backend/app/services/routine_actions.py`, `routine_delivery.py`, `routine_authority.py` and `routine_sources.py` in `vstorm-co/agenticos` at a4b0b3c.
+
 ## Goal
 Scheduled work, or work triggered by an event, executed by an agent.
 
