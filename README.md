@@ -25,7 +25,7 @@
 ---
 
 > [!NOTE]
-> **Under construction.** We are building Calango V1 in public. Read the [V1 TODO](DEV/TODO_V1.md) and [how to contribute](CONTRIBUTING.md).
+> **Under construction.** We are building Calango V1 in public. See [GitHub Issues](https://github.com/IAPro-Community/calango/issues), the [V1 planning snapshot](DEV/TODO_V1.md), and [how to contribute](CONTRIBUTING.md).
 
 ## Why Calango
 
@@ -88,6 +88,7 @@ node scripts/generate-i18n.mjs --check
 
 ## Documentation
 
+- [GOVERNANCE.md](GOVERNANCE.md): development governance and decision authority.
 - [AGENTS.md](AGENTS.md): entry point for anyone writing code here, human or AI agent.
 - [DEV/INDEX.md](DEV/INDEX.md): map of all documentation.
 - [DEV/PLANO.md](DEV/PLANO.md): full product overview.
