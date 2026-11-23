@@ -1,125 +1,125 @@
-# Produto híbrido — PC, VPS e celular
+# Hybrid product — PC, VPS and phone
 
-Status: proposta de produto. Nada disto está implementado.
+Status: product proposal. None of this is implemented.
 
-## Ideia central
+## Core idea
 
-Calango é **um agente com vários nós**. Cada instalação é um nó, e a pessoa escolhe onde cada coisa roda:
+Calango is **one agent with several nodes**. Each installation is a node, and the person chooses where each thing runs:
 
-- **Nó PC** (grátis): instala no computador. Tem acesso aos arquivos, apps e navegador locais.
-- **Nó VPS** (pago): a mesma instalação, na VPS da pessoa, via Docker. Roda 24/7, executa rotinas e projetos sem depender do PC ligado.
-- **Clientes** (celular, desktop, web): não executam agente. Falam com os nós da conta e mostram o que está acontecendo em qualquer um deles.
+- **PC node** (free): installed on the computer. Has access to local files, apps and the browser.
+- **VPS node** (paid): the same installation, on the person's VPS, via Docker. Runs 24/7, executes routines and projects without depending on the PC being on.
+- **Clients** (phone, desktop, web): do not run the agent. They talk to the account's nodes and show what is happening on any of them.
 
-A conta é a identidade. Os nós são da pessoa. O que sai dos nós para a nuvem da Calango é só o mínimo necessário para conectar e cobrar.
+The account is the identity. The nodes belong to the person. What leaves the nodes for Calango's cloud is only the minimum needed to connect and bill.
 
-## Os três modos de conexão
+## The three connection modes
 
-| Caminho | Quando | Quem vê o conteúdo |
+| Path | When | Who sees the content |
 |---|---|---|
-| **LAN direta** | celular e PC na mesma rede (mDNS) | só os dispositivos |
-| **Túnel via relay** | fora de casa; o PC abre conexão de saída para o relay, sem abrir porta no roteador | ninguém além das pontas (criptografia ponta a ponta) |
-| **VPS direta** | VPS com domínio e TLS | só os dispositivos |
+| **Direct LAN** | phone and PC on the same network (mDNS) | only the devices |
+| **Tunnel via relay** | outside the house; the PC opens an outbound connection to the relay, with no port opened on the router | nobody but the endpoints (end-to-end encryption) |
+| **Direct VPS** | VPS with a domain and TLS | only the devices |
 
-O túnel é a peça-chave. O PC (ou a VPS) abre uma conexão **de saída** para o relay da Calango, e o celular se conecta ao relay. O relay só encaminha bytes criptografados entre os dois. Assim funciona atrás de qualquer roteador, sem configurar nada.
+The tunnel is the key piece. The PC (or the VPS) opens an **outbound** connection to Calango's relay, and the phone connects to the relay. The relay only forwards encrypted bytes between the two. This works behind any router, with no configuration.
 
-## Trabalho híbrido
+## Hybrid work
 
-- **Onde roda**: cada tarefa ou rotina tem um destino: PC, VPS ou automático. Automático = PC se estiver online, senão VPS (se a pessoa tiver VPS). Sem VPS, a rotina espera o PC voltar.
-- **Projetos (ADE)**: o código fica em git. PC e VPS trabalham em worktrees do mesmo repositório e sincronizam por `push`/`pull`. Não inventar sync de código próprio.
-- **Memória e conversas**: registro de eventos append-only por nó, replicado entre os nós da conta. Cada registro tem o nó de origem, então não há conflito de autoria.
-- **Controle remoto do PC pelo celular**: o celular manda comandos ao PC pelo túnel, e o PC executa. Ação sensível continua exigindo aprovação no celular.
+- **Where it runs**: each task or routine has a destination: PC, VPS or automatic. Automatic = the PC if it is online, otherwise the VPS (if the person has one). Without a VPS, the routine waits for the PC to come back.
+- **Projects (ADE)**: the code lives in git. PC and VPS work in worktrees of the same repository and sync through `push`/`pull`. Do not invent a custom code sync.
+- **Memory and conversations**: append-only event log per node, replicated between the account's nodes. Each record has its origin node, so there are no authorship conflicts.
+- **Remote control of the PC from the phone**: the phone sends commands to the PC through the tunnel, and the PC executes them. A sensitive action still requires approval on the phone.
 
-## Controle remoto do PC (o que a pessoa paga para ter)
+## Remote control of the PC (what the person pays for)
 
-Pelo celular, com o PC ligado:
-- ver o estado dos agentes, rotinas e tarefas;
-- aprovar ou recusar ações sensíveis;
-- enviar tarefas e mensagens;
-- ver a tela do PC e controlar mouse e teclado (opt-in explícito, com aviso na tela do PC e registro de auditoria).
+From the phone, with the PC on:
+- see the state of agents, routines and tasks;
+- approve or refuse sensitive actions;
+- send tasks and messages;
+- see the PC screen and control mouse and keyboard (explicit opt-in, with a notice on the PC screen and an audit record).
 
-Controle remoto de tela é o recurso de maior risco. Ele fica desligado por padrão e precisa ser ligado no PC.
+Remote screen control is the highest-risk feature. It is off by default and must be turned on at the PC.
 
-## Segurança (não negociável)
+## Security (non-negotiable)
 
-- Criptografia ponta a ponta entre celular e nó. A chave nasce no pareamento e fica no keychain do dispositivo. O relay não consegue ler conteúdo.
-- Pareamento por código de uso único, com revogação por dispositivo.
-- Nó PC e VPS nunca aceitam conexão sem token de dispositivo válido, mesmo na LAN.
-- Auditoria de toda ação remota, visível no celular e no PC.
-- Ação de escrita sensível sempre pede aprovação, venha de onde vier.
+- End-to-end encryption between the phone and the node. The key is created at pairing and stored in the device keychain. The relay cannot read content.
+- Pairing with a single-use code, with per-device revocation.
+- PC and VPS nodes never accept a connection without a valid device token, even on the LAN.
+- Audit of every remote action, visible on the phone and on the PC.
+- A sensitive write action always asks for approval, wherever it comes from.
 
-## Monetização
+## Monetization
 
-A regra é: **o que roda local é grátis; o que exige infraestrutura nossa ou tempo de servidor é pago.** Assim o grátis é útil de verdade e o pago tem motivo claro.
+The rule is: **what runs locally is free; what needs our infrastructure or server time is paid.** This way the free plan is genuinely useful and the paid plan has a clear reason.
 
-### Planos
+### Plans
 
 | | Free | Pro | Team |
 |---|---|---|---|
-| Nó PC | 1 | 1 | ilimitados por membro |
-| Nó VPS (extensão) | não | 1 | 1 por membro |
-| Celular na LAN | sim | sim | sim |
-| Túnel via relay: controle e status | cota diária pequena | ilimitado | ilimitado |
-| Controle de tela e arquivos pelo túnel | não | sim | sim |
-| Execução híbrida (PC ↔ VPS) | não | sim | sim |
-| Rotinas na VPS 24/7 | não | sim | sim |
-| Push no celular | não | sim | sim |
-| Canais compartilhados | não | não | sim |
+| PC node | 1 | 1 | unlimited per member |
+| VPS node (extension) | no | 1 | 1 per member |
+| Phone on the LAN | yes | yes | yes |
+| Relay tunnel: control and status | small daily quota | unlimited | unlimited |
+| Screen and file control through the tunnel | no | yes | yes |
+| Hybrid execution (PC ↔ VPS) | no | yes | yes |
+| Routines on the VPS 24/7 | no | yes | yes |
+| Phone push | no | yes | yes |
+| Shared channels | no | no | yes |
 
-### Add-ons (cobrados por uso)
+### Add-ons (billed by usage)
 
-1. **Créditos de modelo** (BYOK no grátis; comprado no Pro).
-2. **Relay além da cota**: tráfego de arquivos e tela, por GB.
-3. **VPS gerenciada por nós**: a mesma VPS, sem a pessoa administrar.
-4. **Armazenamento** de arquivos e histórico acima da cota.
-5. **Conectores premium** com custo por chamada.
+1. **Model credits** (BYOK on free; purchased on Pro).
+2. **Relay beyond the quota**: file and screen traffic, per GB.
+3. **VPS managed by us**: the same VPS, without the person administering it.
+4. **Storage** for files and history above the quota.
+5. **Premium connectors** with a per-call cost.
 
-### Como cobrar a extensão VPS
+### How to charge for the VPS extension
 
-- Quem paga recebe uma **chave de licença**. A imagem Docker do nó VPS só aceita a chave válida para os recursos pagos.
-- A validação é **assinada offline**: o nó confere a assinatura localmente e consulta o servidor de licenças de tempos em tempos. Se a internet cair, há um período de tolerância. Nada do que é grátis para de funcionar.
-- Sem chave, a VPS roda só o que é grátis, ou nem sobe. Decidir isso com cuidado: derrubar um servidor de produção da pessoa por falta de pagamento é ruim para a confiança do produto. Preferível: rebaixar para o modo grátis e avisar.
+- The payer receives a **license key**. The VPS node's Docker image only accepts a valid key for the paid features.
+- Validation is **signed offline**: the node checks the signature locally and queries the license server from time to time. If the internet goes down, there is a grace period. Nothing that is free stops working.
+- Without a key, the VPS runs only what is free, or does not start at all. Decide this carefully: shutting down a person's production server for non-payment is bad for product trust. Preferable: downgrade to free mode and notify.
 
-### Por que o usuário paga
+### Why the user pays
 
-- Quer o agente rodando quando o PC está desligado.
-- Quer controlar o PC de fora sem configurar roteador.
-- Quer trabalhar em projetos na VPS e no PC ao mesmo tempo.
-- Quer notificação no celular mesmo com tudo fechado.
+- Wants the agent running when the PC is off.
+- Wants to control the PC from outside without configuring a router.
+- Wants to work on projects on the VPS and the PC at the same time.
+- Wants phone notifications even with everything closed.
 
-### Custos que a Calango tem (e cobra por eles)
+### Costs Calango has (and charges for)
 
-- Relay (tráfego de túnel): cobrado por uso acima da cota.
-- Push (APNs/FCM via relay): incluso no Pro, limite no Free.
-- Servidor de licenças: barato, incluso.
-- Modelos hospedados: créditos com markup.
+- Relay (tunnel traffic): billed by usage above the quota.
+- Push (APNs/FCM via the relay): included in Pro, limited on Free.
+- License server: cheap, included.
+- Hosted models: credits with a markup.
 
-## O que construir primeiro (ordem)
+## What to build first (order)
 
-1. **Nó PC com pareamento e LAN** (grátis; prova o produto).
-2. **Cliente celular** conectado ao nó PC na LAN.
-3. **Relay com túnel de saída** e cota grátis de controle.
-4. **Chave de licença e nó VPS** (primeiro item pago).
-5. **Execução híbrida** (escolha de destino e replicação de eventos).
-6. **Controle de tela** pelo túnel (pago).
+1. **PC node with pairing and LAN** (free; proves the product).
+2. **Phone client** connected to the PC node on the LAN.
+3. **Relay with outbound tunnel** and a free quota for control.
+4. **License key and VPS node** (first paid item).
+5. **Hybrid execution** (choice of destination and event replication).
+6. **Screen control** through the tunnel (paid).
 
-## Riscos
+## Risks
 
-- **Relay custa dinheiro e vira gargalo**: limitar no grátis desde o início.
-- **Controle remoto de PC é superfície de ataque**: auditoria e opt-in são obrigatórios antes de liberar.
-- **Código do nó VPS** é o que a pessoa roda; decidir se é código aberto (com licença por chave) ou fonte disponível. Não copiar código dos repos de referência.
-- **Lojas de apps**: confirmar que o app de controle remoto aprova nas duas lojas, e que a assinatura passa pelo sistema de compra delas (ver [MONETIZATION.md](MONETIZATION.md)).
-- **Sincronização de memória entre nós**: é a parte mais difícil de acertar. Começar com replicação simples e um nó "dono" por registro.
+- **The relay costs money and becomes a bottleneck**: limit it on the free plan from the start.
+- **Remote PC control is an attack surface**: audit and opt-in are mandatory before release.
+- **The VPS node code** is what the person runs; decide whether it is open source (with license by key) or source-available. Do not copy code from the reference repos.
+- **App stores**: confirm that the remote-control app is approved in both stores, and that the subscription goes through their purchase systems (see [MONETIZATION.md](MONETIZATION.md)).
+- **Memory synchronization between nodes**: the hardest part to get right. Start with simple replication and one "owner" node per record.
 
-## Decisão: transporte por enquanto é Tailscale
+## Decision: transport for now is Tailscale
 
-Decidido em 2026-11-23: a fase inicial usa **Tailscale** (rede privada WireGuard) como túnel, em vez de um relay próprio.
+Decided on 2026-11-23: the initial phase uses **Tailscale** (WireGuard private network) as the tunnel, instead of an own relay.
 
-- Celular, nó PC e nó VPS entram na mesma tailnet da pessoa. Conexão ponta a ponta, sem porta aberta e sem relay nosso.
-- Alternativa de implementação: **tsnet** (biblioteca Go do Tailscale) embutida no `calango`, para o nó entrar na tailnet sem a pessoa instalar o cliente separado. Confirmar licença e termos antes de embutir.
-- Consequência para o modelo de negócio: o túnel deixa de ser cobrado por tráfego nosso nesta fase. A monetização passa a ser a licença da VPS, os créditos de modelo, a VPS gerenciada e os conectores. A cota de relay fica para quando existir relay próprio.
-- Custo do usuário: precisa de conta Tailscale. Confirmar limites do plano gratuito deles para uso pessoal antes de anunciar "grátis".
-- Relay próprio continua no roteiro, para quem não quer depender de terceiros e para o controle de tela pago.
+- Phone, PC node and VPS node join the person's tailnet. End-to-end connection, no open port and no relay of ours.
+- Implementation alternative: **tsnet** (Tailscale's Go library) embedded in `calango`, so the node joins the tailnet without the person installing a separate client. Confirm license and terms before embedding.
+- Consequence for the business model: the tunnel is no longer billed for our traffic in this phase. Monetization becomes the VPS license, model credits, managed VPS and connectors. The relay quota waits until an own relay exists.
+- User cost: a Tailscale account is required. Confirm the limits of their free plan for personal use before advertising "free".
+- The own relay stays on the roadmap, for those who do not want to depend on third parties and for paid screen control.
 
-Perguntas que continuam em aberto:
-- Nó VPS aberto ou fonte disponível?
-- Controle de tela entra no Pro ou só no Team?
+Open questions:
+- Is the VPS node open source or source-available?
+- Does screen control go in Pro or only in Team?

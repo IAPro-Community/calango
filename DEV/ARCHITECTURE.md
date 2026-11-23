@@ -1,40 +1,40 @@
-# Arquitetura — Calango
+# Architecture — Calango
 
-## Modos de implantação
+## Deployment modes
 
-- **VPS da pessoa (Docker)**: calango roda na VPS; desktop, iOS e Android se conectam por TLS. Ver [DEPLOYMENT.md](DEPLOYMENT.md).
-- **Computador local**: mesmo binário, endereço local.
-- **Hospedado por nós** (pago): mesma API, sem o usuário administrar servidor.
+- **Person's VPS (Docker)**: calango runs on the VPS; desktop, iOS and Android connect over TLS. See [DEPLOYMENT.md](DEPLOYMENT.md).
+- **Local computer**: same binary, local address.
+- **Hosted by us** (paid): same API, with no server administration by the user.
 
-Os clientes nunca executam agente. Só mostram o estado e enviam comandos.
+Clients never run agents. They only show state and send commands.
 
-## Princípio
+## Principle
 
-Um núcleo só, em Go. Local, nuvem e clientes são cascas em volta dele. Nada de lógica de agente no cliente.
+One core, in Go. Local, cloud and clients are shells around it. No agent logic on the client.
 
-## Camadas
+## Layers
 
 ```
-clientes (desktop Electron, iOS, Android, web)
+clients (Electron desktop, iOS, Android, web)
         │  HTTP + WebSocket
 calango  (internal/api)
         │
-núcleo    (internal/core: agentes, canais, rotinas, orçamento, aprovações)
+core      (internal/core: agents, channels, routines, budget, approvals)
         │
-armazenamento (SQLite, interface Store)   ·   adaptadores (modelos, navegador, MCP)
+storage (SQLite, Store interface)   ·   adapters (models, browser, MCP)
 ```
 
-## Pacotes
+## Packages
 
-- `cmd/calango`: entrada do daemon. Sobe o servidor e o agendador; encerra com sinal.
-- `internal/core`: domínio puro, sem I/O de rede.
-  - `agent.go`: agente com orçamento de tokens (`Charge` recusa quando estoura).
-  - `scheduler.go`: rotinas por intervalo, relógio injetável.
-- `internal/api`: rotas HTTP.
+- `cmd/calango`: daemon entry point. Starts the server and the scheduler; shuts down on signal.
+- `internal/core`: pure domain, no network I/O.
+  - `agent.go`: agent with token budget (`Charge` refuses when it overflows).
+  - `scheduler.go`: routines by interval, with an injectable clock.
+- `internal/api`: HTTP routes.
 
-## Regras
+## Rules
 
-- Chamadas a modelos passam por um único gateway que cobra o orçamento antes e registra o custo depois.
-- Segredos nunca voltam para o cliente.
-- Ação de escrita sensível (enviar, apagar, publicar, pagar) exige aprovação explícita do dono.
-- Toda entidade tem dono (`owner`) para suportar múltiplas contas na nuvem depois.
+- Model calls go through a single gateway that checks the budget before and records the cost after.
+- Secrets never go back to the client.
+- Sensitive write actions (send, delete, publish, pay) require explicit owner approval.
+- Every entity has an owner (`owner`) to support multiple accounts in the cloud later.

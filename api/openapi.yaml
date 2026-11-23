@@ -3,29 +3,39 @@ info:
   title: Calango node API
   version: 0.1.0-draft
   description: >
-    API de um nó Calango (PC ou VPS). Fonte única dos SDKs TypeScript (desktop/web)
-    e Dart (mobile). Rascunho: rotas e esquemas mudam até a fase 1 fechar.
-    Tempo real em GET /v1/events (WebSocket); ver DEV/DATA_MODEL.md.
+    API of a Calango node (PC or VPS). Single source of the TypeScript (desktop/web)
+    and Dart (mobile) SDKs. Draft: routes and schemas will change until phase 1 closes.
+    Real time at GET /v1/events (WebSocket); see DEV/DATA_MODEL.md.
 servers:
   - url: http://127.0.0.1:7317
 security:
   - device: []
 tags:
   - name: system
+    description: Node health and information.
   - name: auth
+    description: Pairing and device credentials.
   - name: agents
+    description: Agent configuration, budget and control.
   - name: conversations
+    description: Conversations and messages.
   - name: runs
+    description: Execution state and control.
   - name: approvals
+    description: Human decisions for sensitive actions.
   - name: routines
+    description: Scheduled work.
   - name: memory
+    description: Reviewable agent memories.
   - name: usage
+    description: Model usage and costs.
 paths:
   /healthz:
     get:
+      operationId: getHealth
       tags: [system]
       security: []
-      summary: Saúde do nó
+      summary: Node health
       responses:
         "200":
           description: OK
@@ -37,9 +47,10 @@ paths:
                   status: { type: string, example: ok }
   /v1/pair:
     post:
+      operationId: pairDevice
       tags: [auth]
       security: []
-      summary: Troca um código de pareamento por token de dispositivo
+      summary: Exchanges a pairing code for a device token
       requestBody:
         required: true
         content:
@@ -53,7 +64,7 @@ paths:
                 platform: { type: string, enum: [desktop, ios, android, web] }
       responses:
         "200":
-          description: Pareado
+          description: Paired
           content:
             application/json:
               schema:
@@ -65,8 +76,9 @@ paths:
         "429": { $ref: "#/components/responses/Error" }
   /v1/agents:
     get:
+      operationId: listAgents
       tags: [agents]
-      summary: Lista agentes
+      summary: List agents
       responses:
         "200":
           description: OK
@@ -76,8 +88,9 @@ paths:
                 type: array
                 items: { $ref: "#/components/schemas/Agent" }
     post:
+      operationId: createAgent
       tags: [agents]
-      summary: Cria agente
+      summary: Create agent
       requestBody:
         required: true
         content:
@@ -85,7 +98,7 @@ paths:
             schema: { $ref: "#/components/schemas/AgentInput" }
       responses:
         "201":
-          description: Criado
+          description: Created
           content:
             application/json:
               schema: { $ref: "#/components/schemas/Agent" }
@@ -94,8 +107,9 @@ paths:
     parameters:
       - $ref: "#/components/parameters/Id"
     get:
+      operationId: getAgent
       tags: [agents]
-      summary: Detalhe do agente
+      summary: Agent details
       responses:
         "200":
           description: OK
@@ -104,8 +118,9 @@ paths:
               schema: { $ref: "#/components/schemas/Agent" }
         "404": { $ref: "#/components/responses/Error" }
     patch:
+      operationId: updateAgent
       tags: [agents]
-      summary: Atualiza agente
+      summary: Update agent
       requestBody:
         required: true
         content:
@@ -119,14 +134,16 @@ paths:
               schema: { $ref: "#/components/schemas/Agent" }
   /v1/agents/pause-all:
     post:
+      operationId: pauseAllAgents
       tags: [agents]
-      summary: Pausa todos os agentes e para os runs em curso
+      summary: Pauses all agents and stops the runs in progress
       responses:
-        "204": { description: Pausado }
+        "204": { description: Paused }
   /v1/conversations:
     get:
+      operationId: listConversations
       tags: [conversations]
-      summary: Lista conversas
+      summary: List conversations
       responses:
         "200":
           description: OK
@@ -139,8 +156,9 @@ paths:
     parameters:
       - $ref: "#/components/parameters/Id"
     get:
+      operationId: listMessages
       tags: [conversations]
-      summary: Mensagens da conversa
+      summary: Conversation messages
       parameters:
         - name: before
           in: query
@@ -154,8 +172,9 @@ paths:
                 type: array
                 items: { $ref: "#/components/schemas/Message" }
     post:
+      operationId: createMessage
       tags: [conversations]
-      summary: Envia mensagem (pode iniciar runs)
+      summary: Send message (may start runs)
       requestBody:
         required: true
         content:
@@ -168,7 +187,7 @@ paths:
                 thread_id: { type: string }
       responses:
         "201":
-          description: Criada
+          description: Created
           content:
             application/json:
               schema: { $ref: "#/components/schemas/Message" }
@@ -176,16 +195,18 @@ paths:
     parameters:
       - $ref: "#/components/parameters/Id"
     post:
+      operationId: stopRun
       tags: [runs]
-      summary: Para um run
+      summary: Stop a run
       responses:
-        "204": { description: Parado }
+        "204": { description: Stopped }
   /v1/runs/{id}/steer:
     parameters:
       - $ref: "#/components/parameters/Id"
     post:
+      operationId: steerRun
       tags: [runs]
-      summary: Orienta um run em curso
+      summary: Guide a run in progress
       requestBody:
         required: true
         content:
@@ -196,11 +217,12 @@ paths:
               properties:
                 instruction: { type: string }
       responses:
-        "204": { description: Entregue }
+        "204": { description: Delivered }
   /v1/approvals:
     get:
+      operationId: listApprovals
       tags: [approvals]
-      summary: Lista aprovações
+      summary: List approvals
       parameters:
         - name: status
           in: query
@@ -217,8 +239,9 @@ paths:
     parameters:
       - $ref: "#/components/parameters/Id"
     post:
+      operationId: decideApproval
       tags: [approvals]
-      summary: Decide uma aprovação
+      summary: Decide an approval
       requestBody:
         required: true
         content:
@@ -231,15 +254,16 @@ paths:
                 remember: { type: boolean, default: false }
       responses:
         "200":
-          description: Decidida
+          description: Decided
           content:
             application/json:
               schema: { $ref: "#/components/schemas/Approval" }
         "409": { $ref: "#/components/responses/Error" }
   /v1/routines:
     get:
+      operationId: listRoutines
       tags: [routines]
-      summary: Lista rotinas
+      summary: List routines
       responses:
         "200":
           description: OK
@@ -249,8 +273,9 @@ paths:
                 type: array
                 items: { $ref: "#/components/schemas/Routine" }
     post:
+      operationId: createRoutine
       tags: [routines]
-      summary: Cria rotina
+      summary: Create routine
       requestBody:
         required: true
         content:
@@ -258,7 +283,7 @@ paths:
             schema: { $ref: "#/components/schemas/RoutineInput" }
       responses:
         "201":
-          description: Criada
+          description: Created
           content:
             application/json:
               schema: { $ref: "#/components/schemas/Routine" }
@@ -266,14 +291,16 @@ paths:
     parameters:
       - $ref: "#/components/parameters/Id"
     post:
+      operationId: runRoutine
       tags: [routines]
-      summary: Roda a rotina agora
+      summary: Run the routine now
       responses:
-        "202": { description: Enfileirada }
+        "202": { description: Queued }
   /v1/memories:
     get:
+      operationId: listMemories
       tags: [memory]
-      summary: Lista memórias
+      summary: List memories
       parameters:
         - name: scope
           in: query
@@ -291,8 +318,9 @@ paths:
                 items: { $ref: "#/components/schemas/Memory" }
   /v1/usage:
     get:
+      operationId: getUsage
       tags: [usage]
-      summary: Uso e custo agregados
+      summary: Aggregated usage and cost
       parameters:
         - name: from
           in: query
@@ -324,7 +352,7 @@ components:
       schema: { type: string }
   responses:
     Error:
-      description: Erro
+      description: Error
       content:
         application/json:
           schema: { $ref: "#/components/schemas/Error" }
@@ -393,7 +421,7 @@ components:
         run_id: { type: string }
         agent_id: { type: string }
         action: { type: string, example: email.send }
-        target: { type: string, example: cliente@exemplo.com }
+        target: { type: string, example: client@example.com }
         args: { type: object, additionalProperties: true }
         status: { type: string, enum: [pending, approved, denied, expired] }
         outcome: { type: string, enum: [completed, failed, not_run] }

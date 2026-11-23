@@ -1,26 +1,29 @@
-# Módulo: approvals
+# Module: approvals
 
-Fase 1 · Pacote `internal/approvals` · Tabelas `approvals`, `approval_rules`, `audit_log`
+Phase 1 · Package `internal/approvals` · Tables `approvals`, `approval_rules`, `audit_log`
 
-## Objetivo
-Nenhuma ação sensível acontece sem uma pessoa aprovar.
+## Goal
+No sensitive action happens without a person approving it.
 
-## Regras
-- Ações sensíveis (lista fixa no código): enviar mensagem/e-mail, apagar, publicar, pagar, deploy, merge, comando de shell fora da lista segura, escrita via conector com acesso `write`.
-- O run pausa em `waiting_approval` até a decisão. Expira em 24 h (configurável) → `expired`, o run segue sabendo que não foi aprovado.
-- Cartão mostra **ação, alvo e argumentos exatos**.
-- Recibo depois: `completed`, `failed` (com motivo) ou `not_run`.
-- "Aprovar sempre" grava regra por agente e tipo de ação.
-- Aprovações de um mesmo run são apresentadas na ordem em que foram pedidas (`seq`).
-- O agente nunca decide aprovação. Decisão exige dispositivo pareado de uma pessoa.
-- Toda decisão vai para `audit_log`.
+## Rules
+- Sensitive actions (fixed list in the code): send message/email, delete, publish, pay, deploy, merge, shell command outside the safe list, write through a connector with `write` access.
+- The run pauses in `waiting_approval` until the decision. It expires after 24 h (configurable) → `expired`; the run continues knowing it was not approved.
+- The card shows the **exact action, target and arguments**.
+- The approval points to an immutable snapshot of the action. A SHA-256 digest of the canonical payload is stored with the approval and checked immediately before execution; any difference invalidates the decision and requires a new card.
+- The executor uses the approved snapshot, never arguments recomputed by the model after the decision.
+- Receipt afterwards: `completed`, `failed` (with reason) or `not_run`.
+- "Always approve" stores a rule per agent and action type.
+- Approvals from the same run are presented in the order they were requested (`seq`).
+- The agent never decides an approval. A decision requires a paired device of a person.
+- Every decision goes to `audit_log`.
 
 ## API
 `GET /v1/approvals?status=pending`, `POST /v1/approvals/{id}/decide` `{ decision: "approve"|"deny", remember: bool }`.
 
-## Eventos
+## Events
 `approval.requested`, `approval.decided`.
 
-## Aceite
-- Ação aprovada que falha mostra `failed` com motivo, não "aprovado".
-- Com regra "aprovar sempre", a mesma ação não gera cartão, mas gera entrada de auditoria.
+## Acceptance
+- An approved action that fails shows `failed` with a reason, not "approved".
+- Changing the target or arguments after approval blocks execution and creates a new request.
+- With an "always approve" rule, the same action does not generate a card, but does generate an audit entry.

@@ -12,13 +12,14 @@ import (
 	"time"
 
 	"calango/internal/api"
+	"calango/internal/config"
 	"calango/internal/core"
 )
 
 func main() {
-	addr := os.Getenv("CALANGO_ADDR")
-	if addr == "" {
-		addr = "127.0.0.1:7317"
+	cfg, err := config.Load()
+	if err != nil {
+		log.Fatalf("invalid configuration: %v", err)
 	}
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
@@ -30,7 +31,7 @@ func main() {
 	})
 
 	srv := &http.Server{
-		Addr:              addr,
+		Addr:              cfg.Addr,
 		Handler:           api.NewHandler(),
 		ReadHeaderTimeout: 5 * time.Second,
 	}
@@ -42,7 +43,7 @@ func main() {
 		_ = srv.Shutdown(shutdownCtx)
 	}()
 
-	log.Printf("calango listening on %s", addr)
+	log.Printf("calango listening on %s", cfg.Addr)
 	if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		log.Fatal(err)
 	}

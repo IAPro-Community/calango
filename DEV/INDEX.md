@@ -1,65 +1,69 @@
-# Índice da documentação — Calango
+# Documentation index — Calango
 
-## Controle (ler sempre, nesta ordem)
+## Control (always read, in this order)
 
-| Arquivo | Para quê |
+| File | Purpose |
 |---|---|
-| [HANDOFF.md](HANDOFF.md) | onde parou, próximo passo |
-| [CONTEXT.md](CONTEXT.md) | estado atual do projeto |
-| [SPECS/ACTIVE.md](SPECS/ACTIVE.md) | contrato da tarefa em andamento |
-| [SPECS/ROADMAP.md](SPECS/ROADMAP.md) | fases e tarefas numeradas |
-| [TODO_V1.md](TODO_V1.md) | tudo que falta para a V1 funcional, por fase |
-| [../CONTRIBUTING.md](../CONTRIBUTING.md) | como contribuir (público) |
-| [../LICENSE](../LICENSE), [../COMMERCIAL.md](../COMMERCIAL.md), [../CLA.md](../CLA.md), [../TRADEMARKS.md](../TRADEMARKS.md) | licença, licença comercial, acordo de contribuidor e marca |
-| [WORKLOG.md](WORKLOG.md) | histórico curto do que foi feito |
-| [VERIFY.md](VERIFY.md) | o que foi verificado |
+| [HANDOFF.md](HANDOFF.md) | where the work stopped, next step |
+| [CONTEXT.md](CONTEXT.md) | current project state |
+| [SPECS/ACTIVE.md](SPECS/ACTIVE.md) | contract of the task in progress |
+| [SPECS/ROADMAP.md](SPECS/ROADMAP.md) | phases and numbered tasks |
+| [TODO_V1.md](TODO_V1.md) | everything still needed for a working V1, by phase |
+| [../CONTRIBUTING.md](../CONTRIBUTING.md) | how to contribute (public) |
+| [../LICENSE](../LICENSE), [../COMMERCIAL.md](../COMMERCIAL.md), [../CLA.md](../CLA.md), [../TRADEMARKS.md](../TRADEMARKS.md) | license, commercial license, contributor agreement and trademarks |
+| [WORKLOG.md](WORKLOG.md) | short history of what was done |
+| [VERIFY.md](VERIFY.md) | what was verified |
 
-## Produto
+## Product
 
-| Arquivo | Para quê |
+| File | Purpose |
 |---|---|
-| [PLANO.md](PLANO.md) | panorama completo: visão, módulos, roadmap |
-| [ORQUESTRADOR_MAESTRO.md](ORQUESTRADOR_MAESTRO.md) | Orquestrador Maestro embutido e atualizado pelo npm |
-| [PRODUCT_HYBRID.md](PRODUCT_HYBRID.md) | modelo PC + VPS + celular, conexões |
-| [MONETIZATION.md](MONETIZATION.md) | planos, add-ons, cobrança |
-| [BRAND/BRAND.md](BRAND/BRAND.md) | logo, paleta, tipografia, movimento |
+| [PLANO.md](PLANO.md) | full overview: vision, modules, roadmap |
+| [COMPETITIVE_LANDSCAPE.md](COMPETITIVE_LANDSCAPE.md) | competitors, current sources and implications for V1 |
+| [ORQUESTRADOR_MAESTRO.md](ORQUESTRADOR_MAESTRO.md) | embedded Orquestrador Maestro, updated through npm |
+| [PRODUCT_HYBRID.md](PRODUCT_HYBRID.md) | PC + VPS + phone model, connections |
+| [MONETIZATION.md](MONETIZATION.md) | plans, add-ons, billing |
+| [BRAND/BRAND.md](BRAND/BRAND.md) | logo, palette, typography, motion |
 
-## Engenharia
+## Engineering
 
-| Arquivo | Para quê |
+| File | Purpose |
 |---|---|
-| [ARCHITECTURE.md](ARCHITECTURE.md) | camadas e pacotes |
-| [DATA_MODEL.md](DATA_MODEL.md) | tabelas SQLite e eventos |
-| [SECURITY.md](SECURITY.md) | modelo de ameaças e defesas |
-| [CONVENTIONS.md](CONVENTIONS.md) | padrões de código Go, TS, Dart, testes |
+| [ARCHITECTURE.md](ARCHITECTURE.md) | layers and packages |
+| [DATA_MODEL.md](DATA_MODEL.md) | SQLite tables and events |
+| [SECURITY.md](SECURITY.md) | threat model and defenses |
+| [CONVENTIONS.md](CONVENTIONS.md) | code standards for Go, TS, Dart, tests |
 | [DEPLOYMENT.md](DEPLOYMENT.md) | Docker, VPS, TLS, Tailscale |
-| [../api/openapi.yaml](../api/openapi.yaml) | contrato da API (fonte dos SDKs TS e Dart) |
-| [../packages/tokens/tokens.json](../packages/tokens/tokens.json) | design tokens (fonte de CSS e ThemeData) |
+| [TECHNICAL_DELIVERY.md](TECHNICAL_DELIVERY.md) | technical flow, CI, release, migrations and rollback |
+| [../api/openapi.yaml](../api/openapi.yaml) | API contract (source of the TS and Dart SDKs) |
+| [../packages/tokens/tokens.json](../packages/tokens/tokens.json) | design tokens (source of CSS and ThemeData) |
+| [../packages/i18n/messages.json](../packages/i18n/messages.json) | interface catalog in en/pt-BR/es, source of the TypeScript and ARB files |
 
-## Decisões (ADR)
+## Decisions (ADR)
 
-| ADR | Decisão |
+| ADR | Decision |
 |---|---|
-| [0001](ADR/0001-nucleo-em-go.md) | Núcleo em Go, binário único `calango` |
-| [0002](ADR/0002-sqlite-por-no.md) | SQLite por nó, sem cgo |
-| [0003](ADR/0003-desktop-electron.md) | Desktop em Electron com `calango` como processo filho |
-| [0004](ADR/0004-mobile-flutter.md) | Mobile em Flutter; compartilhamento por contrato |
-| [0005](ADR/0005-transporte-tailscale.md) | Tailscale como transporte inicial |
-| [0006](ADR/0006-codigo-original.md) | Código original; referências só para leitura |
-| [0007](ADR/0007-gateway-de-modelo.md) | Gateway único de modelo com orçamento |
-| [0008](ADR/0008-replicacao-por-eventos.md) | Replicação entre nós por eventos; código por git |
-| [0009](ADR/0009-orquestrador-maestro.md) | Orquestrador Maestro embutido, atualizado pelo canal npm oficial |
-| [0010](ADR/0010-licenca-agpl-dupla.md) | Código aberto sob AGPL-3.0, com licença comercial, CLA e marca |
+| [0001](ADR/0001-nucleo-em-go.md) | Core in Go, single `calango` binary |
+| [0002](ADR/0002-sqlite-por-no.md) | SQLite per node, no cgo |
+| [0003](ADR/0003-desktop-electron.md) | Desktop in Electron with `calango` as a child process |
+| [0004](ADR/0004-mobile-flutter.md) | Mobile in Flutter; sharing through the contract |
+| [0005](ADR/0005-transporte-tailscale.md) | Tailscale as the initial transport |
+| [0006](ADR/0006-codigo-original.md) | Original code; references for reading only |
+| [0007](ADR/0007-gateway-de-modelo.md) | Single model gateway with budget |
+| [0008](ADR/0008-replicacao-por-eventos.md) | Node-to-node replication by events; code through git |
+| [0009](ADR/0009-orquestrador-maestro.md) | Orquestrador Maestro embedded, updated through the official npm channel |
+| [0010](ADR/0010-licenca-agpl-dupla.md) | Open source under AGPL-3.0, with commercial license, CLA and trademark policy |
 
-## Specs de módulo (`SPECS/modules/`)
+## Module specs (`SPECS/modules/`)
 
-| Módulo | Fase |
+| Module | Phase |
 |---|---|
 | [agents](SPECS/modules/agents.md) | 1 |
 | [conversations](SPECS/modules/conversations.md) | 1 |
+| [config](SPECS/modules/config.md) | 0 |
 | [harness](SPECS/modules/harness.md) | 1 |
 | [gateway](SPECS/modules/gateway.md) | 1 |
-| [maestro](SPECS/modules/maestro.md) | 1 (instalação), 3 (atualização) |
+| [maestro](SPECS/modules/maestro.md) | 1 (install), 3 (update) |
 | [routines](SPECS/modules/routines.md) | 1 |
 | [approvals](SPECS/modules/approvals.md) | 1 |
 | [memory](SPECS/modules/memory.md) | 1 |
@@ -79,4 +83,4 @@
 
 ## Site
 
-`site/index.html`: página de apresentação do produto (estática).
+`site/index.html`: static product presentation page. Interface in English (default), Brazilian Portuguese and Spanish.

@@ -1,5 +1,5 @@
-# Imagem do nó Calango (servidor). Build a partir da raiz: docker build -f deploy/Dockerfile.node -t calango/calango .
-# Não testado: o daemon Docker não estava disponível no ambiente de desenvolvimento.
+# Calango node image (server). Build from the repository root: docker build -f deploy/Dockerfile.node -t calango/calango .
+# Partially verified: build and /healthz passed with --network host; bridge networking not validated (see DEV/VERIFY.md).
 FROM golang:1.22-alpine AS build
 WORKDIR /src
 COPY go.mod ./

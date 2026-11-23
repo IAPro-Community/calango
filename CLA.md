@@ -1,47 +1,47 @@
-# Acordo de Licença de Contribuidor (CLA)
+# Contributor License Agreement (CLA)
 
-Versão 1.0 · 2026-11-23
+Version 1.0 · 2026-11-23
 
-**Rascunho para revisão jurídica antes da publicação.** Este texto não substitui aconselhamento jurídico.
+**Draft for legal review before publication.** This text does not replace legal advice.
 
-Ao enviar uma contribuição ao projeto Calango (o "Projeto"), você ("Contribuidor") concorda com os termos abaixo. Você deve aceitar este CLA uma vez, por meio do campo de confirmação no Pull Request ou por assinatura eletrônica quando solicitado.
+By submitting a contribution to the Calango project (the "Project"), you ("Contributor") agree to the terms below. You must accept this CLA once, through the confirmation step in your Pull Request or by electronic signature when requested.
 
-## 1. Definições
+## 1. Definitions
 
-- **Contribuição:** qualquer código, documentação, teste, design, tradução ou outro material enviado por você ao Projeto, direta ou indiretamente, incluindo PRs, issues com código anexado e comentários de revisão.
-- **Mantenedor:** [nome legal do titular do Projeto — a preencher antes da publicação], e quem ele designar como responsável legal pelo Projeto.
+- **Contribution:** any code, documentation, tests, design, translation or other material you submit to the Project, directly or indirectly, including PRs, issues with attached code, and review comments.
+- **Maintainer:** [legal name of the Project holder — to be filled in before publication], and anyone they designate as legally responsible for the Project.
 
-## 2. Licença de direitos autorais
+## 2. Copyright license
 
-Você concede ao Mantenedor e a quem ele indicar uma licença **perpétua, mundial, não exclusiva, sem royalties, irrevogável** para usar, reproduzir, modificar, preparar obras derivadas, exibir, executar, distribuir, sublicenciar e **relicenciar** a sua Contribuição, inclusive sob licença comercial diferente da AGPL-3.0.
+You grant the Maintainer and anyone they designate a **perpetual, worldwide, non-exclusive, royalty-free, irrevocable** license to use, reproduce, modify, prepare derivative works of, display, perform, distribute, sublicense and **relicense** your Contribution, including under a commercial license different from the AGPL-3.0.
 
-Você mantém a titularidade dos seus direitos autorais. Esta licença não transfere a titularidade, salvo se você declarar expressamente o contrário.
+You keep ownership of your copyright. This license does not transfer ownership unless you expressly state otherwise.
 
-## 3. Licença de patentes
+## 3. Patent license
 
-Você concede ao Mantenedor e aos usuários do Projeto uma licença **perpétua, mundial, não exclusiva, sem royalties** para fazer, usar, vender, oferecer para venda, importar e de outra forma explorar a sua Contribuição, isoladamente ou em combinação com o Projeto, nos limites das patentes que você possua ou controle e que sejam necessariamente violadas pela Contribuição.
+You grant the Maintainer and the users of the Project a **perpetual, worldwide, non-exclusive, royalty-free** license to make, use, sell, offer for sale, import and otherwise exploit your Contribution, alone or in combination with the Project, within the limits of the patents you own or control that are necessarily infringed by the Contribution.
 
-Se você ou sua empresa iniciar ação alegando que o Projeto viola patente, esta licença termina para essa ação.
+If you or your company start a lawsuit alleging that the Project infringes a patent, this license terminates for that lawsuit.
 
-## 4. Declarações
+## 4. Representations
 
-Você declara que:
-- a Contribuição é de sua autoria ou você tem direito de concedê-la nos termos deste CLA;
-- se a Contribuição for feita em nome de empregador, você está autorizado a fazê-la; nesse caso, o empregador também deve assinar, quando solicitado;
-- informou, no próprio PR, qualquer material de terceiros ou sob outra licença que esteja incluído.
+You represent that:
+- the Contribution is your original work, or you have the right to grant it under this CLA;
+- if the Contribution is made on behalf of an employer, you are authorized to make it; in that case the employer must also sign, when requested;
+- you have disclosed in the PR itself any third-party material or material under another license that is included.
 
-## 5. Sem garantias
+## 5. No warranty
 
-A Contribuição é fornecida "como está", sem garantias de qualquer tipo.
+The Contribution is provided "as is", without warranties of any kind.
 
-## 6. Sem obrigação de inclusão
+## 6. No obligation to include
 
-O Mantenedor não é obrigado a aceitar ou manter qualquer Contribuição.
+The Maintainer is not obliged to accept or keep any Contribution.
 
-## 7. Identificação
+## 7. Identification
 
-Seu nome e e-mail informados no commit ou no PR podem aparecer publicamente no histórico do projeto.
+The name and email you provide in the commit or PR may appear publicly in the project history.
 
-## 8. Lei aplicável
+## 8. Governing law
 
-Aplica-se a lei brasileira. Foro: comarca do domicílio do Mantenedor, salvo disposição de lei em contrário.
+Brazilian law applies. Venue: the court of the Maintainer's domicile, unless the law provides otherwise.

@@ -1,30 +1,30 @@
-# Política de segurança
+# Security policy
 
-## Como reportar
+## How to report
 
-Não abra issue pública para vulnerabilidade. Envie um relatório privado para **seguranca@calango.dev** *(endereço a confirmar antes da publicação)* ou use o recurso de "Report a vulnerability" do GitHub, se estiver habilitado no repositório.
+Do not open a public issue for a vulnerability. Send a private report to **seguranca@calango.dev** *(address to be confirmed before publication)*, or use GitHub's "Report a vulnerability" feature if it is enabled for the repository.
 
-Inclua:
-- versão ou commit afetado;
-- passos para reproduzir;
-- impacto esperado;
-- se já foi divulgado em outro lugar.
+Please include:
+- the affected version or commit;
+- steps to reproduce;
+- the expected impact;
+- whether it has already been disclosed elsewhere.
 
-## O que esperamos de você
+## What we ask of you
 
-- Dar tempo razoável para correção antes de divulgar (90 dias, ou menos se já for público).
-- Não acessar dados de outras pessoas, nem alterar ou apagar dados além do necessário para demonstrar o problema.
+- Give us a reasonable time to fix the issue before disclosing it (90 days, or less if it is already public).
+- Do not access other people's data, and do not change or delete data beyond what is needed to demonstrate the problem.
 
-## O que você pode esperar
+## What you can expect
 
-- Confirmação de recebimento em até 3 dias úteis.
-- Avaliação e atualização de status em até 10 dias úteis.
-- Crédito público na correção, se você quiser.
+- Acknowledgement of receipt within 3 business days.
+- Assessment and a status update within 10 business days.
+- Public credit for the fix, if you want it.
 
-## Escopo
+## Scope
 
-Vale para o código deste repositório e para as imagens Docker publicadas por ele. Não cobre serviços de terceiros, como o Tailscale ou o Orquestrador Maestro: reporte a eles diretamente.
+Applies to the code in this repository and to the Docker images it publishes. It does not cover third-party services such as Tailscale or the Orquestrador Maestro: report those to their maintainers directly.
 
-## Modelo de ameaças
+## Threat model
 
-Veja [DEV/SECURITY.md](DEV/SECURITY.md).
+See [DEV/SECURITY.md](DEV/SECURITY.md).

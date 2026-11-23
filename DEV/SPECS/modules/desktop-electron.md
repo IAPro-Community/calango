@@ -1,29 +1,29 @@
-# Módulo: desktop-electron
+# Module: desktop-electron
 
-Fase 1 (base) · Fases 4–5 (ADE, navegador) · `apps/desktop` · ADR 0003
+Phase 1 (base) · Phases 4–5 (ADE, browser) · `apps/desktop` · ADR 0003
 
-## Objetivo
-App desktop para Windows, macOS e Linux. Casca em volta do `calango` local; também conecta a nós remotos.
+## Goal
+Desktop app for Windows, macOS and Linux. A shell around the local `calango`; also connects to paired remote nodes.
 
-## Estrutura
+## Structure
 ```
 apps/desktop/
-├── src/main/        processo principal: janela, bandeja, update, sidecar do calango
-├── src/preload/     ponte segura (contextIsolation, sem nodeIntegration)
+├── src/main/        main process: window, tray, update, calango sidecar
+├── src/preload/     secure bridge (contextIsolation, no nodeIntegration)
 └── src/renderer/    React + TS + Vite
 ```
 
-## Regras
-- O main inicia `calango` (binário empacotado por plataforma), espera `/healthz`, reinicia com backoff se cair, mostra estado na bandeja.
-- O renderer usa só `packages/sdk-ts`. Token do desktop vem pelo preload, nunca fica no `localStorage`.
-- Seletor de nó: "Neste computador" e nós remotos pareados.
-- Segurança Electron: `contextIsolation: true`, `sandbox: true`, CSP estrita, nada de `remote`.
-- Atalho global para abrir a conversa rápida.
-- Distribuição: NSIS assinado (Windows), DMG notarizado (macOS), `.deb` e AppImage (Linux). Auto-update assinado.
+## Rules
+- The main process starts `calango` (binary packaged per platform), waits for `/healthz`, restarts with backoff if it dies, and shows the state in the tray.
+- The renderer uses only `packages/sdk-ts`. The desktop token comes through the preload and is never kept in `localStorage`.
+- Node selector: "This computer" and paired remote nodes.
+- Electron security: `contextIsolation: true`, `sandbox: true`, strict CSP, no `remote`.
+- Global shortcut to open the quick conversation.
+- Distribution: signed NSIS (Windows), notarized DMG (macOS), `.deb` and AppImage (Linux). Signed auto-update.
 
-## Telas da fase 1
-Barra lateral (DMs, agentes, rotinas, "Para você"), conversa com passos, cartão de aprovação, editor de agente, editor de rotina, uso e custos, configurações (você, agentes, modelos, conexões, cofre).
+## Screens in phase 1
+Sidebar (DMs, agents, routines, "For you"), conversation with steps, approval card, agent editor, routine editor, usage and costs, settings (you, agents, models, connections, vault).
 
-## Aceite
-- Matar o processo `calango` → o app mostra "reiniciando" e volta sozinho em até 10 s.
-- Instalador Windows não dispara aviso do SmartScreen por falta de assinatura.
+## Acceptance
+- Killing the `calango` process → the app shows "restarting" and comes back on its own within 10 s.
+- The Windows installer does not trigger a SmartScreen warning because of missing signing.

@@ -1,16 +1,16 @@
-# ADR 0004 — Mobile em Flutter; compartilhamento por contrato
+# ADR 0004 — Flutter mobile; sharing by contract
 
-Status: aceita · 2026-11-23
+Status: accepted · 2026-11-23
 
-## Contexto
-Apps iOS e Android para controle remoto, aprovações, conversas e notificações.
+## Context
+iOS and Android apps for remote control, approvals, conversations and notifications.
 
-## Decisão
-Flutter (Dart). O compartilhamento com o desktop (React/TS) é por contrato, não por código:
-- `api/openapi.yaml` gera `packages/sdk-ts` e `packages/sdk-dart`.
-- `packages/tokens/tokens.json` gera CSS e `ThemeData`.
-- `packages/i18n` gera JSON (desktop) e ARB (Flutter).
+## Decision
+Flutter (Dart). Sharing with the desktop (React/TS) happens by contract, not by code:
+- `api/openapi.yaml` generates `packages/sdk-ts` and `packages/sdk-dart`.
+- `packages/tokens/tokens.json` generates CSS and `ThemeData`.
+- `packages/i18n` generates JSON (desktop) and ARB (Flutter).
 
-## Consequências
-- Telas duplicadas. Mitigação: o mobile tem escopo menor e não replica a ADE.
-- Qualquer mudança de API começa no OpenAPI; SDK escrito à mão é proibido.
+## Consequences
+- Duplicated screens. Mitigation: the mobile app has a smaller scope and does not replicate the ADE.
+- Any API change starts in the OpenAPI; a hand-written SDK is forbidden.

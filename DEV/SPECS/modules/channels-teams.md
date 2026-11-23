@@ -1,18 +1,18 @@
-# Módulo: channels-teams
+# Module: channels-teams
 
-Fase 6 · Pacotes `internal/conversations`, `internal/router`, `internal/members`
+Phase 6 · Packages `internal/conversations`, `internal/router`, `internal/members`
 
-## Objetivo
-Canais com pessoas e agentes; plano Team.
+## Goal
+Channels with people and agents; Team plan.
 
-## Regras
-- Canais com threads e menções. Mensagem sem menção vai para o **roteador**: modelo barato escolhe 0 a 2 agentes. O roteador nunca concede permissão.
-- A escolha do roteador aparece no topo da resposta que ela iniciou, não como linha solta.
-- "Ninguém precisa responder" é uma decisão válida e aparece discreta.
-- Membros com papéis (dono, admin, membro, convidado); permissões por canal.
-- Aprovação delegada: o dono de um agente pode nomear substituto.
-- Um agente pode servir mais de uma pessoa (especialista compartilhado).
+## Rules
+- Channels with threads and mentions. A message without a mention goes to the **router**: a cheap model picks 0 to 2 agents. The router never grants permissions.
+- The router's choice appears at the top of the reply it started, not as a loose line.
+- "Nobody needs to reply" is a valid decision and appears discreetly.
+- Members with roles (owner, admin, member, guest); permissions per channel.
+- Delegated approval: an agent's owner can name a substitute.
+- One agent can serve more than one person (shared specialist).
 
-## Aceite
-- Mensagem sem menção num canal com três agentes gera no máximo dois runs.
-- Convidado não vê canais em que não foi incluído.
+## Acceptance
+- A message without a mention in a channel with three agents triggers at most two runs.
+- A guest does not see channels they were not added to.

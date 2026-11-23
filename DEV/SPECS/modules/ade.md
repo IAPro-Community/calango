@@ -1,21 +1,24 @@
-# Módulo: ade (ambiente de desenvolvimento com agentes)
+# Module: ade (agent-driven development environment)
 
-Fase 4 · Pacotes `internal/ade`, `internal/pty` · Tabelas `projects`, `worktrees`, `tasks`
+Phase 4 · Packages `internal/ade`, `internal/pty` · Tables `projects`, `worktrees`, `tasks`
 
-## Objetivo
-Programar projetos separados com agentes, no PC ou na VPS.
+## Goal
+Work on separate projects with agents, on the PC or on the VPS.
 
-## Regras
-- Projeto = repositório git + nó + agentes + conectores + memória (`DEV/` do projeto, se existir).
-- Cada tarefa abre um **worktree** num branch próprio. Vários agentes em paralelo sem conflito.
-- Terminal: PTY no `calango` (`creack/pty`; ConPTY no Windows), transmitido por WebSocket (`/v1/pty/{id}`); xterm.js no desktop.
-- Editor Monaco, árvore de arquivos, diff por worktree.
-- Comandos de shell passam pela lista segura; fora dela, aprovação.
-- Servidor de preview (porta detectada) abre no navegador interno.
-- GitHub/GitLab: criar branch, abrir PR, ler status do CI.
-- Ao terminar a tarefa: oferecer PR, manter ou descartar o worktree.
-- Importar skills de Claude Code (`.claude/`) e Codex (`.codex/`).
+## Rules
+- Project = git repository + node + agents + connectors + memory (the project's `DEV/`, if it exists).
+- Each task opens a **worktree** on its own branch. Several agents in parallel without conflicts.
+- Terminal: PTY in `calango` (`creack/pty`; ConPTY on Windows), streamed over WebSocket (`/v1/pty/{id}`); xterm.js in the desktop app.
+- Monaco editor, file tree, diff per worktree.
+- Shell commands go through the safe list; anything outside it requires approval.
+- Preview server (detected port) opens in the internal browser.
+- GitHub/GitLab: create branch, open PR, read CI status.
+- When the task ends: offer PR, keep or discard the worktree.
+- Each run leaves an evidence package: diff, commands and exit codes, tests executed and artifacts produced. Failures and tests not run appear as such.
+- The agent does not merge or publish/deploy without human approval tied to the exact action.
+- Import skills from Claude Code (`.claude/`) and Codex (`.codex/`).
 
-## Aceite
-- Duas tarefas no mesmo projeto rodam em paralelo em worktrees diferentes e geram dois PRs.
-- Projeto na VPS editável pelo desktop com o mesmo editor e terminal.
+## Acceptance
+- Two tasks in the same project run in parallel in different worktrees and produce two PRs.
+- The person can review the diff and the test results without relying on the agent's final message.
+- A project on the VPS is editable from the desktop with the same editor and terminal.

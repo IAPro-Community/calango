@@ -1,60 +1,74 @@
-# Como contribuir com o Calango
+# Contributing to Calango
 
-Obrigado por querer ajudar. O Calango é um assistente pessoal que roda no seu computador e na sua VPS. Estamos construindo a **V1** em público.
+Thank you for wanting to help. Calango is a personal assistant that runs on your computer and on your VPS. We are building **V1** in public.
 
-Antes de tudo, leia:
+Before anything else, read:
 - [LICENSE](LICENSE) (AGPL-3.0)
-- [CLA.md](CLA.md): você precisa aceitar o acordo de contribuidor no seu primeiro PR
-- [TRADEMARKS.md](TRADEMARKS.md): regras de uso do nome e da logo
-- [AGENTS.md](AGENTS.md): regras para contribuir com código, inclusive com agentes de IA
-- [DEV/TODO_V1.md](DEV/TODO_V1.md): o que falta para a V1
+- [CLA.md](CLA.md): you must accept the contributor agreement in your first pull request
+- [TRADEMARKS.md](TRADEMARKS.md): rules for using the name and logo
+- [AGENTS.md](AGENTS.md): rules for contributing code, including with AI agents
+- [DEV/TODO_V1.md](DEV/TODO_V1.md): what is left for V1
 
-## Por onde começar
+## Language
 
-1. Escolha uma tarefa aberta no [TODO da V1](DEV/TODO_V1.md) ou no [roadmap](DEV/SPECS/ROADMAP.md).
-2. Se a tarefa tem um identificador (ex.: `F1-T03`), use-o no título do PR.
-3. Para mudança grande, abra uma issue antes com a proposta. Decisões de arquitetura viram ADR em `DEV/ADR/`.
-4. Ainda não sabe por onde ir? Os itens marcados como "bom primeiro issue" são pequenos e bem definidos.
+**The project is in English.** To keep it readable for everyone, please write in English:
 
-## Ambiente de desenvolvimento
+- issues and their titles and descriptions;
+- pull requests, their titles and descriptions, and review comments;
+- commit messages;
+- code, identifiers, code comments and documentation (including `DEV/`);
+- user-facing strings go through the translation catalog (`packages/i18n`), which holds English, Brazilian Portuguese and Spanish.
 
-Requisitos: Go 1.22 ou superior. Node.js 20.19 ou superior para o Orquestrador Maestro.
+Pull requests and issues written in another language may be asked to be translated before review. Reading and understanding are not a barrier: if English is hard for you, write in your language and a maintainer or a translation tool can help, but the final text should be in English.
+
+Translated versions of the README are available in [Español](README.es.md) and [Português (BR)](README.pt-BR.md).
+
+## Where to start
+
+1. Pick an open task from the [V1 TODO](DEV/TODO_V1.md) or the [roadmap](DEV/SPECS/ROADMAP.md).
+2. If the task has an identifier (e.g., `F1-T03`), use it in the title of your PR.
+3. For a large change, open an issue first with the proposal. Architecture decisions become ADRs in `DEV/ADR/`.
+4. Not sure where to start? Items marked "good first issue" are small and well defined.
+
+## Development environment
+
+Requirements: Go 1.22 or later. Node.js 20.19 or later for the Orquestrador Maestro.
 
 ```bash
 go vet ./...
 go test ./...
-go run ./cmd/calango          # sobe em 127.0.0.1:7317
+go run ./cmd/calango          # listens on 127.0.0.1:7317
 ```
 
-Site de apresentação:
+Presentation site:
 
 ```bash
 docker build -t calango-site .
 docker run --rm -p 8080:8080 calango-site
-# abra http://localhost:8080
+# open http://localhost:8080
 ```
 
-## Regras do código
+## Code rules
 
-- Siga [DEV/CONVENTIONS.md](DEV/CONVENTIONS.md).
-- Mudança de API começa em `api/openapi.yaml`.
-- Mudança de banco é uma migração nova. Migrações commitadas não são editadas.
-- Ação sensível nunca pode ser executada sem aprovação do dono (ver [DEV/SECURITY.md](DEV/SECURITY.md)).
-- Não envie segredos, chaves, dados pessoais ou logs com conteúdo de conversa.
-- Não copie código de outros projetos. Veja [ADR 0006](DEV/ADR/0006-codigo-original.md). A exceção do Orquestrador Maestro está no [ADR 0009](DEV/ADR/0009-orquestrador-maestro.md).
+- Follow [DEV/CONVENTIONS.md](DEV/CONVENTIONS.md).
+- API changes start in `api/openapi.yaml`.
+- Database changes are a new migration. Committed migrations are never edited.
+- A sensitive action must never run without the owner's approval (see [DEV/SECURITY.md](DEV/SECURITY.md)).
+- Do not submit secrets, keys, personal data or logs containing conversation content.
+- Do not copy code from other projects. See [ADR 0006](DEV/ADR/0006-codigo-original.md). The Orquestrador Maestro exception is in [ADR 0009](DEV/ADR/0009-orquestrador-maestro.md).
 
 ## Pull requests
 
-- Um assunto por PR.
-- Testes para regra de domínio.
-- Descreva o que mudou, por quê e como verificar.
-- Atualize a documentação em `DEV/` quando a mudança afetar escopo, arquitetura ou API.
-- Aceite o CLA quando o bot pedir.
+- One subject per PR.
+- Tests for domain rules.
+- Describe what changed, why, and how to verify it.
+- Update the documentation in `DEV/` when the change affects scope, architecture or the API.
+- Accept the CLA when the bot asks.
 
-## Código de conduta
+## Code of conduct
 
-Esperamos respeito e colaboração. Quem não seguir isso pode ser removido do projeto. Relate problemas ao contato em [COMMERCIAL.md](COMMERCIAL.md).
+We expect respect and collaboration. Anyone who does not follow this may be removed from the project. Report problems as described in [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).
 
-## Segurança
+## Security
 
-Não abra issue pública para vulnerabilidade. Veja [SECURITY.md](SECURITY.md).
+Do not open a public issue for a vulnerability. See [SECURITY.md](SECURITY.md).

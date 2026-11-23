@@ -1,42 +1,42 @@
-# Marca — Calango
+# Brand — Calango
 
 ## Logo
 
-Arquivo original: [logo-original.png](logo-original.png) (1254×1254). Versões reduzidas em `site/assets/`.
+Original file: [logo-original.png](logo-original.png) (1254×1254). Reduced versions in `site/assets/`.
 
-Leitura do estilo:
-- **Colagem de papel recortado.** O calango é feito de pedaços de papel com bordas retas e cantos irregulares, levemente sobrepostos, com textura de fibra.
-- **Fundo de post-its.** Quadrados amarelos sobrepostos, em tons um pouco diferentes, como uma parede de ideias.
-- **Tile de vidro líquido.** Tudo dentro de um quadrado de cantos bem arredondados, com borda translúcida, reflexo branco no topo e brilho amarelo nas bordas.
-- **Paleta quente e solar:** amarelo post-it, verdes limão/folha/musgo, faixa laranja, barriga areia, rocha argila, olho marrom-escuro.
-- **Postura:** o calango está de cabeça erguida, atento, em cima da pedra. Representa um assistente alerta, sempre de guarda.
+Reading of the style:
+- **Cut-paper collage.** The lizard is made of pieces of paper with straight edges and irregular corners, slightly overlapping, with fiber texture.
+- **Sticky-note background.** Overlapping yellow squares in slightly different tones, like a wall of ideas.
+- **Liquid glass tile.** Everything inside a square with well-rounded corners, a translucent border, a white reflection at the top and yellow glow on the edges.
+- **Warm, solar palette:** sticky-note yellow, lime/leaf/moss greens, an orange stripe, sand belly, clay rock, dark-brown eye.
+- **Stance:** the lizard holds its head up, alert, on top of the rock. It represents an assistant that is awake and always on guard.
 
-## Princípios visuais
+## Visual principles
 
-1. **Feito à mão, acabamento premium.** Formas de papel recortado com sombras macias; vidro só em destaques (tile do ícone, cartões principais).
-2. **Pedaços que se juntam.** A metáfora central: pedaços de papel (tarefas, nós, rotinas) se juntando para formar o calango. Usar isso em animações e diagramas.
-3. **Calor, não neon.** Sem roxo, sem gradiente de IA genérico. Amarelo, verde e terra.
-4. **Leve inclinação.** Elementos de papel com rotação pequena (−3° a 3°), nunca alinhados demais.
+1. **Handmade, premium finish.** Cut-paper shapes with soft shadows; glass only for highlights (the icon tile, main cards).
+2. **Pieces that come together.** The central metaphor: pieces of paper (tasks, nodes, routines) joining to form the lizard. Use it in animations and diagrams.
+3. **Warmth, not neon.** No purple, no generic AI gradient. Yellow, green and earth.
+4. **Slight tilt.** Paper elements with a small rotation (−3° to 3°), never too aligned.
 
-## Paleta
+## Palette
 
-Ver `packages/tokens/tokens.json`. Principais: `postit #FDD838`, `lime #B6E021`, `leaf #6CC23A`, `moss #42912E`, `tangerine #FE9904`, `sand #F3CC85`, `clay #B47133`, `bark #4A2A15`, `paper #FFFBEF`, `ink #22180F`.
+See `packages/tokens/tokens.json`. Main colors: `postit #FDD838`, `lime #B6E021`, `leaf #6CC23A`, `moss #42912E`, `tangerine #FE9904`, `sand #F3CC85`, `clay #B47133`, `bark #4A2A15`, `paper #FFFBEF`, `ink #22180F`.
 
-Contraste: texto sempre `ink` sobre fundos claros e `paper` sobre `moss`/`bark`/`night`. Nunca texto branco sobre amarelo.
+Contrast: text is always `ink` on light backgrounds and `paper` on `moss`/`bark`/`night`. Never white text on yellow.
 
-## Tipografia
+## Typography
 
-- Títulos: **Bricolage Grotesque** 700–800, espaçamento apertado, tamanho grande.
-- Texto: **Instrument Sans** 400–600.
-- Código: **JetBrains Mono**.
+- Headings: **Bricolage Grotesque** 700–800, tight spacing, large size.
+- Text: **Instrument Sans** 400–600.
+- Code: **JetBrains Mono**.
 
-## Movimento
+## Motion
 
-- **Assentar papel:** elemento entra com pequena rotação e escala 0,96 → 1, curva `ease-paper` (passa levemente do ponto e volta).
-- **Escalonamento:** grupos entram em sequência de 45 ms.
-- **Relógio único** nas demos de produto: um só tempo dirige todas as cenas, permitindo pausar, avançar e repetir.
-- `prefers-reduced-motion`: sem deslocamento nem rotação; só opacidade.
+- **Settling paper:** an element enters with a small rotation and scale 0.96 → 1, curve `ease-paper` (overshoots slightly and comes back).
+- **Staggering:** groups enter in sequence, 45 ms apart.
+- **Single clock** in the product demos: one timeline drives every scene, allowing pause, skip and replay.
+- `prefers-reduced-motion`: no translation or rotation; opacity only.
 
-## Ícone em tamanhos pequenos
+## Icon at small sizes
 
-A colagem perde leitura abaixo de 48 px. Pendente: versão simplificada (silhueta do calango em `moss` sobre `postit`, sem textura) para favicon, bandeja e notificações.
+The collage loses legibility below 48 px. Pending: a simplified version (lizard silhouette in `moss` on `postit`, no texture) for the favicon, tray and notifications.

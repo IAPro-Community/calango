@@ -1,27 +1,27 @@
-# ADR 0009 — Orquestrador Maestro embutido, com atualização automática pelo canal oficial
+# ADR 0009 — Embedded Orquestrador Maestro, with automatic update through the official channel
 
-Status: aceita · 2026-11-23 · **substitui parcialmente o ADR 0006** (só para o Maestro)
+Status: accepted · 2026-11-23 · **partially supersedes ADR 0006** (for Maestro only)
 
-## Contexto
-O Orquestrador Maestro (`IAPro-Community/Orquestrador-Maestro`, Apache-2.0) organiza o trabalho de agentes de código: regras, roteamento de skills, contexto compacto, verificação e handoff. O dono quer que o Calango embuta esse processo e acompanhe as atualizações dele. O ADR 0006 proíbe copiar código de referência; o Maestro é a exceção escolhida explicitamente pelo dono, com licença permissiva.
+## Context
+The Orquestrador Maestro (`IAPro-Community/Orquestrador-Maestro`, Apache-2.0) organizes the work of coding agents: rules, skill routing, compact context, verification and handoff. The owner wants Calango to embed this process and follow its updates. ADR 0006 forbids copying reference code; Maestro is the exception explicitly chosen by the owner, under a permissive license.
 
-## Decisão
-1. **Não copiar o repositório.** O Calango consome o Maestro pelo pacote npm oficial `@iapro/orquestrador-maestro-cli`, fixado na linha **V1** (`^1.1.1`). Assim o código pertence ao canal oficial e as atualizações chegam por versão.
-2. **Atualização automática, com controle.** O `calango` consulta o registro npm periodicamente (padrão: 1 vez por dia). Quando sai versão nova dentro da linha V1:
-   - aplica sozinho só se o dono ligou "atualizar automaticamente" (padrão: **desligado**, porque a atualização muda as regras de todos os agentes);
-   - caso contrário, mostra um cartão: versão, resumo do CHANGELOG e botão **Atualizar** / **Agora não**.
-   - Versão maior (V2 ou seguinte) **nunca** entra sozinha: sempre cartão com aviso de quebra.
-3. **Instalação isolada.** O Maestro é instalado numa pasta do Calango (`<calango-home>/maestro/`), não na raiz do usuário. Só é ligado aos agentes que o dono escolher, por harness (Claude Code, Codex etc.), por link no `AGENTS.md`/`CLAUDE.md` do workspace.
-4. **Verificação antes de ativar.** Após instalar ou atualizar, o Calango roda `orquestrador-maestro verify`. Se falhar, reverte para a versão anterior e avisa.
-5. **Rollback.** Cada versão instalada fica guardada; reverter é trocar o ponteiro de versão.
-6. **Atribuição.** Apache-2.0 exige manter a licença e os avisos. O Calango inclui `NOTICE` na raiz e uma tela "Sobre" com o crédito ao projeto e o link do repositório.
+## Decision
+1. **Do not copy the repository.** Calango consumes Maestro from the official npm package `@iapro/orquestrador-maestro-cli`, pinned to the **V1** line (`^1.1.1`). This way the code belongs to the official channel and updates arrive by version.
+2. **Automatic update, with control.** `calango` checks the npm registry periodically (default: once a day). When a new version within the V1 line appears:
+   - it applies it on its own only if the owner turned on "update automatically" (default: **off**, because an update changes the rules of every agent);
+   - otherwise it shows a card: version, CHANGELOG summary and an **Update** / **Not now** button.
+   - A major version (V2 or later) **never** goes in on its own: always a card with a breaking-change warning.
+3. **Isolated installation.** Maestro is installed in a Calango folder (`<calango-home>/maestro/`), not at the user's root. It is linked only to the agents the owner chooses, per harness (Claude Code, Codex, etc.), through a link in the workspace's `AGENTS.md`/`CLAUDE.md`.
+4. **Verification before activation.** After installing or updating, Calango runs `orquestrador-maestro verify`. If it fails, it reverts to the previous version and warns.
+5. **Rollback.** Each installed version is kept; reverting means switching the version pointer.
+6. **Attribution.** Apache-2.0 requires keeping the license and notices. Calango includes a `NOTICE` at the root and an "About" screen with credit to the project and a link to the repository.
 
-## Alternativas descartadas
-- **Copiar o código para dentro do repo**: quebra a atualização automática e vira fork a manter.
-- **Submódulo git**: acoplado a commits; atualização manual.
-- **Instalar na pasta do usuário (`~/.orquestrador-maestro`, `~/.codex`)**: mexe em configuração pessoal fora do controle do Calango.
+## Discarded alternatives
+- **Copy the code into the repo**: breaks automatic updates and becomes a fork to maintain.
+- **Git submodule**: coupled to commits; manual update.
+- **Install in the user's folder (`~/.orquestrador-maestro`, `~/.codex`)**: touches personal configuration outside Calango's control.
 
-## Consequências
-- Dependência de Node.js 20.19+ na máquina do dono (ou dentro do container, na VPS). Entra em `F1-T03`/`F3-T01`.
-- A versão do Maestro vira parte do contrato: quando mudar, o Calango mostra a versão no painel de agentes.
-- Quem não quer o Maestro roda sem ele; nada do núcleo depende dele.
+## Consequences
+- Dependency on Node.js 20.19+ on the owner's machine (or inside the container, on the VPS). Enters in `F1-T03`/`F3-T01`.
+- The Maestro version becomes part of the contract: when it changes, Calango shows the version in the agents panel.
+- Anyone who does not want Maestro runs without it; nothing in the core depends on it.

@@ -1,32 +1,32 @@
-# Licença comercial do Calango
+# Calango commercial license
 
-O código do Calango é distribuído sob **GNU Affero General Public License v3.0 (AGPL-3.0)**, ver [LICENSE](LICENSE). Você pode usar, estudar, modificar e distribuir o código sob essa licença sem custo.
+The Calango code is distributed under the **GNU Affero General Public License v3.0 (AGPL-3.0)**, see [LICENSE](LICENSE). You may use, study, modify and distribute the code under that license at no cost.
 
-## Quando você precisa de licença comercial
+## When you need a commercial license
 
-A AGPL-3.0 exige que quem distribui uma versão modificada, ou a oferece como serviço em rede, publique o código-fonte completo dessa versão sob a mesma licença. Você precisa de uma **licença comercial** se pelo menos uma das situações abaixo for verdadeira:
+The AGPL-3.0 requires that anyone who distributes a modified version, or offers it as a network service, publish the complete source code of that version under the same license. You need a **commercial license** if at least one of the following is true:
 
-- quer incorporar o Calango em produto proprietário, sem publicar o código de suas modificações;
-- quer oferecer uma versão modificada do Calango como serviço hospedado, sem publicar as modificações;
-- quer redistribuir o Calango com marca própria ou como parte de outro produto fechado;
-- sua política interna proíbe software sob AGPL.
+- you want to embed Calango in a proprietary product without publishing your modifications;
+- you want to offer a modified version of Calango as a hosted service without publishing the modifications;
+- you want to redistribute Calango under your own brand or as part of another closed product;
+- your internal policy prohibits software under the AGPL.
 
-Uso pessoal, uso interno sem oferecer o serviço a terceiros, contribuição de código e pesquisa **não** exigem licença comercial.
+Personal use, internal use without offering the service to third parties, code contributions and research **do not** require a commercial license.
 
-## O que a licença comercial cobre
+## What the commercial license covers
 
-- Direito de usar, modificar e distribuir o Calango sem as obrigações de reciprocidade da AGPL.
-- Suporte e prazos de correção acordados em contrato, conforme o plano.
-- Não cobre marca: ver [TRADEMARKS.md](TRADEMARKS.md).
+- The right to use, modify and distribute Calango without the AGPL's reciprocity obligations.
+- Support and fix deadlines agreed in a contract, according to the plan.
+- It does not cover trademarks: see [TRADEMARKS.md](TRADEMARKS.md).
 
-## Contato
+## Contact
 
-Solicite uma proposta: **licenca@calango.dev** *(endereço a confirmar antes da publicação)*.
+To request a proposal: **licenca@calango.dev** *(address to be confirmed before publication)*.
 
-## Relação com a licença aberta
+## Relationship with the open license
 
-A licença comercial é uma alternativa à AGPL para quem precisa dela. Ela não retira direitos de quem usa a versão AGPL. Os contribuidores cedem os direitos necessários para essa dupla licença por meio do [CLA.md](CLA.md).
+The commercial license is an alternative to the AGPL for those who need one. It does not remove rights from users of the AGPL version. Contributors grant the rights needed for this dual license through the [CLA.md](CLA.md).
 
-## Serviços pagos que não são código aberto
+## Paid services that are not open source
 
-Alguns serviços da Calango são operados pela própria Calango e não fazem parte deste repositório: relay de túnel, envio de notificações para celular, VPS gerenciada, créditos de modelo, cobrança e servidor de licenças. Eles são oferecidos como serviço, não como software, e seus termos estão em [Termos de Serviço](#) *(a publicar)*.
+Some Calango services are operated by Calango itself and are not part of this repository: tunnel relay, mobile push notifications, managed VPS, model credits, billing and the license server. They are offered as services, not as software, and their terms are in the Terms of Service *(to be published)*.

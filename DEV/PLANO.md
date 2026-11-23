@@ -1,267 +1,259 @@
-# Calango — plano completo do software
+# Calango — full software plan
 
-Status: planejamento. Versão 1, 2026-11-23. Nada além da fundação (fase 0) está implementado.
-Documentos de apoio: [ARCHITECTURE.md](ARCHITECTURE.md), [PRODUCT_HYBRID.md](PRODUCT_HYBRID.md), [MONETIZATION.md](MONETIZATION.md), [DEPLOYMENT.md](DEPLOYMENT.md).
-
----
-
-## 1. Visão
-
-**Calango é um agente pessoal que mora no seu computador, se estende para a sua VPS e responde no seu bolso.**
-
-Ele conversa, lembra, executa tarefas, roda rotinas, navega na web, programa projetos e trabalha em canais com pessoas e outros agentes. Tudo roda em máquinas da própria pessoa. A Calango (empresa) fornece só identidade, licença, push e atualizações.
-
-Posicionamento frente às referências:
-
-| | Roda onde | Ponto forte | O que falta |
-|---|---|---|---|
-| Dot (encerrado) | nuvem deles | memória, proatividade | não executava nada |
-| Grok Bot | nuvem deles | sempre ligado | sem controle local, dados com terceiros |
-| Tucano | só o PC | agentes, canais, aprovações | sem nuvem, sem celular de verdade |
-| agentes.chat | servidor de time | chat de equipe com agentes | não é assistente pessoal, AGPL |
-| **Calango** | **PC + VPS da pessoa** | **pessoal + 24/7 + ADE + celular** | — |
-
-## 2. Princípios
-
-1. **Os nós são da pessoa.** Dados, chaves e execução ficam no PC e na VPS dela.
-2. **Um núcleo só.** O mesmo binário Go (`calango`) roda no PC e na VPS. Clientes não executam agente.
-3. **Nada sensível sem aprovação.** Enviar, apagar, publicar, pagar, fazer deploy: sempre um cartão de aprovação.
-4. **Tudo tem custo visível.** Cada chamada de modelo é medida, tem dono e tem limite.
-5. **Silêncio é uma resposta válida.** Rotina sem novidade não notifica ninguém.
-6. **Código original.** Tucano e agentes.chat são só referência de leitura.
+Status: planning. Version 1, 2026-11-23. Nothing beyond the foundation (phase 0) is implemented.
+Supporting documents: [ARCHITECTURE.md](ARCHITECTURE.md), [PRODUCT_HYBRID.md](PRODUCT_HYBRID.md), [MONETIZATION.md](MONETIZATION.md), [DEPLOYMENT.md](DEPLOYMENT.md).
 
 ---
 
-## 3. Topologia
+## 1. Vision
+
+**Calango is a personal agent that lives on your computer, extends to your VPS and answers in your pocket.**
+
+It talks, remembers, executes tasks, runs routines, browses the web, builds projects and works in channels with people and other agents. Everything runs on machines the person owns. Calango (the company) provides only identity, licensing, push and updates.
+
+The competitive landscape has changed: self-hosted products, agent desktops and hosted services already offer parts of PC, server, phone, browser, routines and programming. Therefore, **PC + VPS + phone is not an exclusive advantage**. The differentiation hypothesis is to keep one shared contract of identity, budget, policy, approval and evidence when running on the person's own PC and VPS. This hypothesis still has to be demonstrated in V1. Comparables, sources and limits of the research are in [COMPETITIVE_LANDSCAPE.md](COMPETITIVE_LANDSCAPE.md).
+
+## 2. Principles
+
+1. **The nodes belong to the person.** Data, keys and execution stay on their PC and VPS.
+2. **One core.** The same Go binary (`calango`) runs on the PC and on the VPS. Clients do not run agents.
+3. **Nothing sensitive without approval.** Sending, deleting, publishing, paying, deploying: always an approval card.
+4. **All cost is visible.** Every model call is measured, has an owner and has a limit.
+5. **Silence is a valid answer.** A routine with no news does not notify anyone.
+6. **Original code.** Tucano and agentes.chat are read-only references.
+
+---
+
+## 3. Topology
 
 ```
-                        ┌──────────────── Calango Cloud (nosso) ───────────────┐
-                        │ conta · licenças · billing · push relay · updates     │
+                        ┌──────────────── Calango Cloud (ours) ────────────────┐
+                        │ accounts · licenses · billing · push relay · updates  │
                         └───────────────▲──────────────────▲────────────────────┘
-                                        │ só metadados     │
-          Tailscale (tailnet da pessoa) │                  │
+                                        │ metadata only    │
+          Tailscale (person's tailnet)  │                  │
    ┌────────────────────────────────────┼──────────────────┼───────────────┐
    │                                    │                  │               │
 ┌──┴────────────────┐          ┌────────┴─────────┐   ┌────┴─────┐   ┌─────┴────┐
-│ Nó PC (grátis)    │◄────────►│ Nó VPS (pago)    │   │ iOS      │   │ Android  │
-│ Electron + calango│  eventos │ Docker calango  │   └──────────┘   └──────────┘
-│ arquivos, apps,    │  + git   │ 24/7, rotinas,   │        ▲ controle remoto ▲
-│ navegador local    │          │ projetos, browser│        └──── de PC e VPS ┘
-└────────────────────┘          └──────────────────┘
+│ PC node (free)    │◄────────►│ VPS node (paid)  │   │ iOS      │   │ Android  │
+│ Electron + calango│  events  │ Docker calango   │   └──────────┘   └──────────┘
+│ files, apps,      │  + git   │ 24/7, routines,  │        ▲ remote control ▲
+│ local browser     │          │ projects, browser│        └── of PC and VPS ┘
+└───────────────────┘          └──────────────────┘
 ```
 
-- **Nó PC**: app Electron que sobe o `calango` como processo filho.
-- **Nó VPS**: `calango` em Docker, sem interface própria; acessado pelos clientes e pela web.
-- **Clientes**: desktop (Electron), iOS, Android, web. Todos falam a mesma API.
-- **Transporte**: Tailscale na fase inicial (decidido). Relay próprio depois.
-- **Calango Cloud**: nunca vê conversas, arquivos ou chaves de modelo.
+- **PC node**: Electron app that starts `calango` as a child process.
+- **VPS node**: `calango` in Docker, with no UI of its own; accessed by the clients and the web.
+- **Clients**: desktop (Electron), iOS, Android, web. All speak the same API.
+- **Transport**: Tailscale in the initial phase (decided). Own relay later.
+- **Calango Cloud**: never sees conversations, files or model keys.
 
 ---
 
-## 4. Stack por componente
+## 4. Stack by component
 
-### 4.1 `calango` — núcleo (Go)
+### 4.1 `calango` — core (Go)
 
-| Função | Escolha |
+| Function | Choice |
 |---|---|
-| Linguagem | Go 1.22+ |
-| API | HTTP + WebSocket, contrato OpenAPI (gera o SDK TypeScript) |
-| Banco | SQLite puro Go (`modernc.org/sqlite`), migrações versionadas e imutáveis |
-| Agendador | interno (já existe o esqueleto), com cron, intervalos e eventos |
-| Gateway de modelo | todo token passa por ele: orçamento antes, custo depois |
-| Gateway de ferramentas | MCP; cada agente vê só as ferramentas e escopos dele |
-| Harnesses | adaptadores para CLIs de agente (Claude Code, Codex, Gemini, Grok, OpenCode) e API direta |
-| Navegador do agente | Chromium via DevTools Protocol (`chromedp`) |
-| Terminal | PTY no daemon (`creack/pty`; ConPTY no Windows), transmitido por WebSocket |
-| Git / ADE | git do sistema; um worktree por tarefa |
-| Isolamento | Docker na VPS; no PC, pasta de trabalho restrita + aprovação por comando |
-| Rede | Tailscale (avaliar `tsnet` embutido) |
-| Segredos | cofre do sistema: Windows Credential Manager/DPAPI, macOS Keychain, Linux Secret Service |
+| Language | Go 1.22+ |
+| API | HTTP + WebSocket, OpenAPI contract (generates the TypeScript SDK) |
+| Database | pure-Go SQLite (`modernc.org/sqlite`), versioned and immutable migrations |
+| Scheduler | internal (the skeleton already exists), with cron, intervals and events |
+| Model gateway | every token goes through it: budget before, cost after |
+| Tool gateway | MCP; each agent sees only its own tools and scopes |
+| Harnesses | adapters for agent CLIs (Claude Code, Codex, Gemini, Grok, OpenCode) and direct API |
+| Agent browser | Chromium via the DevTools Protocol (`chromedp`) |
+| Terminal | PTY in the daemon (`creack/pty`; ConPTY on Windows), streamed over WebSocket |
+| Git / ADE | system git; one worktree per task |
+| Isolation | Docker on the VPS; on the PC, a restricted working folder + approval per command |
+| Network | Tailscale (evaluate embedded `tsnet`) |
+| Secrets | OS vault: Windows Credential Manager/DPAPI, macOS Keychain, Linux Secret Service |
 
 ### 4.2 Desktop — Electron (Windows, macOS, Linux)
 
-- **Processo principal (Node)**: janela, bandeja, atalhos globais, auto-update, inicia e vigia o `calango`.
-- **Renderer (React + TypeScript + Vite)**: toda a interface. Fala com o `calango` pela API, igual ao celular.
-- **Navegador interno**: abas reais com `WebContentsView`. O agente dirige a mesma aba pelo protocolo de depuração do Electron, e a pessoa pode **assumir** a aba a qualquer momento (e devolver).
-- **Editor da ADE**: Monaco. **Terminal**: xterm.js ligado ao PTY do daemon.
-- **Windows**: instalador NSIS assinado (certificado de code signing desde o primeiro release público; o Tucano sofre com aviso do SmartScreen por não assinar), inicia com o sistema, ícone na bandeja.
-- **macOS**: assinado e notarizado. **Linux**: `.deb` e AppImage (AppImage é restrito no Ubuntu 24.04+, então `.deb` é o caminho principal lá).
+- **Main process (Node)**: window, tray, global shortcuts, auto-update, starts and watches `calango`.
+- **Renderer (React + TypeScript + Vite)**: the entire interface. Talks to `calango` through the API, just like the phone.
+- **Internal browser**: real tabs with `WebContentsView`. The agent drives the same tab through the Electron debugging protocol, and the person can **take over** the tab at any time (and hand it back).
+- **ADE editor**: Monaco. **Terminal**: xterm.js connected to the daemon's PTY.
+- **Windows**: signed NSIS installer (code-signing certificate from the first public release; Tucano suffers from SmartScreen warnings because it does not sign), starts with the system, tray icon.
+- **macOS**: signed and notarized. **Linux**: `.deb` and AppImage (AppImage is restricted on Ubuntu 24.04+, so `.deb` is the main path there).
 
-### 4.3 Mobile — iOS e Android
+### 4.3 Mobile — iOS and Android
 
-- **Flutter** (decidido em 2026-11-23). Um código Dart para iOS e Android.
-- Como o desktop é React/TypeScript, o compartilhamento passa a ser por **contrato**, não por código:
-  - **API**: o OpenAPI do `calango` gera dois clientes, TypeScript (desktop/web) e Dart (mobile). Nenhum cliente é escrito à mão.
-  - **Design**: tokens (cores, tipografia, espaçamento) num JSON único, que gera CSS para o desktop e `ThemeData` para o Flutter.
-  - **Traduções**: catálogo único que gera os arquivos ARB do Flutter e o JSON do desktop.
-- Custo dessa escolha: telas duplicadas (React e Flutter). Mitigação: o mobile tem um escopo menor e focado (controle remoto, aprovações, conversas), não replica a ADE.
-- Funções: conversas, aprovações, rotinas, tarefas, notificações, status dos nós, controle remoto do PC e da VPS.
-- Push via relay nosso (APNs/FCM), só com "tem novidade"; o app busca o conteúdo no nó.
-- Compra: sistema das lojas (via RevenueCat ou integração direta), com assinatura reconhecida também no desktop.
+- **Flutter** (decided 2026-11-23). One Dart codebase for iOS and Android.
+- Because the desktop is React/TypeScript, sharing happens through a **contract**, not through code:
+  - **API**: the Calango OpenAPI generates two clients, TypeScript (desktop/web) and Dart (mobile). No client is written by hand.
+  - **Design**: tokens (colors, typography, spacing) in a single JSON, which generates CSS for the desktop and `ThemeData` for Flutter.
+  - **Translations**: a single catalog that generates the Flutter ARB files and the desktop JSON.
+- Cost of this choice: duplicated screens (React and Flutter). Mitigation: the mobile app has a smaller, focused scope (remote control, approvals, conversations) and does not replicate the ADE.
+- Features: conversations, approvals, routines, tasks, notifications, node status, remote control of the PC and the VPS.
+- Push through our relay (APNs/FCM), only with "there is news"; the app fetches the content from the node.
+- Purchase: the stores' systems (via RevenueCat or direct integration), with the subscription also recognized on the desktop.
 
 ### 4.4 Web
 
-O mesmo app React, servido pelo próprio `calango`. Serve para acessar a VPS de um navegador qualquer.
+The same React app, served by `calango` itself. Used to access the VPS from any browser.
 
-### 4.5 Calango Cloud (Go, nosso)
+### 4.5 Calango Cloud (Go, ours)
 
-| Serviço | Função |
+| Service | Function |
 |---|---|
-| Conta | login, dispositivos, lista de nós da pessoa |
-| Licenças | emite chave assinada (Ed25519) que o nó VPS valida offline |
-| Billing | Stripe (web/desktop) + compras das lojas; uma fonte de verdade de plano |
-| Push relay | encaminha avisos para APNs/FCM, sem conteúdo |
-| Updates | canais estável/beta para desktop e imagem Docker |
-| Telemetria | só com opt-in, sem conteúdo |
+| Account | login, devices, list of the person's nodes |
+| Licenses | issues an Ed25519-signed key that the VPS node validates offline |
+| Billing | Stripe (web/desktop) + store purchases; a single source of truth for the plan |
+| Push relay | forwards notices to APNs/FCM, without content |
+| Updates | stable/beta channels for the desktop and the Docker image |
+| Telemetry | only with opt-in, without content |
 
 ---
 
-## 5. Módulos funcionais
+## 5. Functional modules
 
-### 5.1 Assistente pessoal
-- Chat por texto e voz (ditado e resposta falada numa fase posterior).
-- **Briefing diário** configurável: agenda, e-mails importantes, tarefas, o que as rotinas acharam.
-- **Proatividade**: o agente sugere próximos passos num cartão de caixas de marcar, sem bloquear.
-- "Para você": caixa única com perguntas, aprovações e entregas pendentes.
+### 5.1 Personal assistant
+- Text and voice chat (dictation and spoken replies in a later phase).
+- **Configurable daily briefing**: calendar, important emails, tasks, what the routines found.
+- **Proactivity**: the agent suggests next steps in a checkbox card, without blocking.
+- "For you": a single inbox with pending questions, approvals and deliveries.
 
-### 5.2 Agentes
-- Vários agentes por conta, cada um com papel, instruções, modelo/harness, ferramentas, orçamento mensal e onde roda (PC, VPS, automático).
-- Assistente de criação: descreva o agente, ele monta o rascunho.
-- Respostas em paralelo com limite configurável; orientar uma resposta em curso; parar só uma.
-- Pausa global de todos os agentes.
+### 5.2 Agents
+- Several agents per account, each with a role, instructions, model/harness, tools, a monthly budget and where it runs (PC, VPS, automatic).
+- Creation assistant: describe the agent, and it drafts it.
+- Parallel replies with a configurable limit; guide a reply in progress; stop only one.
+- Global pause of all agents.
 
-### 5.3 Canais e DMs
-- DM com cada agente; canais com vários agentes (e pessoas, no plano Team).
-- **Roteador**: um modelo barato escolhe quem responde (0 a 2 agentes). Nunca concede permissão.
-- Threads, menções, citação de trecho.
-- A escolha do roteador aparece no topo da resposta, não como linha solta no canal.
+### 5.3 Channels and DMs
+- DM with each agent; channels with several agents (and people, on the Team plan).
+- **Router**: a cheap model picks who replies (0 to 2 agents). It never grants permissions.
+- Threads, mentions, quoting a passage.
+- The router's choice appears at the top of the reply, not as a loose line in the channel.
 
-### 5.4 Rotinas
-- Gatilhos: horário (cron), intervalo, evento de conector (e-mail novo, PR aberto, webhook).
-- Destino: PC, VPS ou automático.
-- **Nova tentativa e aviso** quando falha (o agentes.chat perde entregas semanais por não fazer isso).
-- Janela de silêncio; rotina sem novidade não notifica.
-- Calendário de rotinas e histórico de execuções com custo.
+### 5.4 Routines
+- Triggers: schedule (cron), interval, connector event (new email, PR opened, webhook).
+- Destination: PC, VPS or automatic.
+- **Retry and alert** on failure (agentes.chat loses weekly deliveries because it does not do this).
+- Quiet window; a routine with no news does not notify.
+- Routine calendar and run history with cost.
 
-### 5.5 Tarefas (Quadro)
-- Kanban de tarefas: minhas, sugeridas por agentes, em andamento por agentes.
-- Uma tarefa pode atravessar várias execuções até terminar.
-- Rotinas ficam fora do Quadro (são agenda, não tarefa).
+### 5.5 Tasks (Board)
+- Task kanban: mine, suggested by agents, in progress by agents.
+- A task can span several executions until it finishes.
+- Routines stay off the Board (they are a schedule, not tasks).
 
-### 5.6 Aprovações
-- Cartão com ação, alvo e argumentos exatos.
-- Recibo depois: concluído, falhou (com motivo) ou não executado.
-- Níveis por agente: sempre perguntar, perguntar só no sensível, aprovar sempre esse tipo.
-- Aprovação pelo celular e, no Team, por substituto.
-- Aprovações respeitam a ordem em que foram pedidas.
+### 5.6 Approvals
+- Card with the exact action, target and arguments.
+- Receipt afterwards: completed, failed (with reason) or not run.
+- Levels per agent: always ask, ask only for sensitive actions, always approve that type.
+- Approval from the phone and, on Team, by a substitute.
+- Approvals respect the order in which they were requested.
 
-### 5.7 Navegador interno
-- Abas, perfis persistentes por agente, bloqueador de anúncios e de avisos de cookie.
-- O agente identifica **barreiras** (verificação de robô, login, página vazia) e avisa em vez de insistir.
-- Pessoa assume e devolve a aba sem recarregar.
-- Conteúdo de página é sempre tratado como dado, nunca como instrução (defesa contra prompt injection).
+### 5.7 Internal browser
+- Tabs, persistent profiles per agent, ad blocker and cookie-notice blocker.
+- The agent identifies **barriers** (robot check, login, empty page) and reports them instead of insisting.
+- The person takes over and hands back the tab without reloading.
+- Page content is always treated as data, never as instructions (defense against prompt injection).
 
-### 5.8 ADE — ambiente de desenvolvimento com agentes
-- **Projetos** separados, cada um com seu repositório, agentes, conectores e memória (`DEV/` como memória do projeto).
-- Cada tarefa abre um **worktree** próprio: vários agentes trabalham em paralelo sem pisar um no outro.
-- Editor, terminal, diff, rodar testes, servidor de preview aberto no navegador interno.
-- Integração GitHub/GitLab: branch, PR, revisão, CI.
-- Projeto pode rodar no PC ou na VPS; sincronia sempre por git.
-- Importar skills de Claude Code e Codex.
+### 5.8 ADE — agent-driven development environment
+- Separate **projects**, each with its repository, agents, connectors and memory (`DEV/` as the project's memory).
+- Each task opens its own **worktree**: several agents work in parallel without stepping on each other.
+- Editor, terminal, diff, running tests, preview server opened in the internal browser.
+- GitHub/GitLab integration: branch, PR, review, CI.
+- A project can run on the PC or the VPS; synchronization is always through git.
+- Import skills from Claude Code and Codex.
 
-### 5.9 Uso do computador (PC)
-- Agente opera apps de desktop (cliques, teclado, capturas de tela). Desligado por padrão, liga por app.
-- Controle da tela do PC pelo celular (plano pago), com aviso visível no PC e auditoria.
+### 5.9 Computer use (PC)
+- The agent operates desktop apps (clicks, keyboard, screenshots). Off by default; turned on per app.
+- Control of the PC screen from the phone (paid plan), with a visible notice on the PC and audit.
 
-### 5.10 Conectores
-- Catálogo de servidores MCP (Gmail, Calendar, Drive, GitHub, Slack, Notion, Jira etc.) e MCP próprio.
-- Conecta uma vez por conta; cada agente recebe só os escopos de que precisa (nenhum, leitura, leitura e escrita).
-- O nó também expõe um servidor MCP, para Claude Code ou Codex conversarem com o Calango.
+### 5.10 Connectors
+- Catalog of MCP servers (Gmail, Calendar, Drive, GitHub, Slack, Notion, Jira, etc.) and Calango's own MCP.
+- Connect once per account; each agent receives only the scopes it needs (none, read, read and write).
+- The node also exposes an MCP server, so Claude Code or Codex can talk to Calango.
 
 ### 5.11 Skills
-- Receitas em Markdown reutilizáveis.
-- Quando o agente repete um fluxo, ele propõe virar skill; a pessoa aprova.
+- Reusable recipes in Markdown.
+- When the agent repeats a workflow, it proposes becoming a skill; the person approves it.
 
-### 5.12 Memória
-- Fatos, preferências e decisões, por conta, por agente e por projeto.
-- Tudo revisável, editável e apagável. O agente propõe mudanças nas próprias instruções; a pessoa aceita ou recusa.
+### 5.12 Memory
+- Facts, preferences and decisions, per account, per agent and per project.
+- Everything is reviewable, editable and deletable. The agent proposes changes to its own instructions; the person accepts or refuses them.
 
-### 5.13 Arquivos e documentos (fase posterior)
-- Pasta de entregas dos agentes, com quem vê cada pasta.
-- Prévia de PDF, imagem, vídeo, planilha e texto, com botão de copiar.
+### 5.13 Files and documents (later phase)
+- A deliverables folder for agents, with a list of who can see each folder.
+- Preview of PDF, image, video, spreadsheet and text, with a copy button.
 
-### 5.14 Cofre
-- Segredos criptografados pelo sistema operacional; o agente usa sem ver o valor.
-- Importação de senhas exportadas do navegador numa fase posterior.
+### 5.14 Vault
+- Secrets encrypted by the operating system; the agent uses them without seeing the value.
+- Importing passwords exported from the browser in a later phase.
 
-### 5.15 Uso e custos
-- Painel por agente, rotina, projeto e nó: tokens, custo, tempo.
-- Limites por agente e alerta antes de estourar.
+### 5.15 Usage and costs
+- Panel per agent, routine, project and node: tokens, cost, time.
+- Limits per agent and an alert before exceeding them.
 
-### 5.16 Canais externos (fase posterior)
-- Telegram para aprovações e conversa.
-- WhatsApp, Slack e e-mail como entrada e saída dos agentes, com limites de envio e aprovação.
+### 5.16 External channels (later phase)
+- Telegram for approvals and conversation.
+- WhatsApp, Slack and email as input and output for the agents, with sending limits and approval.
 
-### 5.17 Times (plano Team)
-- Membros, papéis, permissões por canal, agentes compartilhados, aprovação delegada.
+### 5.17 Teams (Team plan)
+- Members, roles, per-channel permissions, shared agents, delegated approval.
 
 ---
 
-## 6. Segurança e privacidade
+## 6. Security and privacy
 
-| Ameaça | Defesa |
+| Threat | Defense |
 |---|---|
-| Acesso indevido ao nó | pareamento por código único, token por dispositivo, revogação, Tailscale |
-| Agente faz algo destrutivo | aprovação obrigatória no sensível, isolamento, pasta de trabalho restrita |
-| Prompt injection por web, e-mail ou arquivo | conteúdo externo marcado como dado; ferramentas de escrita sempre aprovadas |
-| Vazamento de chaves | cofre do sistema, segredos nunca vão para o cliente, máscara em logs |
-| Gasto descontrolado | orçamento por agente checado antes de cada chamada |
-| Controle remoto abusado | opt-in no PC, aviso visível, auditoria, encerra com um clique |
-| Saída de dados | lista de destinos permitidos por agente (fase posterior) |
+| Unauthorized access to the node | single-use code pairing, per-device token, revocation, Tailscale |
+| Agent does something destructive | mandatory approval for sensitive actions, isolation, restricted working folder |
+| Prompt injection via web, email or file | external content marked as data; write tools always require approval |
+| Key leakage | OS vault, secrets never go to the client, masking in logs |
+| Uncontrolled spending | per-agent budget checked before every call |
+| Remote control abused | opt-in on the PC, visible notice, audit, ends with one click |
+| Data exfiltration | list of allowed destinations per agent (later phase) |
 
-Auditoria: toda ação remota e toda aprovação ficam registradas e visíveis no PC e no celular.
-
----
-
-## 7. Dados e sincronização
-
-- Cada nó tem seu SQLite.
-- **Registro de eventos** (append-only) por nó, replicado entre os nós da conta. Cada registro tem um nó dono; não há edição concorrente do mesmo registro.
-- **Código** sincroniza só por git.
-- **Arquivos grandes** ficam no nó onde foram criados; o outro nó busca sob demanda.
-- **Backup**: comando documentado para o volume do Docker e para a pasta de dados do PC.
-- Quando um nó cai, os clientes mostram qual, desde quando, e o que está esperando por ele (lição do agentes.chat, onde só aparece "esperando computador").
+Audit: every remote action and every approval is recorded and visible on the PC and on the phone.
 
 ---
 
-## 8. Monetização (resumo)
+## 7. Data and synchronization
+
+- Each node has its own SQLite.
+- **Event log** (append-only) per node, replicated between the account's nodes. Each record has an owner node; there is no concurrent editing of the same record.
+- **Code** synchronizes only through git.
+- **Large files** stay on the node where they were created; the other node fetches them on demand.
+- **Backup**: a documented command for the Docker volume and for the PC's data folder.
+- When a node goes down, clients show which one, since when, and what is waiting for it (a lesson from agentes.chat, where only "waiting for computer" appears).
+
+---
+
+## 8. Monetization (summary)
 
 | | Free | Pro | Team |
 |---|---|---|---|
-| Nó PC | 1 | 1 | por membro |
-| Nó VPS | — | 1 | por membro |
-| Celular (via Tailscale) | sim | sim | sim |
-| Execução híbrida e rotinas 24/7 | — | sim | sim |
-| Push no celular | limitado | sim | sim |
-| Controle de tela remoto | — | a decidir | sim |
-| Canais com pessoas | — | — | sim |
+| PC node | 1 | 1 | per member |
+| VPS node | — | 1 | per member |
+| Phone (via Tailscale) | yes | yes | yes |
+| Hybrid execution and 24/7 routines | — | yes | yes |
+| Phone push | limited | yes | yes |
+| Remote screen control | — | to be decided | yes |
+| Channels with people | — | — | yes |
 
-Extras pagos: créditos de modelo (o grátis usa chave ou assinatura própria), VPS gerenciada por nós, armazenamento, conectores premium. Licença do nó VPS assinada e validada offline; sem licença, rebaixa para o modo grátis em vez de parar. Detalhes em [MONETIZATION.md](MONETIZATION.md) e [PRODUCT_HYBRID.md](PRODUCT_HYBRID.md).
+Paid extras: model credits (the free plan uses its own key or subscription), VPS managed by us, storage, premium connectors. The VPS node license is signed and validated offline; without a license, it downgrades to free mode instead of stopping. Details in [MONETIZATION.md](MONETIZATION.md) and [PRODUCT_HYBRID.md](PRODUCT_HYBRID.md).
 
 ---
 
-## 9. Distribuição
+## 9. Distribution
 
-| Plataforma | Formato | Cuidado |
+| Platform | Format | Caveat |
 |---|---|---|
-| Windows | NSIS assinado, auto-update | certificado de code signing, Git for Windows para a ADE |
-| macOS | DMG assinado e notarizado | permissões de acessibilidade e gravação de tela para uso do computador |
-| Linux | `.deb`, AppImage | keyring destravado para o cofre |
-| VPS | imagem Docker + instalador de uma linha | volume de dados, backup, Tailscale |
-| iOS | App Store (TestFlight antes) | compra pelo sistema da Apple |
-| Android | Google Play | compra pelo sistema do Google |
+| Windows | signed NSIS, auto-update | code-signing certificate, Git for Windows for the ADE |
+| macOS | signed and notarized DMG | Accessibility and Screen Recording permissions for computer use |
+| Linux | `.deb`, AppImage | unlocked keyring for the vault |
+| VPS | Docker image + one-line installer | data volume, backup, Tailscale |
+| iOS | App Store (TestFlight first) | purchase through Apple's system |
+| Android | Google Play | purchase through Google's system |
 
-Idiomas desde o início: português, inglês e espanhol, com catálogo de traduções versionado.
+Languages from the start: Portuguese (Brazil), English and Spanish, with a versioned translation catalog.
 
 ---
 
@@ -270,72 +262,73 @@ Idiomas desde o início: português, inglês e espanhol, com catálogo de tradu�
 ```
 calango/
 ├── cmd/
-│   ├── calango/           núcleo (PC e VPS)
-│   └── calango-cloud/     serviços nossos
+│   ├── calango/           core (PC and VPS)
+│   └── calango-cloud/     our services
 ├── internal/              Go: core, api, store, gateway, tools, browser, ade, sync
-├── api/                   openapi.yaml (fonte dos dois SDKs)
+├── api/                   openapi.yaml (source of both SDKs)
 ├── apps/
-│   ├── desktop/           Electron (main + renderer React)
+│   ├── desktop/           Electron (main + React renderer)
 │   ├── mobile/            Flutter (iOS, Android)
-│   └── web/               build web do renderer
+│   └── web/               web build of the renderer
 ├── packages/
-│   ├── sdk-ts/            cliente TypeScript gerado do OpenAPI
-│   ├── sdk-dart/          cliente Dart gerado do OpenAPI
-│   ├── tokens/            design tokens (JSON → CSS e ThemeData)
-│   ├── ui/                componentes React do desktop/web
-│   └── i18n/              catálogo único (→ JSON e ARB)
-├── deploy/                Dockerfile, compose, instalador
-└── DEV/                   documentação viva
+│   ├── sdk-ts/            TypeScript client generated from OpenAPI
+│   ├── sdk-dart/          Dart client generated from OpenAPI
+│   ├── tokens/            design tokens (JSON → CSS and ThemeData)
+│   ├── ui/                React components for desktop/web
+│   └── i18n/              single catalog (→ JSON and ARB)
+├── deploy/                Dockerfile, compose, installer
+└── DEV/                   living documentation
 ```
 
 ---
 
 ## 11. Roadmap
 
-| Fase | Entrega | Critério de pronto |
+| Phase | Delivery | Done criterion |
 |---|---|---|
-| **0. Fundação** | esqueleto Go, docs, Docker (feito, sem compilar) | `go test` e `/healthz` passando |
-| **1. MVP desktop local** | Electron + `calango`; 1 agente via harness; chat; memória; rotinas; aprovações; painel de uso | instalar no Windows, conversar, criar rotina, aprovar ação |
-| **2. Celular** | app Flutter; pareamento; Tailscale; push via relay | aprovar uma ação do PC pelo celular fora de casa |
-| **3. VPS e primeira receita** | imagem Docker; licença; execução híbrida; billing | rotina migra para a VPS com o PC desligado; assinatura Pro cobrada |
-| **4. ADE** | projetos, worktrees, editor, terminal, diff, PR | agente abre PR a partir de uma tarefa, no PC ou na VPS |
-| **5. Navegador e uso do computador** | navegador interno com assumir; uso de apps; controle de tela | agente preenche um formulário e a pessoa assume no meio |
-| **6. Canais e times** | canais com pessoas, roteador, plano Team | dois membros e três agentes num canal |
-| **7. Expansão** | relay próprio, canais externos, voz, arquivos, marketplace | — |
+| **0. Foundation** | Go skeleton, docs, Docker (done, not compiled at the time) | `go test` and `/healthz` passing |
+| **1. Local desktop MVP** | Electron + `calango`; 1 agent via harness; chat; memory; routines; approvals; usage panel | install on Windows, talk, create a routine, approve an action |
+| **2. Phone** | Flutter app; pairing; Tailscale; push via relay | approve a PC action from the phone away from home |
+| **3. VPS and first revenue** | Docker image; license; hybrid execution; billing | a routine moves to the VPS with the PC off; Pro subscription charged |
+| **4. ADE** | projects, worktrees, editor, terminal, diff, PR | an agent opens a PR from a task, on the PC or the VPS |
+| **5. Browser and computer use** | internal browser with take-over; app use; screen control | an agent fills in a form and the person takes over mid-way |
+| **6. Channels and teams** | channels with people, router, Team plan | two members and three agents in one channel |
+| **7. Expansion** | own relay, external channels, voice, files, marketplace | — |
 
 ---
 
-## 12. Lições das referências (lidas em issues, PRs e changelog)
+## 12. Competitive implications
 
-- **Assinar os instaladores desde o primeiro release.** Tucano e agentes.chat recebem reclamações por Windows sem assinatura e Mac sem notarização.
-- **Login de CLI expira em segundo plano.** O agentes.chat tem vários bugs de conta Grok/Antigravity caindo; o adaptador de harness precisa detectar e pedir novo login de forma clara.
-- **Rotina que falha precisa tentar de novo e avisar.** E rotina sem novidade não deve notificar.
-- **Navegador de agente esbarra em verificação de robô.** Detectar a barreira e passar para a pessoa, em vez de clicar de novo.
-- **Nó offline precisa dizer qual e desde quando.**
-- **Ruído no canal**: a escolha do roteador e pedidos entre agentes devem aparecer dobrados, não como mensagens soltas.
-- **Esforço de raciocínio** deve ter os mesmos nomes em todo lugar onde se escolhe modelo.
+- The updated comparison and its official sources are in [COMPETITIVE_LANDSCAPE.md](COMPETITIVE_LANDSCAPE.md); its conclusions and limits should not be replaced by historical notes from an older scan.
+- Runs must survive reconnection and clearly indicate failure, interruption and known/estimated/unknown cost.
+- Approval must be immutably bound to the exact action; the execution receipt is separate from the decision.
+- Routines use an identifier per occurrence, recovery of missed times and idempotent retries; exactly-once execution of external effects is not promised without cooperation from the destination.
+- The ADE delivers reviewable evidence (diff, commands and test results); merge and publication still require human approval.
+- Harness errors, node disconnection, cost and browser usage must be states the user can understand, not empty responses.
 
 ---
 
-## 13. Métricas
+## 13. Metrics
 
-Ativação (primeira rotina criada em 24h), retenção semanal, conversão grátis→Pro, nós VPS ativos, custo de modelo por usuário ativo, aprovações respondidas pelo celular, rotinas executadas com sucesso.
+Activation (first routine created within 24 h), weekly retention, free→Pro conversion, active VPS nodes, model cost per active user, approvals answered from the phone, routines run successfully.
 
-## 14. Decisões em aberto
+## 14. Open decisions
 
-1. ~~Mobile~~: decidido, Flutter.
-2. **Licença do código do Calango**: aberto, fonte disponível ou fechado. Afeta a licença do nó VPS.
-3. **Controle de tela**: Pro ou só Team.
-4. **Primeiro harness do MVP**: Claude Code, Codex ou API direta.
-5. **Nome do módulo Go e domínio.**
+1. ~~Mobile~~: decided, Flutter (ADR 0004).
+2. ~~Code license~~: decided, AGPL-3.0 with commercial license, CLA and trademark policy (ADR 0010); legal review before publication is still pending.
+3. **Screen control**: Pro or only Team (D2).
+4. **First MVP harness**: Claude Code, Codex or direct API (D3); blocks the implementation that depends on the harness, not the SQLite store.
+5. **Go module name and domain** (D4).
+6. **tsnet**: Tailscale license and commercial limits before embedding (D5).
+7. **Automatic Maestro update**: keep off by default until the default is confirmed (D6).
 
-## 15. Riscos
+## 15. Risks
 
-| Risco | Mitigação |
+| Risk | Mitigation |
 |---|---|
-| Escopo grande demais | fases com critério de pronto; não começar a fase seguinte antes |
-| Custo de modelo no grátis | grátis usa chave ou assinatura própria |
-| Dependência de CLIs de terceiros | camada de adaptador; testes de contrato por harness |
-| Dependência do Tailscale | relay próprio no roteiro (fase 7) |
-| Lojas recusarem controle remoto | revisar diretrizes antes da fase 2 |
-| Segurança do uso do computador | desligado por padrão, aprovação e auditoria |
+| Scope too large | phases with done criteria; do not start the next phase early |
+| Model cost on the free plan | the free plan uses its own key or subscription |
+| Dependence on third-party CLIs | adapter layer; contract tests per harness |
+| Dependence on Tailscale | own relay on the roadmap (phase 7) |
+| Stores rejecting remote control | review the guidelines before phase 2 |
+| Security of computer use | off by default, approval and audit |

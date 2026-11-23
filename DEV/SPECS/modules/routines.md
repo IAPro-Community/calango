@@ -1,29 +1,32 @@
-# Módulo: routines
+# Module: routines
 
-Fase 1 (cron/intervalo) · Fase 3 (eventos, híbrido) · Pacote `internal/core/scheduler.go` + `internal/routines` · Tabelas `routines`, `routine_runs`
+Phase 1 (cron/interval) · Phase 3 (events, hybrid) · Package `internal/core/scheduler.go` + `internal/routines` · Tables `routines`, `routine_runs`
 
-## Objetivo
-Trabalho agendado ou disparado por evento, executado por um agente.
+## Goal
+Scheduled work, or work triggered by an event, executed by an agent.
 
-## Regras
-- Gatilhos: `cron` (expressão de 5 campos, fuso da conta), `interval`, `event` (conector: e-mail novo, PR aberto, webhook).
-- `run_on`: pc, vps ou auto. Auto = PC se online, senão VPS; sem VPS, espera o PC.
-- **Retry**: até `max_retries` com backoff exponencial (1 min, 5 min, 30 min). Esgotou: notifica o dono com o erro. Nunca perde a entrega em silêncio.
-- **Silêncio**: o agente declara se teve novidade (`had_news`). `notify_on=news` não notifica sem novidade.
-- **Janela de silêncio**: execuções dentro dela são adiadas para o fim da janela, não descartadas.
-- Rotina perdida (PC desligado no horário): roda uma vez quando voltar, não N vezes.
-- Uma rotina pode encerrar a si mesma (ferramenta `routine_finish`).
-- Rotinas não aparecem no Quadro de tarefas.
+## Rules
+- Triggers: `cron` (5-field expression, the account's time zone), `interval`, `event` (connector: new email, PR opened, webhook).
+- `run_on`: pc, vps or auto. Auto = PC if online, otherwise VPS; without a VPS, it waits for the PC.
+- **Retry**: up to `max_retries` with exponential backoff (1 min, 5 min, 30 min). Exhausted: notifies the owner with the error. Never silently loses a delivery.
+- Each scheduled time has a deterministic, persisted `occurrence_id`; resending, restarting and retrying do not create a second occurrence for the same time.
+- Retry of an external integration is at-least-once unless the destination accepts an idempotent key; approval is still required for sensitive actions.
+- **Silence**: the agent declares whether there was news (`had_news`). `notify_on=news` does not notify without news.
+- **Quiet window**: runs inside it are postponed to the end of the window, not discarded.
+- Missed routine (PC off at the scheduled time): runs once when it comes back, not N times.
+- A routine can end itself (`routine_finish` tool).
+- Routines do not appear on the task board.
 
-## Estado atual
-`core.Scheduler` com intervalo e relógio injetável já existe e tem testes (não executados).
+## Current state
+`core.Scheduler` with an interval and an injectable clock already exists and has tests (not run).
 
 ## API
 `GET/POST /v1/routines`, `PATCH/DELETE /v1/routines/{id}`, `POST /v1/routines/{id}/run`, `GET /v1/routines/{id}/runs`.
 
-## Eventos
+## Events
 `routine.fired`, `routine.failed`.
 
-## Aceite
-- Falha transitória seguida de sucesso no retry: um `routine_run` com `attempt=2`, sem notificação de falha.
-- PC desligado por 3 horários: ao voltar, uma execução só.
+## Acceptance
+- A transient failure followed by success on retry: a `routine_run` with `attempt=2`, without a failure notification.
+- PC off for 3 scheduled times: when it comes back, only one execution.
+- Redelivering the same occurrence after a restart recovers the same `routine_run` record.

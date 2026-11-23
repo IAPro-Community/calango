@@ -45,7 +45,7 @@ func (a *Agent) Charge(n int64) error {
 	if n < 0 {
 		return fmt.Errorf("charge must be non-negative, got %d", n)
 	}
-	if a.tokensUsed+n > a.TokenLimit {
+	if n > a.TokenLimit-a.tokensUsed {
 		return ErrBudgetExceeded
 	}
 	a.tokensUsed += n

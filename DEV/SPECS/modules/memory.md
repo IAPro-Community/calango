@@ -1,21 +1,21 @@
-# Módulo: memory
+# Module: memory
 
-Fase 1 · Pacote `internal/memory` · Tabela `memories`, `skills`
+Phase 1 · Package `internal/memory` · Tables `memories`, `skills`
 
-## Objetivo
-O agente lembra fatos, preferências e decisões, e a pessoa controla tudo.
+## Goal
+The agent remembers facts, preferences and decisions, and the person controls everything.
 
-## Regras
-- Escopos: conta, agente, projeto.
-- O agente salva memória por ferramenta (`memory_save`); a pessoa vê, edita e apaga.
-- Injeção no contexto: memórias do escopo, mais recentes e mais relevantes primeiro, até um orçamento de tokens fixo.
-- Apagar é lógico (`deleted_at`) e some do contexto na hora; limpeza física depois de 30 dias.
-- O agente pode **propor** mudança nas próprias instruções; vira cartão que a pessoa aceita ou recusa.
-- Skills: o agente propõe virar skill quando repete um fluxo; a pessoa aprova antes de valer.
+## Rules
+- Scopes: account, agent, project.
+- The agent saves memory through a tool (`memory_save`); the person sees, edits and deletes it.
+- Context injection: memories from the scope, most recent and most relevant first, up to a fixed token budget.
+- Deletion is logical (`deleted_at`) and disappears from the context immediately; physical cleanup after 30 days.
+- The agent can **propose** a change to its own instructions; it becomes a card the person accepts or refuses.
+- Skills: the agent proposes becoming a skill when it repeats a workflow; the person approves it before it takes effect.
 
 ## API
 `GET/POST /v1/memories`, `PATCH/DELETE /v1/memories/{id}`, `GET/POST /v1/skills`, `PATCH /v1/skills/{id}`.
 
-## Aceite
-- Memória apagada não aparece no próximo run.
-- Proposta de instrução recusada não altera o agente.
+## Acceptance
+- A deleted memory does not appear in the next run.
+- A refused instruction proposal does not change the agent.

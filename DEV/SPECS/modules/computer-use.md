@@ -1,18 +1,18 @@
-# Módulo: computer-use
+# Module: computer-use
 
-Fase 5 · Pacote `internal/computer` (PC apenas)
+Phase 5 · Package `internal/computer` (PC only)
 
-## Objetivo
-O agente opera apps de desktop; a pessoa controla a tela do PC pelo celular.
+## Goal
+The agent operates desktop apps; the person controls the PC screen from their phone.
 
-## Regras
-- **Desligado por padrão.** Liga por app, no próprio PC (nunca remotamente).
-- Ações: captura de tela, clique, teclado, rolagem, listar janelas.
-- Enquanto ativo: indicador visível no PC e botão de encerrar sempre à mostra.
-- Controle de tela pelo celular (plano pago): stream de vídeo pelo transporte + entrada remota; precisa estar ligado no PC; auditoria de início e fim.
-- macOS exige permissões de Acessibilidade e Gravação de Tela; o app guia a pessoa.
-- Apps sensíveis (banco, gerenciador de senhas) bloqueados por padrão.
+## Rules
+- **Off by default.** Turned on per app, at the PC itself (never remotely).
+- Actions: screen capture, click, keyboard, scroll, list windows.
+- While active: a visible indicator on the PC and an always-visible stop button.
+- Screen control from the phone (paid plan): video stream over the transport + remote input; must be turned on at the PC; audit of start and end.
+- macOS requires Accessibility and Screen Recording permissions; the app guides the person through them.
+- Sensitive apps (banking, password manager) blocked by default.
 
-## Aceite
-- Com o recurso desligado, nenhuma ferramenta de computador aparece para o agente.
-- Encerrar no PC derruba a sessão remota em menos de 1 s.
+## Acceptance
+- With the feature off, no computer tool appears to the agent.
+- Stopping on the PC ends the remote session in less than 1 s.

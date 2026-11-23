@@ -1,4 +1,4 @@
-# Exemplo. Não testado. Ajuste domínio e versões antes de usar.
+# Example. Not tested. Adjust the domain and versions before use.
 services:
   calango:
     build:

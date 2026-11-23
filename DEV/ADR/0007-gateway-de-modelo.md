@@ -1,19 +1,19 @@
-# ADR 0007 — Gateway único de modelo com orçamento
+# ADR 0007 — Single model gateway with budget
 
-Status: aceita · 2026-11-23
+Status: accepted · 2026-11-23
 
-## Contexto
-Freemium e limites de gasto dependem de medir cada chamada de modelo, venha de API direta ou de CLI de harness.
+## Context
+Freemium and spending limits depend on measuring every model call, whether it comes from a direct API or from a harness CLI.
 
-## Decisão
-Toda chamada de modelo passa por `internal/gateway`:
-1. Checa orçamento do agente (e da rotina, se houver) antes da chamada. Estourou → erro `budget_exceeded`, nenhuma chamada sai.
-2. Executa a chamada pelo provider ou harness.
-3. Registra tokens e custo em `usage` com agente, rotina, projeto e nó.
-4. Emite `usage.threshold` ao passar de 80% e 100%.
+## Decision
+Every model call goes through `internal/gateway`:
+1. Checks the budget of the agent (and of the routine, if any) before the call. Exceeded → `budget_exceeded` error; no call is made.
+2. Executes the call through the provider or harness.
+3. Records tokens and cost in `usage` with agent, routine, project and node.
+4. Emits `usage.threshold` when passing 80% and 100%.
 
-Harness CLI que não informa tokens: o gateway estima e marca `estimated=true`.
+Harness CLI that does not report tokens: the gateway estimates them and marks `estimated=true`.
 
-## Consequências
-- Nenhum outro pacote importa SDK de provider diretamente.
-- O mesmo registro alimenta painel de uso, limites do plano e cobrança de créditos.
+## Consequences
+- No other package imports a provider SDK directly.
+- The same record feeds the usage panel, plan limits and credit billing.

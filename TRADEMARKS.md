@@ -1,22 +1,22 @@
-# Política de marca — Calango
+# Trademark policy — Calango
 
-"Calango", o nome do produto, a logo (o calango de papel recortado sobre tile de vidro amarelo) e os nomes derivados são marcas do Mantenedor do projeto. A licença AGPL-3.0 do código **não** concede direitos sobre essas marcas.
+"Calango", the product name, the logo (the cut-paper lizard on a yellow glass tile) and derived names are trademarks of the project Maintainer. The AGPL-3.0 license for the code does **not** grant rights to these trademarks.
 
-## Você pode
+## You may
 
-- Usar o nome "Calango" para descrever que seu software é compatível, ou que você está contribuindo para o projeto ("compatível com Calango", "contribuidor do Calango").
-- Citar o projeto em artigos, apresentações, tutoriais e comparações, com link para o repositório oficial.
-- Usar a logo para indicar que você é um contribuidor, sem alterá-la.
+- Use the name "Calango" to describe that your software is compatible, or that you are contributing to the project ("compatible with Calango", "Calango contributor").
+- Cite the project in articles, presentations, tutorials and comparisons, linking to the official repository.
+- Use the logo to indicate that you are a contributor, without altering it.
 
-## Você não pode, sem autorização por escrito
+## You may not, without written authorization
 
-- Nomear um produto, serviço, fork ou distribuição com "Calango" ou nome que cause confusão com ele.
-- Usar a logo como ícone de um produto próprio, ou alterá-la de forma que sugira vínculo oficial.
-- Sugerir que o Mantenedor apoia, certifica ou opera o seu serviço.
-- Registrar marca, domínio ou nome social que contenha "Calango".
+- Name a product, service, fork or distribution with "Calango" or a name that could cause confusion with it.
+- Use the logo as the icon of your own product, or alter it in a way that suggests an official connection.
+- Suggest that the Maintainer supports, certifies or operates your service.
+- Register a trademark, domain or company name that contains "Calango".
 
-Se você fizer um fork, ele pode existir sob a AGPL-3.0, mas precisa de outro nome e outra logo.
+If you make a fork, it may exist under the AGPL-3.0, but it needs another name and another logo.
 
-## Ajustes
+## Requests
 
-Pedidos de uso fora destas regras devem ser enviados para a mesma caixa de contato da [licença comercial](COMMERCIAL.md).
+Requests to use the marks outside these rules must be sent to the same contact address as the [commercial license](COMMERCIAL.md).

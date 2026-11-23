@@ -1,4 +1,4 @@
-# CI mínimo. Não executado ainda: validar no GitHub após o primeiro push.
+# Minimal CI. Not executed yet: validate on GitHub after the first push.
 name: ci
 
 on:
@@ -10,6 +10,30 @@ permissions:
   contents: read
 
 jobs:
+  openapi:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22.12.0"
+      - name: Validate OpenAPI
+        run: npx --yes @redocly/cli@2.81.0 lint --extends minimal api/openapi.yaml --max-problems=0
+
+  generated-contracts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22.12.0"
+      - name: Check generated design tokens
+        run: node scripts/generate-tokens.mjs --check
+      - name: Check generated translations
+        run: node scripts/generate-i18n.mjs --check
+      - name: Test generated asset contracts
+        run: node --test scripts/generate-assets.test.mjs
+
   go:
     runs-on: ubuntu-latest
     steps:
@@ -21,13 +45,33 @@ jobs:
       - run: go test ./... -count=1
       - run: test -z "$(gofmt -l .)"
 
+  cross-build:
+    name: Build ${{ matrix.goos }}-${{ matrix.goarch }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        goos: [linux, windows, darwin]
+        goarch: [amd64, arm64]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.22"
+      - name: Build calango
+        env:
+          CGO_ENABLED: "0"
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+        run: go build -trimpath -o "${{ runner.temp }}/calango" ./cmd/calango
+
   site-image:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Build da imagem do site
+      - name: Build the site image
         run: docker build -t calango-site:ci .
-      - name: Sobe o container e checa /healthz
+      - name: Start the container and check /healthz
         run: |
           docker run -d --name site -p 8080:8080 calango-site:ci
           for i in $(seq 1 20); do
@@ -41,5 +85,5 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Build da imagem do nó
+      - name: Build the node image
         run: docker build -f deploy/Dockerfile.node -t calango/calango:ci .

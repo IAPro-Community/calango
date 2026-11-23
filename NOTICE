@@ -1,13 +1,13 @@
 Calango
 Copyright 2026 Calango contributors
 
-Este produto inclui software de terceiros:
+This product includes third-party software:
 
 Orquestrador Maestro
   Copyright IAPro Community
-  Licenciado sob Apache License, Version 2.0
+  Licensed under the Apache License, Version 2.0
   https://github.com/IAPro-Community/Orquestrador-Maestro
-  Instalado pelo pacote npm @iapro/orquestrador-maestro-cli.
-  O Calango consome a versão oficial pelo canal npm; o código do projeto não é copiado para este repositório.
+  Installed from the npm package @iapro/orquestrador-maestro-cli.
+  Calango consumes the official version through the npm channel; the project's code is not copied into this repository.
 
-As marcas e nomes dos projetos citados pertencem aos seus donos.
+The trademarks and names of the projects mentioned belong to their owners.

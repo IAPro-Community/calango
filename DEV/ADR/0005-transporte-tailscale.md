@@ -1,17 +1,17 @@
-# ADR 0005 — Tailscale como transporte inicial
+# ADR 0005 — Tailscale as the initial transport
 
-Status: aceita · 2026-11-23
+Status: accepted · 2026-11-23
 
-## Contexto
-Celular precisa alcançar o PC (atrás de NAT) e a VPS de qualquer lugar, com criptografia ponta a ponta, sem a pessoa configurar roteador.
+## Context
+The phone must reach the PC (behind NAT) and the VPS from anywhere, with end-to-end encryption, without the person configuring a router.
 
-## Decisão
-Fases 2–6 usam Tailscale (tailnet da própria pessoa). Avaliar `tsnet` (biblioteca Go) para embutir no `calango` e dispensar o cliente separado no PC e na VPS. Relay próprio fica para a fase 7.
+## Decision
+Phases 2–6 use Tailscale (the person's own tailnet). Evaluate `tsnet` (a Go library) to embed in `calango` and drop the separate client on the PC and the VPS. An own relay is for phase 7.
 
-## Pendências antes de implementar
-- Confirmar licença e termos do `tsnet` para uso embutido em produto comercial.
-- Confirmar limites atuais do plano gratuito para uso pessoal.
+## Open items before implementing
+- Confirm the license and terms of `tsnet` for embedded use in a commercial product.
+- Confirm the current limits of the free plan for personal use.
 
-## Consequências
-- Sem custo de relay para nós nesta fase; monetização vem de licença VPS, créditos, VPS gerenciada.
-- Dependência de terceiro: o transporte fica atrás de uma interface (`internal/transport`) para trocar pelo relay próprio.
+## Consequences
+- No relay cost for us in this phase; monetization comes from the VPS license, credits and managed VPS.
+- Third-party dependency: the transport sits behind an interface (`internal/transport`) so it can be swapped for an own relay.

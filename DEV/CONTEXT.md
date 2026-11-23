@@ -1,10 +1,12 @@
-# Contexto atual
+# Current context
 
-Atualizado: 2026-11-23.
+Updated: 2026-11-23.
 
-- **Fase:** 0 (fundação). Esqueleto Go escrito, **não compilado** (Go não instalado na máquina do dono).
-- **Existe:** `cmd/calango` (servidor HTTP + agendador), `internal/core` (agente com orçamento, agendador), `internal/api` (`/healthz`), testes de core, Dockerfile, compose, Caddyfile, docs completos, rascunho do OpenAPI, tokens de design, site de apresentação.
-- **Não existe:** banco, gateway de modelo, harness, desktop, mobile, cloud.
-- **Decidido:** Go, SQLite, Electron, Flutter, Tailscale, código original, nome `calango`.
-- **Em aberto:** licença do código do Calango, controle de tela no Pro ou Team, primeiro harness do MVP, domínio, nome do módulo Go.
-- **Referências lidas (só leitura, fora do repo):** Tucano v0.2.45 (Apache-2.0, Electron, SQLite) e agentes.chat (AGPL-3.0, Bun/Postgres), incluindo changelog, ADRs, issues e PRs abertos em 2026-11-22.
+- **Phase:** 0 (foundation). Core compiled and runnable with Go 1.27.4; the project's minimum version remains Go 1.22.
+- **Exists and was verified:** `cmd/calango` (HTTP server + scheduler), `internal/config` (`CALANGO_ADDR` with loopback default and validation), `internal/core` (agent with budget and scheduler), `internal/api` (`/healthz`), core/config tests, CI with cross builds for six targets, Dockerfiles/compose, docs, OpenAPI draft, design tokens and site.
+- **Does not exist yet:** database and migrations, gateway/provider, harness, desktop, mobile, Cloud, embedded transport, ADE and browser.
+- **Decided:** Go, SQLite, Electron, Flutter, Tailscale as the initial transport, original code, `calango` binary, AGPL-3.0 with a commercial option (ADR 0010), English as the repository language.
+- **Open decisions:** screen control in Pro or Team (D2); first harness (D3); domain/module name (D4); `tsnet` license/terms (D5); automatic Maestro update (D6). D3 does not block the SQLite store.
+- **Research:** current competitive map in `DEV/COMPETITIVE_LANDSCAPE.md`; do not treat the PC+VPS+phone combination as an exclusive differentiator.
+- **Next tasks:** phase 0 implemented locally; start F1-T01 (SQLite store) and F1-T02 (initial migrations). i18n generation/drift comes with F1-T26. See `DEV/HANDOFF.md`.
+- **Recent local verification:** `go test`, `go vet`, format, six cross builds and `GET /healthz` passed. The GitHub run depends on a first push; Docker could not be checked in this session because of a daemon restriction.

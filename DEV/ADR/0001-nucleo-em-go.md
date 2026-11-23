@@ -1,18 +1,18 @@
-# ADR 0001 — Núcleo em Go, binário único `calango`
+# ADR 0001 — Core in Go, single `calango` binary
 
-Status: aceita · 2026-11-23
+Status: accepted · 2026-11-23
 
-## Contexto
-O mesmo agente precisa rodar no PC (Windows, macOS, Linux) e na VPS (Linux, Docker), com baixo consumo e distribuição simples.
+## Context
+The same agent must run on the PC (Windows, macOS, Linux) and on the VPS (Linux, Docker), with low resource use and simple distribution.
 
-## Decisão
-Todo o núcleo é Go, compilado num binário único chamado `calango` (entrada em `cmd/calango`). PC e VPS rodam o mesmo binário; muda só a configuração.
+## Decision
+The whole core is Go, compiled into a single binary named `calango` (entry point in `cmd/calango`). PC and VPS run the same binary; only the configuration changes.
 
-## Alternativas
-- Node/TypeScript (como as referências): mais próximo do desktop, mas pior em distribuição e consumo na VPS.
-- Rust: ótimo desempenho, curva maior e iteração mais lenta.
+## Alternatives
+- Node/TypeScript (as in the references): closer to the desktop, but worse in distribution and resource use on the VPS.
+- Rust: excellent performance, steeper learning curve and slower iteration.
 
-## Consequências
-- Cross-compile trivial (`GOOS`/`GOARCH`), imagem Docker mínima.
-- Desktop (TS) e mobile (Dart) falam com o núcleo só pela API; nada de lógica duplicada.
-- Bibliotecas de IA em Go são menos maduras: o núcleo fala com modelos via HTTP direto e via CLIs de harness.
+## Consequences
+- Trivial cross-compilation (`GOOS`/`GOARCH`), minimal Docker image.
+- Desktop (TS) and mobile (Dart) talk to the core only through the API; no duplicated logic.
+- AI libraries in Go are less mature: the core talks to models via direct HTTP and via harness CLIs.

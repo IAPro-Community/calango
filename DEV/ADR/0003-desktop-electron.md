@@ -1,18 +1,18 @@
-# ADR 0003 — Desktop em Electron com `calango` como processo filho
+# ADR 0003 — Electron desktop with `calango` as a child process
 
-Status: aceita · 2026-11-23 (substitui a proposta inicial de Wails)
+Status: accepted · 2026-11-23 (replaces the initial Wails proposal)
 
-## Contexto
-O desktop precisa de navegador real embutido (abas que o agente dirige e a pessoa assume), editor e terminal para a ADE, bandeja, auto-update e instalador para Windows, macOS e Linux.
+## Context
+The desktop app needs a real embedded browser (tabs the agent drives and the person can take over), an editor and a terminal for the ADE, a tray icon, auto-update and an installer for Windows, macOS and Linux.
 
-## Decisão
-Electron. O processo principal inicia o binário `calango` como processo filho, vigia sua saúde e o reinicia se cair. O renderer (React + TypeScript + Vite) fala com o `calango` pela API local, igual a qualquer outro cliente. Navegador interno com `WebContentsView`; o agente dirige pelo protocolo de depuração do Electron.
+## Decision
+Electron. The main process starts the `calango` binary as a child process, watches its health and restarts it if it dies. The renderer (React + TypeScript + Vite) talks to `calango` through the local API, like any other client. Internal browser with `WebContentsView`; the agent drives it through the Electron debugging protocol.
 
-## Alternativas
-- Wails (Go + WebView do sistema): menor, mas WebView do sistema não dá abas Chromium completas nem controle por CDP uniforme entre plataformas.
-- Tauri: mesma limitação de WebView.
+## Alternatives
+- Wails (Go + system WebView): smaller, but the system WebView does not offer full Chromium tabs or uniform CDP control across platforms.
+- Tauri: same WebView limitation.
 
-## Consequências
-- Instalador maior (~100 MB). Aceito.
-- Instaladores assinados desde o primeiro release público (Windows code signing, macOS notarização).
-- O `calango` precisa ser empacotado por plataforma junto com o app.
+## Consequences
+- Larger installer (~100 MB). Accepted.
+- Signed installers from the first public release (Windows code signing, macOS notarization).
+- `calango` must be packaged per platform together with the app.

@@ -1,15 +1,15 @@
-# Site de apresentação do Calango.
+# Calango presentation site.
 #
 #   docker build -t calango-site .
 #   docker run --rm -p 8080:8080 calango-site
-#   abra http://localhost:8080
+#   open http://localhost:8080
 #
-# Imagem final: nginx não-root, ~20 MB, sem ferramentas de build.
+# Final image: non-root nginx, ~20 MB, no build tools.
 
 FROM nginxinc/nginx-unprivileged:1.27-alpine
 
 LABEL org.opencontainers.image.title="Calango — site" \
-      org.opencontainers.image.description="Página de apresentação do Calango" \
+      org.opencontainers.image.description="Calango presentation site" \
       org.opencontainers.image.source="https://github.com/IAPro-Community/calango" \
       org.opencontainers.image.licenses="AGPL-3.0-only"
 

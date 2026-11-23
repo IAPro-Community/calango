@@ -1,7 +1,7 @@
-# Código de conduta
+# Code of Conduct
 
-Adotamos o [Contributor Covenant, versão 2.1](https://www.contributor-covenant.org/version/2/1/code_of_conduct/), em português: [versão traduzida](https://www.contributor-covenant.org/pt-br/version/2/1/code_of_conduct/).
+We adopt the [Contributor Covenant, version 2.1](https://www.contributor-covenant.org/version/2/1/code_of_conduct/).
 
-Resumo: trate todas as pessoas com respeito, critique ideias e não pessoas, não assedie, não publique dados privados de terceiros.
+Summary: treat everyone with respect, criticize ideas and not people, do not harass, and do not publish private information about others.
 
-Denúncias: **conduta@calango.dev** *(endereço a confirmar antes da publicação)*.
+Reports: **conduta@calango.dev** *(address to be confirmed before publication)*.

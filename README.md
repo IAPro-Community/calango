@@ -1,61 +1,107 @@
-# Calango
+<p align="center">
+  <img src="site/assets/logo-192.png" width="112" alt="Calango logo" />
+</p>
 
-Assistente pessoal que roda no seu computador, continua na sua VPS e responde no seu celular. Rotinas, aprovações, navegador, ADE para programar projetos e canais com pessoas e agentes.
+<h1 align="center">Calango</h1>
 
-> **Em construção.** Estamos construindo a V1 em público. Veja o [TODO da V1](DEV/TODO_V1.md) e [como contribuir](CONTRIBUTING.md).
+<p align="center">
+  <strong>Your personal assistant. It runs on your computer, keeps working on your VPS, and answers from your phone.</strong>
+</p>
 
-[![Licença: AGPL-3.0](https://img.shields.io/badge/licen%C3%A7a-AGPL--3.0-E8A600)](LICENSE)
+<p align="center">
+  Routines · approvals · browser · ADE for building projects · channels with people and agents
+</p>
 
-## Ver a página do projeto com Docker
+<p align="center">
+  <a href="LICENSE"><img alt="License: AGPL-3.0" src="https://img.shields.io/badge/license-AGPL--3.0-E8A600" /></a>
+  <img alt="Status: under construction" src="https://img.shields.io/badge/status-under%20construction-2D7A22" />
+  <img alt="Go 1.22+" src="https://img.shields.io/badge/go-1.22%2B-00ADD8" />
+</p>
+
+<p align="center">
+  <b>English</b> · <a href="README.es.md">Español</a> · <a href="README.pt-BR.md">Português (BR)</a>
+</p>
+
+---
+
+> [!NOTE]
+> **Under construction.** We are building Calango V1 in public. Read the [V1 TODO](DEV/TODO_V1.md) and [how to contribute](CONTRIBUTING.md).
+
+## Why Calango
+
+- **It remembers, runs and keeps what you ask for.** It works on the computer you already use.
+- **Nothing important happens without your OK.** Sending, deleting, publishing, paying or deploying always waits for an approval.
+- **Your data stays with you.** Each node keeps its own database. Secrets never reach clients.
+- **Control it from anywhere.** Use the desktop app, the phone, or both. Your VPS keeps working while your computer sleeps.
+
+## Quick start
+
+### See the project page (Docker)
 
 ```bash
 docker build -t calango-site .
 docker run --rm -p 8080:8080 calango-site
 ```
 
-Abra <http://localhost:8080>.
+Then open <http://localhost:8080>.
 
-## Rodar o núcleo (Go 1.22+)
+### Run the core (Go 1.22+)
 
 ```bash
 go vet ./...
 go test ./...
-go run ./cmd/calango          # sobe em 127.0.0.1:7317
+go run ./cmd/calango          # listens on 127.0.0.1:7317
 curl http://127.0.0.1:7317/healthz
 ```
 
-## Imagem do nó (para VPS)
+### Build the node image (for a VPS)
 
 ```bash
 docker build -f deploy/Dockerfile.node -t calango/calango .
 ```
 
-Exemplo de compose com TLS automático: [deploy/docker-compose.yml](deploy/docker-compose.yml).
+An example compose file with automatic TLS is in [deploy/docker-compose.yml](deploy/docker-compose.yml).
 
-## Estrutura
+## Repository layout
 
-| Pasta | Conteúdo |
+| Path | Contents |
 |---|---|
-| `cmd/calango` | entrada do servidor |
-| `internal/` | núcleo: agentes, agendador, API |
-| `api/` | contrato OpenAPI (fonte dos SDKs) |
-| `packages/tokens` | design tokens (fonte de CSS e tema Flutter) |
-| `site/` | página do projeto |
-| `deploy/` | Dockerfile do nó, compose, Caddy |
-| `DEV/` | documentação de produto e engenharia |
+| `cmd/calango` | server entry point |
+| `internal/` | core: agents, scheduler, API |
+| `api/` | OpenAPI contract (source of the SDKs) |
+| `packages/tokens` | design tokens (source of CSS and the Flutter theme) |
+| `packages/i18n` | three-language catalog (TypeScript and ARB for Flutter) |
+| `site/` | project page |
+| `deploy/` | node Dockerfile, compose file, Caddy |
+| `DEV/` | product and engineering documentation |
 
-## Documentação
+## Generated files
 
-- [AGENTS.md](AGENTS.md): ponto de entrada para quem vai programar (humano ou agente).
-- [DEV/INDEX.md](DEV/INDEX.md): mapa de toda a documentação.
-- [DEV/PLANO.md](DEV/PLANO.md): panorama completo do produto.
+Files under `packages/tokens/generated` and `packages/i18n/generated` are derived from the JSON sources. Regenerate them after editing a source and check for drift:
 
-## Licença
+```bash
+node scripts/generate-tokens.mjs
+node scripts/generate-i18n.mjs
+node scripts/generate-tokens.mjs --check
+node scripts/generate-i18n.mjs --check
+```
 
-Código aberto sob [GNU AGPL-3.0](LICENSE). Licença comercial disponível para quem não pode cumprir a AGPL: [COMMERCIAL.md](COMMERCIAL.md). Contribuições seguem o [CLA](CLA.md). Nome e logo: [TRADEMARKS.md](TRADEMARKS.md).
+## Documentation
 
-O Calango usa o [Orquestrador Maestro](https://github.com/IAPro-Community/Orquestrador-Maestro) (Apache-2.0) como processo de trabalho dos agentes. Crédito e avisos em [NOTICE](NOTICE).
+- [AGENTS.md](AGENTS.md): entry point for anyone writing code here, human or AI agent.
+- [DEV/INDEX.md](DEV/INDEX.md): map of all documentation.
+- [DEV/PLANO.md](DEV/PLANO.md): full product overview.
 
-## Segurança
+## Language policy
 
-Veja [SECURITY.md](SECURITY.md). Não abra issue pública para vulnerabilidade.
+The repository is in **English**. Issues, pull requests, commit messages, code comments and documentation must be written in English. Read [CONTRIBUTING.md](CONTRIBUTING.md#language) for details. The README is also available in [Español](README.es.md) and [Português (BR)](README.pt-BR.md).
+
+## License
+
+Open source under the [GNU AGPL-3.0](LICENSE). A commercial license is available for those who cannot comply with the AGPL: see [COMMERCIAL.md](COMMERCIAL.md). Contributions follow the [CLA](CLA.md). Name and logo rules: [TRADEMARKS.md](TRADEMARKS.md).
+
+Calango uses the [Orquestrador Maestro](https://github.com/IAPro-Community/Orquestrador-Maestro) (Apache-2.0) as the work process for its agents. Credits and notices are in [NOTICE](NOTICE).
+
+## Security
+
+See [SECURITY.md](SECURITY.md). Do not open a public issue for a vulnerability.

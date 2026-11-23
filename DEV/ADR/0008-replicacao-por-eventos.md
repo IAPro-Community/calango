@@ -1,18 +1,18 @@
-# ADR 0008 — Replicação entre nós por eventos; código por git
+# ADR 0008 — Event-based replication between nodes; code through git
 
-Status: aceita · 2026-11-23
+Status: accepted · 2026-11-23
 
-## Contexto
-PC e VPS trabalham juntos (execução híbrida). Conversas, memória, rotinas e tarefas precisam aparecer nos dois. Código de projetos também.
+## Context
+PC and VPS work together (hybrid execution). Conversations, memory, routines and tasks must appear on both. Project code too.
 
-## Decisão
-- Cada nó escreve um log append-only (`events`) com `(node_id, seq)` único.
-- Nós trocam eventos pelo transporte; cada um aplica os do outro e guarda `last_applied_seq` em `peers`.
-- Cada entidade tem um **nó dono**; só o dono altera. O outro nó pede alteração por comando, que o dono aplica e publica. Não há edição concorrente, então não há merge.
-- Código sincroniza só por git (push/pull entre worktrees e remoto). Nada de sync de arquivos próprio.
-- Arquivos grandes ficam no nó de origem; o outro busca sob demanda.
+## Decision
+- Each node writes an append-only log (`events`) with a unique `(node_id, seq)`.
+- Nodes exchange events through the transport; each one applies the other's events and stores `last_applied_seq` in `peers`.
+- Each entity has an **owner node**; only the owner changes it. The other node requests a change through a command, which the owner applies and publishes. There is no concurrent editing, so there is no merge.
+- Code is synchronized only through git (push/pull between worktrees and the remote). No custom file sync.
+- Large files stay on the origin node; the other node fetches them on demand.
 
-## Consequências
-- Simples de raciocinar; sem CRDT.
-- Se o dono estiver offline, a alteração espera (a interface mostra isso).
-- Rotina com `run_on=auto` muda de dono quando o PC fica offline: a transferência de dono é um evento explícito.
+## Consequences
+- Simple to reason about; no CRDTs.
+- If the owner is offline, the change waits (the interface shows this).
+- A routine with `run_on=auto` changes owner when the PC goes offline: the ownership transfer is an explicit event.

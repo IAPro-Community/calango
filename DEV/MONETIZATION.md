@@ -1,63 +1,63 @@
-# Modelo de negócio — Calango (freemium)
+# Business model — Calango (freemium)
 
-Status: proposta inicial. Preços são hipóteses a validar, não decisões.
+Status: initial proposal. Prices are hypotheses to validate, not decisions.
 
-Atualização: o modelo híbrido (nó PC grátis, nó VPS pago, túnel via relay) está em [PRODUCT_HYBRID.md](PRODUCT_HYBRID.md). Esta tabela de planos é anterior e deve ser lida junto com aquele documento.
+Update: the hybrid model (free PC node, paid VPS node, tunnel via relay) is in [PRODUCT_HYBRID.md](PRODUCT_HYBRID.md). This plan table predates that document and should be read together with it.
 
-## Princípio
+## Principle
 
-O custo que mais pesa é o de modelo (tokens) e o de execução na nuvem. O plano grátis precisa ser útil sem custar caro para nós: por isso o grátis roda local e usa a chave ou a assinatura do próprio usuário (BYOK).
+The cost that weighs most is the model (tokens) and cloud execution. The free plan must be useful without being expensive for us: so the free plan runs locally and uses the user's own key or subscription (BYOK).
 
-## Planos (proposta)
+## Plans (proposal)
 
 | | Free | Pro | Team | Business |
 |---|---|---|---|---|
-| Quem | experimentar | pessoa que usa todo dia | pequeno time | empresa |
-| Máquinas locais | 1 | ilimitadas | ilimitadas | ilimitadas |
-| Nuvem (runner 24/7) | não | 1 runner | runners por pessoa | runners dedicados |
-| Rotinas | 2 | ilimitadas | ilimitadas | ilimitadas |
-| Canais | 1, só você | ilimitados | canais compartilhados | canais + permissões por papel |
-| Projetos na ADE | 1 | ilimitados | ilimitados | ilimitados |
-| Navegador do agente | básico, sem perfil persistente | perfil persistente | perfil por pessoa | perfil por pessoa + auditoria |
-| Aprovações | só você | por dispositivo (push) | por pessoa | fluxo com dono e substituto |
-| Créditos de modelo | BYOK | incluso + compra extra | incluso por assento | contrato |
-| Suporte | comunidade | e-mail | prioritário | SLA |
-| SSO, auditoria, retenção | não | não | opcional | sim |
+| Who | to try it | a person who uses it every day | a small team | a company |
+| Local machines | 1 | unlimited | unlimited | unlimited |
+| Cloud (24/7 runner) | no | 1 runner | runners per person | dedicated runners |
+| Routines | 2 | unlimited | unlimited | unlimited |
+| Channels | 1, only you | unlimited | shared channels | channels + role permissions |
+| Projects in ADE | 1 | unlimited | unlimited | unlimited |
+| Agent browser | basic, no persistent profile | persistent profile | profile per person | profile per person + audit |
+| Approvals | only you | per device (push) | per person | flow with owner and substitute |
+| Model credits | BYOK | included + extra purchase | included per seat | contract |
+| Support | community | email | priority | SLA |
+| SSO, audit, retention | no | no | optional | yes |
 
-## Monetização além da assinatura
+## Monetization beyond the subscription
 
-1. **Créditos de uso**: tokens de modelos hospedados por nós, com markup sobre o custo. Compra avulsa quando o plano acaba.
-2. **Minutos de runner**: execução 24/7 na nuvem cobrada por uso acima da cota.
-3. **Armazenamento**: arquivos, memória e histórico acima da cota.
-4. **Conectores premium**: integrações de terceiros com custo por chamada.
-5. **Marketplace (futuro)**: rotinas e agentes prontos vendidos por criadores, com comissão.
+1. **Usage credits**: tokens of models hosted by us, with a markup over cost. One-off purchase when the plan runs out.
+2. **Runner minutes**: 24/7 cloud execution billed by usage above the quota.
+3. **Storage**: files, memory and history above the quota.
+4. **Premium connectors**: third-party integrations with a per-call cost.
+5. **Marketplace (future)**: ready-made routines and agents sold by creators, with a commission.
 
-## Como medir (base do plano)
+## How to measure (basis of the plan)
 
-Toda chamada passa por um gateway de modelo que registra tokens, custo e dono (ver [[ARCHITECTURE]]). O mesmo registro alimenta cobrança, limites do plano e painel de uso. Sem medição confiável, não há freemium viável.
+Every call goes through a model gateway that records tokens, cost and owner (see [ARCHITECTURE.md](ARCHITECTURE.md)). The same record feeds billing, plan limits and the usage dashboard. Without reliable measurement, there is no viable freemium.
 
-## Limites e controles
+## Limits and controls
 
-- Cota por plano aplicada no núcleo (`Entitlements` por dono), não na interface.
-- Quando estoura: o agente para e pede ação do dono; nunca cobra em silêncio.
-- Limite de gasto por agente e por rotina, sempre visível.
+- Plan quota enforced in the core (`Entitlements` per owner), not in the interface.
+- When exceeded: the agent stops and asks the owner to act; it never charges silently.
+- Spending limit per agent and per routine, always visible.
 
-## Pagamento
+## Payment
 
-- **Web e desktop**: Stripe (assinatura e créditos).
-- **iOS e Android**: a App Store e o Google Play exigem o próprio sistema de compra para assinatura digital consumida dentro do app, com comissão deles (faixa de 15 a 30%). Confirmar as regras vigentes antes de definir o preço no app. Alternativa: oferecer a compra só pela web e ler a assinatura no app (regra muda por loja e por país; checar).
+- **Web and desktop**: Stripe (subscriptions and credits).
+- **iOS and Android**: App Store and Google Play require their own purchase system for digital subscriptions consumed inside the app, with their commission (15 to 30%). Confirm the current rules before setting the in-app price. Alternative: offer purchase only on the web and read the subscription in the app (rules change by store and by country; check).
 
-## Riscos
+## Risks
 
-- Plano grátis com modelo caro vira prejuízo: BYOK no grátis resolve isso.
-- Comissão das lojas corrói margem no mobile: empurrar compra para a web onde a política permitir.
-- Preço de referência (ChatGPT, Grok, Claude) cria expectativa de preço baixo; o diferencial precisa ser nuvem + ADE + controle, não "mais um chat".
-- Dot foi encerrado (ver WORKLOG): assinatura de companion sem utilidade diária não se sustentou.
+- A free plan with an expensive model becomes a loss: BYOK on the free plan solves this.
+- Store commissions erode mobile margin: push purchase to the web where the policy allows it.
+- Reference prices (ChatGPT, Grok, Claude) create expectations of low prices; the differentiator must be cloud + ADE + control, not "one more chat".
+- Dot was shut down (see WORKLOG): a companion subscription without daily usefulness did not hold up.
 
-## Métricas iniciais
+## Initial metrics
 
-Conversão grátis→pago, retenção semanal, custo de modelo por usuário ativo, receita por usuário, churn, rotinas ativas por conta.
+Free→paid conversion, weekly retention, model cost per active user, revenue per user, churn, active routines per account.
 
-## Próximo passo
+## Next step
 
-Validar com 5 a 10 pessoas do público-alvo: qual limite do grátis as faria pagar, e o que pagariam por nuvem contra o que já pagam em assinaturas de IA.
+Validate with 5 to 10 people from the target audience: which free-plan limit would make them pay, and what they would pay for cloud compared with what they already pay in AI subscriptions.

@@ -41,6 +41,20 @@ func TestChargeRespectsBudget(t *testing.T) {
 	}
 }
 
+func TestChargeRejectsIntegerOverflow(t *testing.T) {
+	a, err := NewAgent("a", "x", 100)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if err := a.Charge(int64(^uint64(0) >> 1)); !errors.Is(err, ErrBudgetExceeded) {
+		t.Fatalf("maximum int64 charge: got %v, want ErrBudgetExceeded", err)
+	}
+	if a.TokensUsed() != 0 {
+		t.Fatalf("refused charge changed usage to %d", a.TokensUsed())
+	}
+}
+
 type fakeClock struct{ t time.Time }
 
 func (c *fakeClock) now() time.Time { return c.t }

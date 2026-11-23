@@ -1,0 +1,34 @@
+:root {
+  --calango-color-postit: #FDD838;
+  --calango-color-postit-light: #FEE76A;
+  --calango-color-postit-deep: #F6C400;
+  --calango-color-lime: #B6E021;
+  --calango-color-leaf: #6CC23A;
+  --calango-color-moss: #42912E;
+  --calango-color-tangerine: #FE9904;
+  --calango-color-sand: #F3CC85;
+  --calango-color-clay: #B47133;
+  --calango-color-clay-deep: #8E5326;
+  --calango-color-bark: #4A2A15;
+  --calango-color-paper: #FFFBEF;
+  --calango-color-ink: #22180F;
+  --calango-color-ink-soft: #5C4A38;
+  --calango-color-night: #17130D;
+  --calango-color-night-card: #241D14;
+  --calango-font-display: Bricolage Grotesque;
+  --calango-font-body: Instrument Sans;
+  --calango-font-mono: JetBrains Mono;
+  --calango-radius-sm: 8px;
+  --calango-radius-md: 14px;
+  --calango-radius-lg: 22px;
+  --calango-radius-tile: 28%;
+  --calango-shadow-paper: 0 1px 0 rgba(74,42,21,.08), 0 6px 14px -6px rgba(74,42,21,.25);
+  --calango-shadow-lift: 0 2px 0 rgba(74,42,21,.08), 0 18px 40px -16px rgba(74,42,21,.35);
+  --calango-shadow-glass: inset 0 2px 0 rgba(255,255,255,.7), inset 0 -10px 30px rgba(246,196,0,.35), 0 24px 60px -20px rgba(142,83,38,.45);
+  --calango-motion-ease-paper: cubic-bezier(.2,.9,.25,1.15);
+  --calango-motion-ease-out: cubic-bezier(.16,1,.3,1);
+  --calango-motion-fast: 160ms;
+  --calango-motion-base: 320ms;
+  --calango-motion-slow: 640ms;
+  --calango-motion-stagger: 45ms;
+}

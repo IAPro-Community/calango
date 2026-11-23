@@ -1,14 +1,14 @@
-# ADR 0002 — SQLite por nó, sem cgo
+# ADR 0002 — SQLite per node, no cgo
 
-Status: aceita · 2026-11-23
+Status: accepted · 2026-11-23
 
-## Contexto
-Cada nó guarda seus próprios dados e precisa funcionar offline. Instalação no PC não pode exigir servidor de banco.
+## Context
+Each node stores its own data and must work offline. Installing on the PC must not require a database server.
 
-## Decisão
-Um arquivo SQLite por nó, via `modernc.org/sqlite` (Go puro, sem cgo). Modo WAL. Migrações versionadas e imutáveis em `internal/store/migrations/`. Acesso por interfaces no pacote `internal/store` para permitir Postgres na Calango Cloud gerenciada no futuro.
+## Decision
+One SQLite file per node, via `modernc.org/sqlite` (pure Go, no cgo). WAL mode. Versioned and immutable migrations in `internal/store/migrations/`. Access through interfaces in the `internal/store` package, to allow Postgres in the managed Calango Cloud in the future.
 
-## Consequências
-- Build sem toolchain C, cross-compile simples.
-- Escrita concorrente limitada: um escritor por vez; adequado para uso pessoal.
-- Replicação entre nós é por eventos (ADR 0008), não pelo banco.
+## Consequences
+- Build without a C toolchain; simple cross-compilation.
+- Limited concurrent writes: one writer at a time; adequate for personal use.
+- Replication between nodes happens through events (ADR 0008), not through the database.

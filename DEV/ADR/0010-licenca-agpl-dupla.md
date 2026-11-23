@@ -1,29 +1,29 @@
-# ADR 0010 — Código aberto sob AGPL-3.0, com licença comercial, CLA e marca
+# ADR 0010 — Open source under AGPL-3.0, with commercial license, CLA and trademark
 
-Status: aceita · 2026-11-23 · publicação em `IAPro-Community`
+Status: accepted · 2026-11-23 · publication under `IAPro-Community`
 
-## Contexto
-O projeto será construído com a comunidade, mas é um negócio: o dono lidera e a receita vem de serviços e de licenças comerciais. Um código permissivo permitiria que terceiros hospedassem uma cópia concorrente sem contribuir de volta. O projeto também depende de contribuições de terceiros, o que exige cessão de direitos para manter a licença comercial.
+## Context
+The project will be built with the community, but it is a business: the owner leads and the revenue comes from services and commercial licenses. A permissive license would let third parties host a competing copy without contributing back. The project also depends on third-party contributions, which requires assigning rights to keep the commercial license viable.
 
-## Decisão
-1. **Licença do código:** GNU AGPL-3.0 (`LICENSE`).
-2. **Licença comercial** para quem não pode ou não quer cumprir a AGPL (`COMMERCIAL.md`).
-3. **CLA** obrigatório para contribuições (`CLA.md`): licença de direitos e de patentes, com direito de relicenciar.
-4. **Marca** protegida separadamente (`TRADEMARKS.md`).
-5. **Serviços pagos fora do repositório:** relay, push, VPS gerenciada, créditos de modelo, billing e licenciamento ficam em serviços operados pela Calango. O binário aberto não contém a lógica de cobrança como barreira de acesso.
-6. **Dependências:** o Orquestrador Maestro (Apache-2.0) é consumido via npm. Apache-2.0 é compatível com AGPL-3.0 nesse uso.
+## Decision
+1. **Code license:** GNU AGPL-3.0 (`LICENSE`).
+2. **Commercial license** for those who cannot or do not want to comply with the AGPL (`COMMERCIAL.md`).
+3. **CLA** required for contributions (`CLA.md`): copyright and patent licenses, with the right to relicense.
+4. **Trademark** protected separately (`TRADEMARKS.md`).
+5. **Paid services outside the repository:** relay, push, managed VPS, model credits, billing and licensing stay in services operated by Calango. The open binary does not contain billing logic as an access barrier.
+6. **Dependencies:** the Orquestrador Maestro (Apache-2.0) is consumed via npm. Apache-2.0 is compatible with AGPL-3.0 for this use.
 
-## Alternativas descartadas
-- **Apache-2.0 / MIT:** permitiria fork hospedado concorrente sem obrigação de publicar.
-- **GPL-3.0:** não cobre uso como serviço em rede.
-- **Fonte disponível (BSL, SSPL, FSL):** não são licenças open source aprovadas pela OSI; o dono pediu código aberto.
+## Discarded alternatives
+- **Apache-2.0 / MIT:** would allow a competing hosted fork without any obligation to publish.
+- **GPL-3.0:** does not cover use as a network service.
+- **Source-available (BSL, SSPL, FSL):** not open source licenses approved by the OSI; the owner asked for open source.
 
-## Riscos aceitos
-- Empresas que evitam AGPL podem preferir a licença comercial. Isso é receita, não só custo.
-- A verificação de licença da VPS pode ser removida por quem compila o código. Por isso o que é cobrado fica fora do binário (item 5).
-- O CLA exige revisão jurídica antes da publicação.
+## Accepted risks
+- Companies that avoid AGPL may prefer the commercial license. That is revenue, not only cost.
+- The VPS license check can be removed by whoever compiles the code. That is why what is charged stays outside the binary (item 5).
+- The CLA requires legal review before publication.
 
-## Pendências
-- Revisão jurídica de `CLA.md` e `COMMERCIAL.md`.
-- Endereço de contato, termos de serviço e política de privacidade reais.
-- Mecanismo de assinatura do CLA no PR (bot ou checkbox).
+## Open items
+- Legal review of `CLA.md` and `COMMERCIAL.md`.
+- Real contact address, terms of service and privacy policy.
+- CLA signature mechanism in the PR (bot or checkbox).

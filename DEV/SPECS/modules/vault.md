@@ -1,16 +1,16 @@
-# Módulo: vault
+# Module: vault
 
-Fase 1 · Pacote `internal/vault` · Tabela `vault_items` (só referência)
+Phase 1 · Package `internal/vault` · Table `vault_items` (reference only)
 
-## Objetivo
-Guardar segredos (chaves de modelo, tokens de conector, senhas de sites) no cofre do sistema operacional.
+## Goal
+Store secrets (model keys, connector tokens, site passwords) in the operating system's vault.
 
-## Regras
-- Backends: Windows Credential Manager (DPAPI), macOS Keychain, Linux Secret Service. Na VPS (sem cofre do SO): arquivo criptografado com chave vinda de variável de ambiente ou Docker secret, fora do volume de dados.
-- Linux sem keyring destravado: recusar salvar e explicar como destravar. Nunca cair para texto puro.
-- API devolve só nome e data; o valor nunca volta.
-- O agente usa segredo por referência (`vault://nome`); o valor é resolvido no momento da chamada e mascarado em logs e passos.
-- Agente pode pedir um segredo à pessoa (`request_secret`): cartão em que a pessoa preenche; o agente é avisado quando o valor está disponível.
+## Rules
+- Backends: Windows Credential Manager (DPAPI), macOS Keychain, Linux Secret Service. On the VPS (no OS vault): an encrypted file with a key from an environment variable or Docker secret, kept outside the data volume.
+- Linux without an unlocked keyring: refuse to save and explain how to unlock it. Never fall back to plain text.
+- The API returns only the name and date; the value never comes back.
+- The agent uses a secret by reference (`vault://name`); the value is resolved at the time of the call and masked in logs and steps.
+- An agent can ask the person for a secret (`request_secret`): a card where the person fills it in; the agent is notified when the value is available.
 
-## Aceite
-- Nenhum segredo aparece em `run_steps`, logs ou respostas da API (teste de canário).
+## Acceptance
+- No secret appears in `run_steps`, logs or API responses (canary test).

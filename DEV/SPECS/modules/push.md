@@ -1,20 +1,20 @@
-# Módulo: push
+# Module: push
 
-Fase 2 · `cmd/calango-cloud` (serviço `push`) + `internal/push` no nó
+Phase 2 · `cmd/calango-cloud` (service `push`) + `internal/push` on the node
 
-## Objetivo
-Notificar o celular mesmo com o app fechado, sem que a Calango veja conteúdo.
+## Goal
+Notify the phone even when the app is closed, without Calango seeing any content.
 
-## Fluxo
-1. O app registra o token APNs/FCM na Calango Cloud, associado ao dispositivo.
-2. O nó envia ao relay: `{ device_id, kind, opaque_id }`. Nada de texto.
-3. O relay envia ao APNs/FCM uma notificação genérica ("Calango precisa de você") com `opaque_id`.
-4. O app abre e busca o conteúdo no nó pelo transporte.
+## Flow
+1. The app registers the APNs/FCM token with Calango Cloud, linked to the device.
+2. The node sends the relay: `{ device_id, kind, opaque_id }`. No text.
+3. The relay sends APNs/FCM a generic notification ("Calango needs you") with the `opaque_id`.
+4. The app opens and fetches the content from the node through the transport.
 
-## Regras
-- Autenticação do nó no relay por chave da conta.
-- Limite por plano (Free limitado, Pro ilimitado razoável).
-- Agrupamento: várias notificações em 30 s viram uma.
+## Rules
+- Authentication of the node with the relay by the account key.
+- Limit per plan (Free limited, Pro reasonably unlimited).
+- Grouping: several notifications within 30 s become one.
 
-## Aceite
-- Inspeção do payload no relay não contém texto de conversa (teste).
+## Acceptance
+- Inspecting the payload at the relay shows no conversation text (test).

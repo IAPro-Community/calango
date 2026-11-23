@@ -1,27 +1,27 @@
-# Módulo: mobile-flutter
+# Module: mobile-flutter
 
-Fase 2 · `apps/mobile` · ADR 0004
+Phase 2 · `apps/mobile` · ADR 0004
 
-## Objetivo
-Controle remoto do Calango no celular: ver, aprovar, conversar, agendar.
+## Goal
+Remote control of Calango on the phone: see, approve, chat, schedule.
 
-## Telas
-1. Boas-vindas + parear (câmera para QR ou código).
-2. Nós: PC e VPS, online/offline, desde quando, o que espera por cada um.
-3. "Para você": aprovações, perguntas, entregas.
-4. Conversas (DMs) com passos resumidos.
-5. Cartão de aprovação com ação, alvo, argumentos, aprovar/recusar/aprovar sempre.
-6. Rotinas: lista, rodar agora, pausar.
-7. Tarefas (Quadro simplificado).
-8. Configurações: dispositivos, plano, notificações.
-9. Controle de tela do PC (fase 5, pago).
+## Screens
+1. Welcome + pair (camera for QR or code).
+2. Nodes: PC and VPS, online/offline, since when, what is waiting for each.
+3. "For you": approvals, questions, deliveries.
+4. Conversations (DMs) with summarized steps.
+5. Approval card with action, target, arguments, approve/refuse/always approve.
+6. Routines: list, run now, pause.
+7. Tasks (simplified board).
+8. Settings: devices, plan, notifications.
+9. PC screen control (phase 5, paid).
 
-## Regras
-- Cliente só via `packages/sdk-dart`. Tema só via tokens gerados.
-- Token no Keychain (iOS) / Keystore (Android).
-- Push abre direto no item (aprovação, mensagem).
-- Funciona com mais de um nó; seletor no topo.
-- Compra pelo sistema da loja; plano reconhecido em todos os clientes.
+## Rules
+- The client only via `packages/sdk-dart`. Theme only via generated tokens.
+- Token in the Keychain (iOS) / Keystore (Android).
+- A push opens directly on the item (approval, message).
+- Works with more than one node; selector at the top.
+- Purchase through the store's system; plan recognized in all clients.
 
-## Aceite
-- Aprovar uma ação do PC estando em 4G, via Tailscale, em menos de 3 toques a partir do push.
+## Acceptance
+- Approve an action from the PC while on 4G, via Tailscale, in less than 3 taps from the push.

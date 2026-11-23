@@ -1,59 +1,59 @@
-# Implantação — Calango na sua VPS
+# Deployment — Calango on your VPS
 
-Status: desenho. Dockerfiles e compose existem como ponto de partida, **não construídos nem testados** (daemon Docker indisponível neste ambiente).
+Status: design. The Dockerfiles were built on 2026-11-22 and the health checks passed with `--network host` (see `VERIFY.md`). Port mapping through bridge networking remains unvalidated. In this session the sandbox blocked access to the Docker daemon, so the images were not revalidated.
 
-## Modelo
+## Model
 
 ```
-VPS da pessoa                          clientes
+Person's VPS                           clients
 ┌──────────────────────────┐          ┌─────────────┐
-│ docker: calango         │◄──TLS────│ desktop     │
-│  - núcleo, rotinas       │          │ iOS         │
-│  - navegador (chromium)  │          │ Android     │
-│  - dados (SQLite em vol) │          │ web         │
+│ docker: calango          │◄──TLS────│ desktop     │
+│  - core, routines        │          │ iOS         │
+│  - browser (chromium)    │          │ Android     │
+│  - data (SQLite in vol)  │          │ web         │
 └──────────────────────────┘          └─────────────┘
 ```
 
-O servidor é o único lugar onde o agente roda, guarda dados e executa rotinas. Os clientes são controles remotos: não rodam agente, só mostram e enviam comandos. Por isso o agente segue vivo quando o notebook desliga, e o celular funciona de qualquer lugar.
+The server is the only place where the agent runs, stores data and executes routines. Clients are remote controls: they do not run the agent; they only show state and send commands. That is why the agent stays alive when the laptop is off, and the phone works from anywhere.
 
-Também funciona com o servidor no próprio computador (modo local). Mesmo binário, só muda o endereço.
+It also works with the server on the computer itself (local mode). Same binary; only the address changes.
 
-## Pareamento
+## Pairing
 
-1. A pessoa sobe o container na VPS.
-2. O servidor mostra um código de pareamento de uso único (QR ou texto), válido por poucos minutos.
-3. O app lê o código, troca por um token de dispositivo e guarda o token no keychain do sistema.
-4. Cada dispositivo pode ser revogado separadamente.
+1. The person starts the container on the VPS.
+2. The server shows a single-use pairing code (QR or text), valid for a few minutes.
+3. The app reads the code, exchanges it for a device token and stores the token in the system keychain.
+4. Each device can be revoked separately.
 
-## Acesso seguro (obrigatório)
+## Secure access (required)
 
-- **Nunca expor a porta em texto puro.** Tudo passa por TLS, via proxy reverso (Caddy ou Traefik com certificado automático) ou pela rede privada.
-- **Alternativa sem porta pública**: rede privada (Tailscale ou WireGuard). Recomendar como padrão para quem não quer expor a VPS.
-- Senha de administrador forte no primeiro acesso; sem credenciais padrão.
-- Tokens de dispositivo com escopo e validade; revogação imediata.
-- Segredos (chaves de modelo, tokens de conector) criptografados em repouso, com chave fora do volume de dados.
+- **Never expose the port in plain text.** Everything goes through TLS, via a reverse proxy (Caddy or Traefik with automatic certificates) or over a private network.
+- **Alternative without a public port**: a private network (Tailscale or WireGuard). Recommended as the default for anyone who does not want to expose the VPS.
+- Strong administrator password on first access; no default credentials.
+- Device tokens with scope and expiry; immediate revocation.
+- Secrets (model keys, connector tokens) encrypted at rest, with the key kept outside the data volume.
 
-## Notificações push (mobile)
+## Push notifications (mobile)
 
-Um servidor próprio não fala direto com APNs (iOS) nem FCM (Android) sem credenciais da Apple e do Google. Proposta: um **relay de push** pequeno, hospedado por nós, que recebe um aviso do servidor da pessoa e encaminha para o celular dela. O relay não vê conteúdo: só manda "tem novidade", e o app busca o conteúdo no servidor da pessoa. Isso também é um ponto de monetização (ver [MONETIZATION.md](MONETIZATION.md)).
+A self-hosted server cannot talk directly to APNs (iOS) or FCM (Android) without Apple and Google credentials. Proposal: a small **push relay**, hosted by us, which receives a notice from the person's server and forwards it to their phone. The relay sees no content: it only sends "there is news", and the app fetches the content from the person's server. This is also a monetization point (see [MONETIZATION.md](MONETIZATION.md)).
 
-## Atualizações
+## Updates
 
-- Imagem versionada (`calango/calango:<versão>`). Atualizar é trocar a tag e reiniciar.
-- Migrações de banco rodam na subida e são irreversíveis sem backup: o compose documenta o volume a salvar.
-- Backup do volume de dados: responsabilidade da pessoa, com comando documentado.
+- Versioned image (`calango/calango:<version>`). Updating means changing the tag and restarting.
+- Database migrations run at startup and are irreversible without a backup: the compose file documents the volume to save.
+- Backup of the data volume: the person's responsibility, with a documented command.
 
-## Hospedagem gerenciada (opção paga)
+## Managed hosting (paid option)
 
-Para quem não quer administrar VPS, oferecer o mesmo servidor hospedado por nós, com as mesmas APIs. Corresponde ao plano Pro/Team em [MONETIZATION.md](MONETIZATION.md). A versão self-hosted segue disponível, então o produto não depende de nós para existir.
+For those who do not want to run a VPS, offer the same server hosted by us, with the same APIs. This corresponds to the Pro/Team plan in [MONETIZATION.md](MONETIZATION.md). The self-hosted version remains available, so the product does not depend on us to exist.
 
-## Arquivos
+## Files
 
-- `deploy/Dockerfile.node`: build do nó em duas etapas, imagem final mínima, usuário não-root. Site: `Dockerfile` na raiz, nginx não-root.
-- `deploy/docker-compose.yml`: exemplo com volume de dados e proxy TLS.
+- `deploy/Dockerfile.node`: two-stage node build, minimal final image, non-root user. Site: `Dockerfile` at the root, nginx non-root.
+- `deploy/docker-compose.yml`: example with a data volume and a TLS proxy.
 
-## Pendências
+## Pending
 
-- Pareamento e tokens de dispositivo: ainda não implementados.
-- Relay de push: a definir.
-- Navegador no container (chromium) exige imagem maior; avaliar uma imagem separada.
+- Pairing and device tokens: not implemented yet.
+- Push relay: to be defined.
+- Browser in the container (chromium) requires a larger image; evaluate a separate image.
