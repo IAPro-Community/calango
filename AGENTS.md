@@ -8,14 +8,12 @@ Calango is a personal agent that runs on the person's computer (PC node, free), 
 
 ## Reading order (required before coding)
 
-1. `DEV/INDEX.md` — map of all documentation.
-2. `DEV/HANDOFF.md` — where the work stopped and the next step.
-3. `DEV/CONTEXT.md` — current project state.
-4. `DEV/SPECS/ACTIVE.md` — contract of the task in progress.
-5. `DEV/SPECS/ROADMAP.md` — phases and numbered tasks (e.g., `F1-T03`).
-6. Only then, the spec of the module you are going to touch, in `DEV/SPECS/modules/`.
+1. `GOVERNANCE.md` and `CONTRIBUTING.md`.
+2. Assigned GitHub issue, acceptance criteria, dependencies and linked PRs.
+3. `DEV/INDEX.md` and relevant architecture/ADRs.
+4. Module specification under `DEV/SPECS/modules/` and relevant code/tests.
 
-Do not load the whole `DEV/` folder. Read what the task needs.
+Do not load the whole DEV directory or assume a global ACTIVE/HANDOFF file defines your assignment. Use one isolated worktree per concurrent session and an issue-linked branch from main. Confirm the issue is Ready and a human is accountable. Do not take another contributor's issue without coordination.
 
 ## Non-negotiable rules
 
@@ -29,7 +27,7 @@ Do not load the whole `DEV/` folder. Read what the task needs.
 - **Secrets never go to the client** nor to logs.
 - **Migrations are immutable** once committed: a change means a new migration.
 - **New architecture decision = new ADR** in `DEV/ADR/`.
-- Do not commit or push without an explicit request from the project owner.
+- Commit/push/open PR only within explicit delegated authority, on the assigned branch. Never push directly to main, self-approve, bypass checks, merge or publish autonomously.
 - License: AGPL-3.0 (`LICENSE`). Contributions require accepting `CLA.md`. Do not add third-party code without checking its license.
 - **Language: English.** Code, comments, commit messages, issues, pull requests and documentation are written in English (see [DEV/CONVENTIONS.md](DEV/CONVENTIONS.md)). Translations of user-facing text go through the catalog in `packages/i18n`.
 
@@ -46,4 +44,4 @@ Desktop, mobile and cloud do not exist yet; their commands will be added here wh
 
 ## After working
 
-Update `DEV/WORKLOG.md` (what changed and why), `DEV/VERIFY.md` (what was verified and how) and `DEV/HANDOFF.md` (next step). Mark the task in `DEV/SPECS/ROADMAP.md`.
+Record implementation scope, exact commands and actual test results, limitations, blockers and next steps in the assigned issue/PR. Update specifications or ADRs only when the change requires them. Do not routinely modify shared ACTIVE, HANDOFF, WORKLOG, VERIFY or roadmap status files; preserve them during the backlog transition. Request independent human review and leave the issue open until acceptance and any required post-merge validation.
