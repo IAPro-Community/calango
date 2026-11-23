@@ -27,3 +27,7 @@ No sensitive action happens without a person approving it.
 - An approved action that fails shows `failed` with a reason, not "approved".
 - Changing the target or arguments after approval blocks execution and creates a new request.
 - With an "always approve" rule, the same action does not generate a card, but does generate an audit entry.
+
+## Status (F1-T08, partial)
+- Done: canonical action and SHA-256 digest (`internal/core/approval.go`); migration `0004_approvals.sql` (snapshot columns, status and outcome change once, `approval_rules`); store (`internal/store/approvals.go`); service `internal/approvals` (request, decide, execute, sweep, "always allow" rules, 24 h expiry enforced in `Decide` and `Sweep`).
+- HTTP list and decide are served (F1-T13). Pending: the card (client side, F1-T20+); run state `waiting_approval` wired to the executor; reconciliation of an approved action that crashed before its receipt (it stays without outcome); `Request` does not check that `runID` belongs to the agent.

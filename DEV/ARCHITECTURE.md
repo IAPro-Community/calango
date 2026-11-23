@@ -26,10 +26,11 @@ storage (SQLite, Store interface)   ·   adapters (models, browser, MCP)
 
 ## Packages
 
-- `cmd/calango`: daemon entry point. Starts the server and the scheduler; shuts down on signal.
+- `cmd/calango`: daemon entry point. Starts the HTTP server; shuts down on signal. The routines loop starts once an executor exists (F1-T09 pending).
 - `internal/core`: pure domain, no network I/O.
   - `agent.go`: agent with token budget (`Charge` refuses when it overflows).
-  - `scheduler.go`: routines by interval, with an injectable clock.
+  - `routine.go`, `cron.go`: routine definition, validation, 5-field cron, retry backoff, quiet window and occurrence ID (pure).
+- `internal/routines`: routine service on the store: occurrences, retries, quiet windows, coalescing of missed runs, notifications.
 - `internal/api`: HTTP routes.
 
 ## Rules

@@ -1,6 +1,6 @@
 # Module: routines
 
-Phase 1 (cron/interval) · Phase 3 (events, hybrid) · Package `internal/core/scheduler.go` + `internal/routines` · Tables `routines`, `routine_runs`
+Phase 1 (cron/interval) · Phase 3 (events, hybrid) · Packages `internal/core` (`routine.go`, `cron.go`) + `internal/routines` · Tables `routines`, `routine_runs`
 
 ## Goal
 Scheduled work, or work triggered by an event, executed by an agent.
@@ -18,7 +18,8 @@ Scheduled work, or work triggered by an event, executed by an agent.
 - Routines do not appear on the task board.
 
 ## Current state
-`core.Scheduler` with an interval and an injectable clock already exists and has tests (not run).
+Status (F1-T09, partial): domain (`core.Routine`, `ParseCron`, `Routine.NextAfter`, `PostponeOutsideQuietWindow`, `RetryBackoff`, `OccurrenceID`), migration `0005_routines.sql`, store, and `internal/routines.Service` (`Create`, `Get`, `List`, `Occurrences`, `SetPaused`, `Delete`, `Tick`, `Start`, `Run`) are implemented and tested in `internal/routines/service_test.go`. The in-memory `core.Scheduler` was removed; the daemon no longer starts a scheduler loop.
+Pending: HTTP routes (F1-T13); `routine.fired` / `routine.failed` delivered to clients (F1-T13); real executor that creates an agent run (needs a harness, D3); manual run and runs listing; `routine_finish` tool; event triggers (phase 3).
 
 ## API
 `GET/POST /v1/routines`, `PATCH/DELETE /v1/routines/{id}`, `POST /v1/routines/{id}/run`, `GET /v1/routines/{id}/runs`.

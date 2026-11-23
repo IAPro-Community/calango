@@ -50,7 +50,8 @@ paths:
       operationId: pairDevice
       tags: [auth]
       security: []
-      summary: Exchanges a pairing code for a device token
+      summary: Exchanges a single-use pairing code for a device token
+      description: Public route, limited to 5 attempts per minute per origin. A code works once and expires after 5 minutes. The token is returned only here; the node stores its hash.
       requestBody:
         required: true
         content:
@@ -69,11 +70,60 @@ paths:
             application/json:
               schema:
                 type: object
+                required: [device_id, token, scope]
                 properties:
                   device_id: { type: string }
                   token: { type: string }
+                  scope: { $ref: "#/components/schemas/DeviceScope" }
         "400": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Error" }
         "429": { $ref: "#/components/responses/Error" }
+  /v1/pairing-codes:
+    post:
+      operationId: createPairingCode
+      tags: [auth]
+      summary: Creates a single-use pairing code
+      description: Requires a device with full scope. Codes expire after 5 minutes.
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PairingCodeInput" }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PairingCode" }
+        "400": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+  /v1/devices:
+    get:
+      operationId: listDevices
+      tags: [auth]
+      summary: List paired devices, including revoked ones
+      description: Requires a device with full scope.
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Device" }
+        "403": { $ref: "#/components/responses/Error" }
+  /v1/devices/{id}:
+    delete:
+      operationId: revokeDevice
+      tags: [auth]
+      summary: Revokes a device token; its next call gets 401
+      description: Requires a device with full scope.
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      responses:
+        "204": { description: Revoked }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
   /v1/agents:
     get:
       operationId: listAgents
@@ -117,10 +167,11 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/Agent" }
         "404": { $ref: "#/components/responses/Error" }
-    patch:
-      operationId: updateAgent
+    put:
+      operationId: replaceAgent
       tags: [agents]
-      summary: Update agent
+      summary: Replace agent configuration
+      description: The body replaces every editable field. Omitted optional fields take their defaults. The next run uses the new configuration; a run in progress keeps the one it started with.
       requestBody:
         required: true
         content:
@@ -132,13 +183,31 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/Agent" }
+        "400": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+    delete:
+      operationId: deleteAgent
+      tags: [agents]
+      summary: Delete agent without history
+      description: Refused with conflict when the agent has runs or usage, because history must stay attributable.
+      responses:
+        "204": { description: Deleted }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
   /v1/agents/pause-all:
     post:
       operationId: pauseAllAgents
       tags: [agents]
-      summary: Pauses all agents and stops the runs in progress
+      summary: Node-wide pause; no agent starts a new run until resume-all
       responses:
         "204": { description: Paused }
+  /v1/agents/resume-all:
+    post:
+      operationId: resumeAllAgents
+      tags: [agents]
+      summary: Resume all agents
+      responses:
+        "204": { description: Resumed }
   /v1/conversations:
     get:
       operationId: listConversations
@@ -304,7 +373,7 @@ paths:
       parameters:
         - name: scope
           in: query
-          schema: { type: string, enum: [account, agent, project] }
+          schema: { type: string, enum: [account, agent] }
         - name: scope_id
           in: query
           schema: { type: string }
@@ -316,11 +385,61 @@ paths:
               schema:
                 type: array
                 items: { $ref: "#/components/schemas/Memory" }
+    post:
+      operationId: createMemory
+      tags: [memory]
+      summary: Create a memory
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/MemoryInput" }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Memory" }
+        "400": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+  /v1/memories/{id}:
+    parameters:
+      - $ref: "#/components/parameters/Id"
+    patch:
+      operationId: updateMemory
+      tags: [memory]
+      summary: Replace the text of a memory
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [text]
+              properties:
+                text: { type: string, maxLength: 2000 }
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Memory" }
+        "400": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+    delete:
+      operationId: deleteMemory
+      tags: [memory]
+      summary: Delete a memory
+      description: The row is kept for 30 days for audit and is never injected into a prompt.
+      responses:
+        "204": { description: Deleted }
+        "404": { $ref: "#/components/responses/Error" }
   /v1/usage:
     get:
       operationId: getUsage
       tags: [usage]
       summary: Aggregated usage and cost
+      description: "Sums the usage rows of the owner's agents. from is inclusive and to is exclusive. Rows with unknown cost add nothing to cost_micros and are counted in cost_unknown_rows. An empty key means the row has no value for group_by."
       parameters:
         - name: from
           in: query
@@ -330,7 +449,7 @@ paths:
           schema: { type: string, format: date-time }
         - name: group_by
           in: query
-          schema: { type: string, enum: [agent, routine, project, node, model] }
+          schema: { type: string, enum: [agent, routine, project, node, model], default: agent }
       responses:
         "200":
           description: OK
@@ -344,6 +463,7 @@ components:
     device:
       type: http
       scheme: bearer
+      description: Routes return 403 forbidden when the device scope lacks the route's permission (see DeviceScope).
   parameters:
     Id:
       name: id
@@ -367,13 +487,14 @@ components:
           properties:
             code:
               type: string
-              enum: [budget_exceeded, approval_required, not_found, invalid_input, unauthorized, node_offline, harness_signed_out, conflict, rate_limited]
+              enum: [budget_exceeded, approval_required, not_found, invalid_input, unauthorized, forbidden, node_offline, harness_signed_out, conflict, rate_limited, internal]
             message: { type: string }
     RunOn:
       type: string
       enum: [pc, vps, auto]
     AgentInput:
       type: object
+      description: run_on defaults to pc and approval_level to sensitive. Optional fields omitted on PUT take their defaults.
       required: [name, token_limit_month]
       properties:
         name: { type: string }
@@ -392,7 +513,7 @@ components:
           required: [id, paused, tokens_used_month]
           properties:
             id: { type: string }
-            paused: { type: boolean }
+            paused: { type: boolean, description: "True while the node-wide pause is on. Per-agent pause is not in V1." }
             tokens_used_month: { type: integer }
     Conversation:
       type: object
@@ -450,15 +571,52 @@ components:
       required: [id, scope, kind, text]
       properties:
         id: { type: string }
-        scope: { type: string, enum: [account, agent, project] }
+        scope: { type: string, enum: [account, agent] }
         scope_id: { type: string }
         kind: { type: string, enum: [fact, preference, decision] }
         text: { type: string }
+    MemoryInput:
+      type: object
+      required: [scope, text]
+      description: scope_id is the agent id for scope agent and is omitted for account. kind defaults to fact.
+      properties:
+        scope: { type: string, enum: [account, agent] }
+        scope_id: { type: string }
+        kind: { type: string, enum: [fact, preference, decision] }
+        text: { type: string, maxLength: 2000 }
     UsageRow:
       type: object
-      required: [key, tokens_in, tokens_out, cost_micros]
+      required: [key, tokens_in, tokens_out, cost_micros, cost_unknown_rows]
       properties:
         key: { type: string }
         tokens_in: { type: integer }
         tokens_out: { type: integer }
-        cost_micros: { type: integer }
+        cost_micros: { type: integer, description: "Sum of known and estimated costs" }
+        cost_unknown_rows: { type: integer }
+    DeviceScope:
+      type: string
+      description: "full: every route. approve_only: list and decide approvals. read: GET agents and memories. Creating pairing codes and managing devices require full."
+      enum: [full, approve_only, read]
+    PairingCodeInput:
+      type: object
+      description: scope defaults to full.
+      properties:
+        scope: { $ref: "#/components/schemas/DeviceScope" }
+    PairingCode:
+      type: object
+      required: [code, scope, expires_at]
+      properties:
+        code: { type: string, description: "8 characters, shown once" }
+        scope: { $ref: "#/components/schemas/DeviceScope" }
+        expires_at: { type: string, format: date-time }
+    Device:
+      type: object
+      required: [id, name, platform, scope, created_at]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        platform: { type: string, enum: [desktop, ios, android, web] }
+        scope: { $ref: "#/components/schemas/DeviceScope" }
+        created_at: { type: string, format: date-time }
+        last_seen_at: { type: string, format: date-time }
+        revoked_at: { type: string, format: date-time }

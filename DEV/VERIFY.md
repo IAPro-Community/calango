@@ -52,7 +52,7 @@ Note: Docker bridge networking does not work on this machine (veth error). Run t
 | `node scripts/generate-tokens.mjs` | ok; generated CSS and TypeScript/Dart constants |
 | `node scripts/generate-tokens.mjs --check` | ok; three artifacts present and no drift |
 | `node --check scripts/generate-tokens.mjs` | ok |
-| i18n catalog generation/drift | planned in F1-T26, together with the catalog creation |
+| i18n catalog generation/drift | ok since F0-T07: `node scripts/generate-i18n.mjs --check` in CI; screens consuming it come in F1-T26 |
 | Links in `DEV/INDEX.md` and `ROADMAP.md` to ADRs and specs exist | ok |
 
 ## Site (`site/index.html`)
@@ -90,3 +90,127 @@ Served at `http://localhost:4377`, embedded browser.
 | Site: horizontal overflow at 375 px and 1024 px | ok (`scrollWidth` equals viewport) |
 | Site: rotating hero word not clipped (height increased) | fixed, not re-captured after the last CSS change |
 | Not run: GitHub Actions run, Docker build on this machine (bridge networking not validated), full visual review of every section in every locale | pending |
+
+## Site header (2026-11-23)
+
+| Check | Result |
+|---|---|
+| Document horizontal overflow (`scrollWidth` vs viewport) at 1568, 1024, 1021, 1020, 1001, 960, 390 and 320 px, EN / ES / PT-BR | ok, no unclipped element past the viewport. Before the fix: ES 320 px overflowed 345 px (plan cards) |
+| Menu visible from 1021 px, hidden at 1020 px and below | ok |
+| Gaps brand → menu → CTA at 1021 px ES | 22 px / 22 px |
+| Gaps at 1024 px EN / ES / PT-BR (brand → menu) | 65 / 24 / 31 px |
+| Brand box equals text width at 1001 px ES (before: 115 px box for 132 px text) | ok (`flex-shrink:0`) |
+| CTA label one line (button height 37 px) at 1024 px ES and PT-BR | ok |
+| `?lang=pt-BR`: `<html lang="pt-BR">`, PT button pressed | ok |
+| Visual capture at 1568, 1024, 1021, 1020, 1001, 390 and 320 px | ok, dark theme only |
+| Not run: touch devices, Firefox and Safari, light theme header, real phone | pending |
+
+## Store and startup (F1-T01/T02, 2026-11-23)
+
+Environment: Go 1.27.4 linux/amd64; minimum Go 1.22.
+
+| Check | Result |
+|---|---|
+| `go test ./internal/store -count=1` | ok: schema and tables, constraints (budget, unknown cost, JSON steps), audit log append-only, WAL, `foreign_keys=1`, file mode 0600, migration checksum, rollback on failure |
+| `go test -race ./internal/store/... -count=1` | ok |
+| `go test ./... -count=1`, `go vet ./...`, `go build ./...`, `gofmt -l .` | ok |
+| `go mod tidy` and `go mod verify` | ok; `modernc.org/sqlite v1.35.0` is a direct dependency |
+| Smoke: `CALANGO_ADDR=127.0.0.1:17317 CALANGO_DATA_DIR=<tmp>` run of `calango` | `/healthz` returned `{"status":"ok"}`, `calango.db` created, clean SIGTERM shutdown |
+| Limit | driver pinned to v1.35.0: newer releases require Go 1.23+, above the project's minimum |
+
+## Gateway (F1-T03, 2026-11-23)
+
+Environment: Go 1.27.4 linux/amd64.
+
+| Check | Result |
+|---|---|
+| `go test -race ./internal/core/... ./internal/gateway/... ./internal/store/... -count=1` | ok: 9 gateway tests (refusal before the provider when the estimate exceeds the remaining budget, cost = tokens × price, unknown price stored as NULL, estimated status, failed call charged the estimate and its reservation released, concurrent call refused while the first is in flight, unknown agent, 80% and 100% thresholds emitted once, duplicate provider rejected); SQLite usage ledger tests (monthly window sums, unknown cost NULL); ID shape and time order |
+| `go test ./... -count=1`, `go vet ./...`, `go build ./...`, `gofmt -l .` | ok |
+| No provider SDK imported outside `internal/gateway` | ok (no provider SDK exists yet) |
+| Limits | reservations live in memory: correct for one process only (V1). If `NewID` fails, the usage row is not written. The price table is empty: no verified prices in the repo yet, so every model is recorded as `unknown` until a price is added with its source and date. Not yet wired into `cmd/calango` (no provider exists) |
+
+## Agents (F1-T06, 2026-11-23)
+
+Environment: Go 1.27.4 linux/amd64.
+
+| Check | Result |
+|---|---|
+| `go test -race ./internal/core/... ./internal/store/... ./internal/agents/... -count=1` | ok: agent validation (complete configuration accepted; table of invalid configurations rejected); migration probe tests using the next free version and rollback; schema table list includes `node_state`; agents service: refuses unusable configuration, stores every field and defaults, PUT keeps identity, owner isolation, delete refused with usage history (`conflict`), delete without history, global pause covers new agents until resume, monthly usage counts only the current UTC month |
+| `go test ./... -count=1`, `go vet ./...`, `go build ./...`, `gofmt -l .` | ok |
+| `npx @redocly/cli@2.81.0 lint api/openapi.yaml` | valid; 16 warnings from the `operation-4xx-response` rule, same class as existing operations (including `listAgents`); no errors |
+| Limits | No HTTP handlers yet (device auth first). Pause does not stop runs yet (F1-T07 enforces it). The RESTRICT violation is matched by message text "FOREIGN KEY constraint failed": this driver build reports extended code 1811, not 787. `agents.paused` stays 0; per-agent pause is not in V1. `ListAgents` runs one usage query per agent (N+1, acceptable for a personal node). |
+
+## Conversations and runs (F1-T07, 2026-11-23)
+
+Environment: Go 1.27.4 linux/amd64.
+
+| Check | Result |
+|---|---|
+| `go test -race ./internal/core/... ./internal/store/... ./internal/conversations/... -count=1` | ok: 8 service tests with a fake provider and the real gateway over in-memory SQLite: message runs to done with ordered steps and tokens; repeated key returns the same message and run and calls the model once; stop ends only its run and the queued run starts when the slot frees; paused node records `failed/agent_paused` without calling the model; restart after crash records `failed/interrupted`; retry of a stopped run carries the instructions in the prompt, refuses a running run; exhausted budget fails before the provider; another owner gets `not_found`. Store schema test lists `conversation_members` |
+| `go test ./... -count=1`, `go vet ./...`, `go build ./...`, `gofmt -l .` | ok (gofmt reformatted the struct alignment in `internal/store/conversations.go`) |
+| Limits | Guide/steer not implemented: it needs a harness that emits steps (F1-T04/T05, blocked by D3). Per-agent "one reply at a time" not implemented. Reconnection is a transport concern (`/v1/events`, F1-T13). Idempotency for messages lives in `runs.idempotency_key` (no key column on `messages`). Run cost stays `unknown`: the gateway does not return cost to the caller; real cost is in `usage` (F1-T17). Reservations are in memory: one process only. User stops log a `model call failed` warning because the cancelled call returns an error; the status is still `stopped`. No HTTP handlers yet |
+
+## Approvals (F1-T08, 2026-11-23)
+
+Environment: Go 1.27.4 linux/amd64.
+
+| Check | Result |
+|---|---|
+| `go test -race ./internal/core/... ./internal/store/... ./internal/approvals/... -count=1` | ok: canonical action (key order and whitespace share a digest; target or args change it; non-sensitive kind, empty target, non-object or trailing args rejected). Database enforces immutable snapshot, final status and final receipt (triggers), and a decision happens once (second decision is `conflict`, not audited). Service: device required; approve then execute runs the snapshot once with receipt `completed`; failure recorded with reason; changed action refused with `approval.blocked` and a new request; "always approve" skips the card and audits `approval.auto_approved`; deny is final; expiry at 24 h refuses the decision and `Sweep` marks it expired; other owner gets `not_found`; non-sensitive action rejected |
+| `go test ./internal/conversations/... -race -count=5` | ok. Fixed a flaky retry test: it stopped the first run before it reached the provider (cancelled during loading), so it expected two prompts and got one. It now waits for the first provider call before stopping |
+| `go test ./... -count=1`, `go vet ./...`, `gofmt -l .` | ok |
+| Limits | No HTTP routes or card yet (F1-T13). The run does not enter `waiting_approval` yet. An approved action without a receipt after a crash is not reconciled. `Request` does not check that `runID` belongs to the agent. A panic inside `run` leaves the action marked as executing in memory |
+
+## Routines (F1-T09, 2026-11-23)
+
+| Check | Result |
+|---|---|
+| `go test -race ./internal/routines -count=3` | ok, 13 tests: one execution per scheduled time; missed hourly runs coalesce to one execution at the earliest missed time; transient failure retries the same row (`attempt=2`) with no failure notification; exhausted retries notify once with the error and stop; quiet window postpones to the window end; `notify_on=news` silent without news; `notify_on=failure` silent on success; restart requeues the interrupted occurrence and reuses its record (two services over one store); pause and global pause stop execution; resume does not fire times missed while paused; `run_on` routes to this node only; cross-owner agent refused; unknown node refused |
+| `go test ./internal/core ./internal/store -count=1` | ok: cron parsing rejects malformed fields; `Next` semantics (step, weekday, 7 = Sunday, OR of day fields, time zone, 29 February); a never-matching expression errors instead of looping; routine validation; occurrence ID is timezone-free; backoff schedule; quiet window across midnight; schema lists `routine_runs` and `routines` |
+| `go test ./... -count=1`, `go vet ./...`, `gofmt -l .` | ok |
+| Limits | No HTTP routes, no client events, no executor that creates an agent run (the daemon has no executor yet), `routine_finish` and event triggers not implemented. Routines run only in-process while the daemon is up; there is no cross-node handoff for `run_on=vps` |
+
+## Memory (F1-T11, 2026-11-23)
+
+| Check | Result |
+|---|---|
+| `go test ./internal/memory ./internal/conversations ./internal/store -count=1` | ok: create and validate (empty, too long, bad scope or kind, agent scope without agent, account scope with agent); context shows the memory with its header; empty context stays empty; budget keeps the most recent memories within 1500 tokens; edit and delete take effect at once; other owner gets `not_found`; purge keeps deleted rows inside 30 days and removes older ones; a run's prompt carries only active memories; schema lists `memories` |
+| `go test -race ./internal/memory ./internal/conversations -count=1` | ok |
+| `go test ./... -count=1`, `go vet ./...`, `gofmt -l .` | ok |
+| Limits | No `memory_save` tool (D3) and no HTTP routes (F1-T13). `project` scope and `source_run_id` not implemented. No purge loop; purge runs when called. Ranking is by recency only |
+
+## HTTP API and local token (F1-T13 partial, F1-T14 partial, 2026-11-23)
+
+Environment: Go 1.27.4 linux/amd64.
+
+| Check | Result |
+|---|---|
+| `go test ./internal/api ./internal/auth -count=1` | ok: no token and wrong token get 401 with `WWW-Authenticate`; `/healthz` 200 without token; agent create 201 with trimmed name and defaults `run_on=pc`, `approval_level=sensitive`; get, replace, delete 204, then 404 `not_found`; unknown field, missing token limit and trailing JSON get 400 `invalid_input`; memory create (account scope), agent scope with unknown agent gets 404, bad scope filter gets 400, patch, delete, empty list is `[]`; approvals empty list is `[]`, bad status gets 400, unknown approval decide gets 404, bad decision gets 400; token file is mode 0600, reused on the second call, refused when 0644 and when empty |
+| `go test -count=1 ./...`, `go vet ./...`, `gofmt -l .` | ok |
+| Redocly lint `api/openapi.yaml --max-problems=0` | valid, no warnings (adding `createMemory` cleared the `MemoryInput` unused-component warning) |
+| Smoke: built `calango`, temporary `CALANGO_DATA_DIR`, `CALANGO_ADDR=127.0.0.1:7399` | `/healthz` 200; `/v1/agents` 401 with no token and with a wrong token; create 201 and list 200 with the token; token file mode 600; process stopped after the check |
+| Limits (as of this entry) | Only agents, memories and approvals were served; pairing, devices and usage were added later (see sections below). Owner and device were constants. The token was a file, not the vault (F1-T10); no rotation. The log line names the token file path, never its value |
+
+## Device pairing (F1-T15 partial, 2026-11-23)
+
+Environment: Go 1.27.4 linux/amd64.
+
+| Check | Result |
+|---|---|
+| `go test ./internal/devices ./internal/api ./internal/store -count=1` | ok. Service: code is single use; expiry at the TTL boundary; wrong code refused; blank name and unknown platform refused without consuming the code; lowercase, hyphen and space normalized; device authenticates and `last_seen_at` is set; revoke stops the token at once and the list keeps revoked rows; scope copied from the code; empty and unknown token refused; revoke under another owner gives `not_found`; second revoke is a no-op. HTTP: pairing flow gives a working token and the device list leaks no token material; `read` scope reads, writes get 403 `forbidden`; `approve_only` lists approvals and gets 403 on agents and memories; revoked device gets 401; code reuse gets 401; the sixth `/v1/pair` attempt from one origin gets 429 `rate_limited`; `/v1/pairing-codes` gets 401 without token and 403 for a `read` device; unknown token gets 401; store schema test lists `devices` and `pairing_codes` |
+| `go test ./... -count=1`, `go vet ./...`, `gofmt -l .` | ok |
+| Redocly lint `api/openapi.yaml --max-problems=0` | valid, no warnings |
+| Smoke: built `calango`, temporary `CALANGO_DATA_DIR`, `CALANGO_ADDR=127.0.0.1:7399` | `/healthz` 200; code issued with the local token (8 characters); `POST /v1/pair` without token returns a device with scope `full`; device token reads `/v1/agents` 200; device listed as `Phone`, `ios`, `full`, not revoked; code reuse 401; `DELETE /v1/devices/{id}` 204; revoked token 401; token file mode 600; process stopped |
+| Limits | Rate limit keys on the TCP `RemoteAddr`: behind a reverse proxy (VPS deployment) all clients share one bucket. No QR code, no mobile app, no administrator password on the VPS. Desktop token is a file, not the vault (F1-T10), and has no rotation. Owner is single (`owner`). Device tokens have no expiry or rotation |
+
+## Usage endpoint (F1-T17 partial, F1-T13 partial, 2026-11-23)
+
+Environment: Go 1.27.4 linux/amd64.
+
+| Check | Result |
+|---|---|
+| `go test ./internal/usage ./internal/store ./internal/api -count=1 -run 'Usage\|Summary\|NewService'` | ok. Store: totals per agent with `to` excluding a later row; routine grouping with the empty key sorted first; unknown-cost rows counted, never summed as zero; another owner's rows never appear; invalid group gives `invalid_input`. Service: default group `agent` and owner passed through; bad group and `to` not after `from` rejected before the repository is read. HTTP: read scope 200 with `[]` (not `null`); approve_only 403; bad `group_by`, bad timestamp and inverted range 400 `invalid_input` |
+| `go test ./... -count=1`, `go vet ./...`, `gofmt -l .` | ok |
+| Redocly lint `api/openapi.yaml --max-problems=0` | valid, no warnings |
+| Smoke: built `calango`, temporary `CALANGO_DATA_DIR`, `CALANGO_ADDR=127.0.0.1:7398` | `GET /v1/usage` with token 200 `[]`; `group_by=provider` 400; `to` before `from` 400; no token 401; `group_by=model` with `from` 200 `[]`; token file mode 600; process stopped |
+| Limits | No known/estimated split in the response or the store query. No panel (desktop screens). Smoke returns empty lists because the binary has no HTTP route that creates usage; non-empty results are covered by store and service tests only. The `project` group always yields the empty key in V1 (no projects table) |

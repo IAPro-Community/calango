@@ -1,20 +1,198 @@
-// Package api exposes the Calango core over HTTP.
+// Package api exposes the node over HTTP. /healthz and POST /v1/pair are open. Every
+// other /v1 route needs a bearer token, and the scope of the token's device decides
+// which routes it may call.
 package api
 
 import (
+	"context"
+	"crypto/subtle"
 	"encoding/json"
+	"errors"
+	"fmt"
+	"io"
+	"log"
 	"net/http"
+	"strings"
+	"time"
+
+	"calango/internal/agents"
+	"calango/internal/approvals"
+	"calango/internal/core"
+	"calango/internal/devices"
+	"calango/internal/memory"
+	"calango/internal/usage"
 )
 
-// NewHandler returns the HTTP handler for calango.
-func NewHandler() http.Handler {
-	mux := http.NewServeMux()
-	mux.HandleFunc("GET /healthz", healthz)
-	return mux
+// maxBodyBytes bounds every request body. Agent instructions are the largest field.
+const maxBodyBytes = 1 << 20
+
+// Config wires the HTTP handler to the services it calls.
+type Config struct {
+	Agents    *agents.Service
+	Memories  *memory.Service
+	Approvals *approvals.Service
+	Devices   *devices.Service
+	Usage     *usage.Service
+	// Token is the local bearer token of the desktop that runs the node. It must be
+	// non-empty and acts with full scope.
+	Token string
+	// OwnerID scopes every read and write to one owner.
+	OwnerID string
+	// DeviceID identifies the desktop when the local token is used; approval decisions
+	// record it.
+	DeviceID string
+}
+
+type handler struct {
+	agents     *agents.Service
+	memories   *memory.Service
+	approvals  *approvals.Service
+	devices    *devices.Service
+	usage      *usage.Service
+	localToken string
+	ownerID    string
+	deviceID   string
+	pairLimit  *attemptLimiter
+}
+
+// NewHandler validates cfg and returns the node's HTTP handler.
+func NewHandler(cfg Config) (http.Handler, error) {
+	switch {
+	case cfg.Agents == nil, cfg.Memories == nil, cfg.Approvals == nil, cfg.Devices == nil, cfg.Usage == nil:
+		return nil, errors.New("api: agents, memories, approvals, devices and usage services are required")
+	case cfg.Token == "":
+		return nil, errors.New("api: bearer token is required")
+	case cfg.OwnerID == "", cfg.DeviceID == "":
+		return nil, errors.New("api: owner and device ids are required")
+	}
+
+	h := &handler{
+		agents:     cfg.Agents,
+		memories:   cfg.Memories,
+		approvals:  cfg.Approvals,
+		devices:    cfg.Devices,
+		usage:      cfg.Usage,
+		localToken: cfg.Token,
+		ownerID:    cfg.OwnerID,
+		deviceID:   cfg.DeviceID,
+		pairLimit:  newAttemptLimiter(pairAttemptsPerWindow, pairWindow, time.Now),
+	}
+	v1 := http.NewServeMux()
+	h.registerAgents(v1)
+	h.registerMemories(v1)
+	h.registerApprovals(v1)
+	h.registerDevices(v1)
+	h.registerUsage(v1)
+
+	root := http.NewServeMux()
+	root.HandleFunc("GET /healthz", healthz)
+	root.HandleFunc("POST /v1/pair", h.pair)
+	root.Handle("/", h.authenticate(v1))
+	return root, nil
 }
 
 func healthz(w http.ResponseWriter, _ *http.Request) {
+	writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
+}
+
+// principal is the caller of one request: the device behind the token and its scope.
+type principal struct {
+	deviceID string
+	scope    core.DeviceScope
+}
+
+type principalKey struct{}
+
+func withPrincipal(ctx context.Context, p principal) context.Context {
+	return context.WithValue(ctx, principalKey{}, p)
+}
+
+func principalOf(ctx context.Context) principal {
+	p, _ := ctx.Value(principalKey{}).(principal)
+	return p
+}
+
+// authenticate resolves the bearer token to a principal. The local token is compared in
+// constant time and acts with full scope. Any other token must belong to an active device.
+func (h *handler) authenticate(next http.Handler) http.Handler {
+	local := []byte(h.localToken)
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		token := bearerToken(r)
+		if token == "" {
+			unauthorized(w)
+			return
+		}
+		if subtle.ConstantTimeCompare([]byte(token), local) == 1 {
+			next.ServeHTTP(w, r.WithContext(withPrincipal(r.Context(), principal{h.deviceID, core.ScopeFull})))
+			return
+		}
+		d, err := h.devices.Authenticate(r.Context(), token)
+		if err != nil {
+			if errors.Is(err, core.ErrUnauthorized) {
+				unauthorized(w)
+				return
+			}
+			writeServiceError(w, err)
+			return
+		}
+		next.ServeHTTP(w, r.WithContext(withPrincipal(r.Context(), principal{d.ID, d.Scope})))
+	})
+}
+
+// need admits a request only when the caller's scope grants perm.
+func (h *handler) need(perm core.Permission, next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if !principalOf(r.Context()).scope.Allows(perm) {
+			writeError(w, http.StatusForbidden, codeForbidden, "this device's scope does not allow the action")
+			return
+		}
+		next(w, r)
+	}
+}
+
+func bearerToken(r *http.Request) string {
+	got, ok := strings.CutPrefix(r.Header.Get("Authorization"), "Bearer ")
+	if !ok {
+		return ""
+	}
+	return strings.TrimSpace(got)
+}
+
+func unauthorized(w http.ResponseWriter) {
+	w.Header().Set("WWW-Authenticate", `Bearer realm="calango"`)
+	writeError(w, http.StatusUnauthorized, codeUnauthorized, "missing or invalid bearer token")
+}
+
+// decodeJSON reads one JSON object, rejecting unknown fields and trailing data.
+func decodeJSON(w http.ResponseWriter, r *http.Request, dst any) error {
+	return decodeBody(w, r, dst, false)
+}
+
+// decodeOptionalJSON is decodeJSON for routes whose body may be empty.
+func decodeOptionalJSON(w http.ResponseWriter, r *http.Request, dst any) error {
+	return decodeBody(w, r, dst, true)
+}
+
+func decodeBody(w http.ResponseWriter, r *http.Request, dst any, allowEmpty bool) error {
+	body := http.MaxBytesReader(w, r.Body, maxBodyBytes)
+	dec := json.NewDecoder(body)
+	dec.DisallowUnknownFields()
+	if err := dec.Decode(dst); err != nil {
+		if allowEmpty && errors.Is(err, io.EOF) {
+			return nil
+		}
+		return fmt.Errorf("%w: request body: %v", core.ErrInvalidInput, err)
+	}
+	if _, err := dec.Token(); !errors.Is(err, io.EOF) {
+		return fmt.Errorf("%w: request body must hold a single JSON object", core.ErrInvalidInput)
+	}
+	return nil
+}
+
+func writeJSON(w http.ResponseWriter, status int, v any) {
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
+	w.WriteHeader(status)
+	if err := json.NewEncoder(w).Encode(v); err != nil {
+		log.Printf("api: write response: %v", err)
+	}
 }

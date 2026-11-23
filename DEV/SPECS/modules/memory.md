@@ -19,3 +19,9 @@ The agent remembers facts, preferences and decisions, and the person controls ev
 ## Acceptance
 - A deleted memory does not appear in the next run.
 - A refused instruction proposal does not change the agent.
+
+## Current state (F1-T11, partial)
+- Done: domain `core.Memory` (scopes account/agent, kinds fact/preference/decision, 2000-character limit), migration `0006_memories.sql`, store CRUD and `PurgeMemories`, service `internal/memory` (create, list, update, logical delete, purge, `Context` under a 1500-token budget with the most recent first), injection into runs through `conversations.Config.Memory`. The prompt is unchanged when there are no memories. Tests: `internal/memory/service_test.go` and `TestRunPromptCarriesOnlyActiveMemories`.
+- Served: HTTP `/v1/memories` (list, create, patch, delete; F1-T13). Pending: `memory_save` tool (needs the first harness, D3); scope `project` (no `projects` table yet); purge schedule (method exists, no loop); instruction proposals and skills as cards (F1-T13 or later).
+- Relevance: V1 ranks by recency only; semantic relevance is out of scope for V1.
+- Deleting an agent deletes its agent-scoped memories (foreign key cascade).

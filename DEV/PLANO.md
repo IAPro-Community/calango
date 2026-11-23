@@ -59,7 +59,7 @@ The competitive landscape has changed: self-hosted products, agent desktops and 
 | Language | Go 1.22+ |
 | API | HTTP + WebSocket, OpenAPI contract (generates the TypeScript SDK) |
 | Database | pure-Go SQLite (`modernc.org/sqlite`), versioned and immutable migrations |
-| Scheduler | internal (the skeleton already exists), with cron, intervals and events |
+| Scheduler | persisted routines (`internal/routines`): cron, intervals, quiet windows and retries; events in phase 3 |
 | Model gateway | every token goes through it: budget before, cost after |
 | Tool gateway | MCP; each agent sees only its own tools and scopes |
 | Harnesses | adapters for agent CLIs (Claude Code, Codex, Gemini, Grok, OpenCode) and direct API |

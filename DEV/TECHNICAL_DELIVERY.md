@@ -49,7 +49,7 @@ flowchart LR
 
 ## V1 release pipeline
 
-1. **Contract:** change the OpenAPI before the handler; validate schema and references; generate the TypeScript/Dart SDK repeatably and fail CI on drift. Tokens already have a source and a reproducible generator; the i18n catalog will get the same gate when it is created in F1-T26.
+1. **Contract:** change the OpenAPI before the handler; validate schema and references; generate the TypeScript/Dart SDK repeatably and fail CI on drift. Tokens and the i18n catalog already have a source, a reproducible generator and a drift gate in CI (F0-T07).
 2. **CI per PR:** `gofmt`, vet, unit tests, migration tests, cross builds, OpenAPI lint, token validation, dependency/license analysis and security checks. Integration that uses Docker runs on a runner with a daemon, without depending on third-party services or real keys.
 3. **Release builds:** Go binary per OS/architecture; Electron app per system; Flutter per store; multi-architecture OCI images. Each artifact gets an immutable version, checksum and SBOM. Publication does not use `latest` as an operational identifier.
 4. **Signing and provenance:** sign installers and desktop updates; notarize macOS; publish digest and signature of the images; keep licenses and `NOTICE`. Signing secrets live only in a protected release environment, never in a fork's PR.

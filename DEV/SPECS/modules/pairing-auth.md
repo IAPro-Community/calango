@@ -20,3 +20,9 @@ Only authorized devices talk to a node.
 ## Acceptance
 - A code used twice fails the second time.
 - A revoked token gets `unauthorized` on the next call.
+
+## Status (V1 local)
+
+- Implemented (V1 local): local bearer token (`internal/auth`, file `DataDir/api-token`, mode 0600, refused when readable by others or empty). The desktop uses it with full scope. Every `/v1` route requires a bearer token except `/healthz` and `/v1/pair`.
+- Implemented: device pairing (migration `0007_devices.sql`). `POST /v1/pairing-codes` (write scope) issues an 8-character code valid 5 min for one scope; `POST /v1/pair` redeems it once and returns a 256-bit device token. Only SHA-256 digests of codes and tokens are stored. `GET /v1/devices` lists devices with last access; `DELETE /v1/devices/{id}` revokes at once. Scopes: `full`, `approve_only` (approvals only), `read` (reads only); agent, memory and device mutations need `full`. `/v1/pair` allows 5 attempts per minute per TCP origin (`RemoteAddr`), then 429.
+- Not implemented: QR code, mobile app, administrator password on the VPS node, storage of the desktop token in the vault (F1-T10), rate limit that is aware of a reverse proxy (behind one, all clients share the proxy's bucket), owner accounts (single `owner`).

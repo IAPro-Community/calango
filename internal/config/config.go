@@ -6,15 +6,16 @@ import (
 	"net"
 	"net/netip"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 )
 
 const defaultAddr = "127.0.0.1:7317"
 
-// Config contains the runtime settings shared by the Calango entry point.
 type Config struct {
-	Addr string
+	Addr    string
+	DataDir string
 }
 
 // Load reads supported CALANGO_* environment variables and validates them.
@@ -24,20 +25,49 @@ func Load() (Config, error) {
 		addr = defaultAddr
 	}
 
-	cfg := Config{Addr: addr}
+	dataDir := os.Getenv("CALANGO_DATA_DIR")
+	if dataDir == "" {
+		configDir, err := os.UserConfigDir()
+		if err != nil {
+			return Config{}, fmt.Errorf("CALANGO_DATA_DIR: find user config directory: %w", err)
+		}
+		dataDir = filepath.Join(configDir, "calango")
+	}
+	if strings.TrimSpace(dataDir) != dataDir || strings.ContainsRune(dataDir, 0) {
+		return Config{}, fmt.Errorf("CALANGO_DATA_DIR: must not contain surrounding whitespace or NUL")
+	}
+	dataDir, err := filepath.Abs(dataDir)
+	if err != nil {
+		return Config{}, fmt.Errorf("CALANGO_DATA_DIR: resolve path: %w", err)
+	}
+
+	cfg := Config{Addr: addr, DataDir: dataDir}
 	if err := cfg.Validate(); err != nil {
-		return Config{}, fmt.Errorf("CALANGO_ADDR: %w", err)
+		return Config{}, err
 	}
 	return cfg, nil
 }
 
-// Validate checks the address before the server or background workers start.
+// Validate checks process configuration before the server or background workers start.
 func (c Config) Validate() error {
-	if c.Addr == "" || strings.TrimSpace(c.Addr) != c.Addr {
+	if err := validateAddr(c.Addr); err != nil {
+		return fmt.Errorf("CALANGO_ADDR: %w", err)
+	}
+	if c.DataDir == "" || strings.TrimSpace(c.DataDir) != c.DataDir || strings.ContainsRune(c.DataDir, 0) {
+		return fmt.Errorf("CALANGO_DATA_DIR: must be a non-empty path without surrounding whitespace or NUL")
+	}
+	if !filepath.IsAbs(c.DataDir) {
+		return fmt.Errorf("CALANGO_DATA_DIR: path must be absolute")
+	}
+	return nil
+}
+
+func validateAddr(addr string) error {
+	if addr == "" || strings.TrimSpace(addr) != addr {
 		return fmt.Errorf("must be a non-empty host:port without surrounding whitespace")
 	}
 
-	host, portText, err := net.SplitHostPort(c.Addr)
+	host, portText, err := net.SplitHostPort(addr)
 	if err != nil {
 		return fmt.Errorf("must be a valid host:port: %w", err)
 	}

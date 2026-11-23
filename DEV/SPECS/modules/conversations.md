@@ -27,3 +27,14 @@ DMs with agents and, later, channels. Each message can trigger a run; the run pu
 - Two consecutive messages create two parallel runs; stopping one does not affect the other.
 - A run interrupted by a `calango` crash appears as `failed` with `error_code=interrupted` when it comes back.
 - Repeating the same message request returns the same created resource.
+
+## Status (F1-T07, partial)
+Implemented in `internal/conversations` (service) and `internal/store/conversations.go` (persistence, migration 0003):
+- DM creation; message and run admitted in one transaction; repeated idempotency key returns the stored message and run (`runs.idempotency_key`).
+- Parallel limit per conversation (default 3, `Config.ParallelLimit`); runs beyond it stay `queued` and start when a slot frees.
+- Stop: a running run is cancelled and ends `stopped`; a queued run ends `stopped` at once. Other runs are untouched.
+- Retry: only `stopped` or `failed` runs; a new run in the same conversation, same source message, `retry_of` set, instructions appended to the prompt.
+- Paused node: the message is stored and the run is recorded `failed/agent_paused`; the model is not called.
+- Startup (`Service.Start`): runs left `running` end `failed/interrupted`; queued runs are dispatched again.
+- Steps: text chunks recorded in `run_steps` with `seq`, written even if the run is cancelled.
+Not yet: guide (steer), per-agent "one reply at a time", WebSocket reconnection (F1-T13), HTTP routes, routine/approval triggers. Run cost stays `unknown` because the gateway does not return cost to the caller.

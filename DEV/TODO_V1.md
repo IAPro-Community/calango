@@ -41,23 +41,23 @@ Execution order: each block starts only when the previous one meets the exit cri
 ## Phase 1 — Local desktop MVP (Windows first)
 
 ### Core
-- [ ] F1-T01 `internal/store`: SQLite (`modernc.org/sqlite`), WAL, immutable migration runner, in-memory tests. → DATA_MODEL, ADR 0002
-- [ ] F1-T02 Initial migrations: agents, conversations, messages, runs, run_steps, usage, audit_log.
-- [ ] F1-T03 `internal/gateway`: `Provider` interface, budget check before the call, usage after, fake provider. → `modules/gateway.md`, ADR 0007
+- [x] F1-T01 `internal/store`: SQLite (`modernc.org/sqlite`), WAL, immutable migration runner, in-memory tests. → DATA_MODEL, ADR 0002
+- [x] F1-T02 Initial migrations: agents, conversations, messages, runs, run_steps, usage, audit_log.
+- [x] F1-T03 `internal/gateway`: `Provider` interface, budget check before the call, usage after, fake provider. → `modules/gateway.md`, ADR 0007
 - [ ] F1-T04 First provider: direct Anthropic API (HTTP with streaming); key comes from the vault.
 - [ ] F1-T05 `internal/harness` with the adapter for the harness chosen in D3. → `modules/harness.md`
-- [ ] F1-T06 Agents: CRUD, global pause, monthly limit. → `modules/agents.md`
-- [ ] F1-T07 Conversations and runs: DM, persisted/streamed steps, stop, guide, retry with instructions; reconnection restores state and resending does not duplicate the run. → `modules/conversations.md`
-- [ ] F1-T08 Approvals: card with an immutable canonical payload, digest checked before execution, decision, separate receipt, "always approve", 24 h expiry. → `modules/approvals.md`
-- [ ] F1-T09 Routines: cron and interval, ID per occurrence, idempotent retries with backoff, notify_on, quiet window, missed execution without repetition. → `modules/routines.md`
+- [x] F1-T06 Agents: CRUD, global pause, monthly limit (service and store; HTTP wiring in F1-T13/T15, pause enforcement on runs in F1-T07). → `modules/agents.md`
+- [ ] F1-T07 Conversations and runs: DM, persisted/streamed steps, stop, guide, retry with instructions; reconnection restores state and resending does not duplicate the run. → `modules/conversations.md`. Partial: guide and reconnection pending.
+- [ ] F1-T08 Approvals: card with an immutable canonical payload, digest checked before execution, decision, separate receipt, "always approve", 24 h expiry. → `modules/approvals.md`. Partial: domain, store, service and tests done; card, HTTP and `waiting_approval` pending (F1-T13).
+- [ ] F1-T09 Routines: cron and interval, ID per occurrence, idempotent retries with backoff, notify_on, quiet window, missed execution without repetition. → `modules/routines.md`. Partial: domain, store, service and tests done; HTTP, client events, real executor and `routine_finish` pending (F1-T13 / D3).
 - [ ] F1-T10 Vault: Windows Credential Manager, macOS Keychain, Linux Secret Service; refuses plain text. → `modules/vault.md`
-- [ ] F1-T11 Memory: save, list, edit, delete; injection under a token budget. → `modules/memory.md`
+- [ ] F1-T11 Memory: save, list, edit, delete; injection under a token budget. → `modules/memory.md`. Partial: service, store and budgeted injection done; `memory_save` tool (D3), HTTP and project scope pending.
 - [ ] F1-T12 MCP: connect a server, local MCP gateway per turn, scopes none/read/write. → `modules/tools-mcp.md`
-- [ ] F1-T13 API v1 per `api/openapi.yaml` and WebSocket `/v1/events`.
-- [ ] F1-T14 Local desktop token, stored in the vault.
-- [ ] F1-T15 Device pairing and authentication (local version, no phone yet). → `modules/pairing-auth.md`
+- [ ] F1-T13 API v1 per `api/openapi.yaml` and WebSocket `/v1/events`. Partial: REST for agents, memories, approvals, devices and usage (`GET /v1/usage`) served behind bearer auth and tested; conversations, runs, routines and `/v1/events` not implemented (D3).
+- [ ] F1-T14 Local desktop token, stored in the vault. Partial: token file (0600) generated on first start and required by every `/v1` route; vault storage (F1-T10), rotation and revocation pending.
+- [ ] F1-T15 Device pairing and authentication (local version, no phone yet). → `modules/pairing-auth.md`. Partial: pairing codes, device tokens, device list, revocation and scopes served and tested; QR code, mobile app and VPS administrator password pending.
 - [ ] F1-T16 Maestro integration: install the V1 line, `verify`, link to agents, update card. → `modules/maestro.md`, ADR 0009
-- [ ] F1-T17 Usage/cost panel per agent, routine, project, model and node; real, estimated or unknown cost is never shown as zero without evidence. → ADR 0007, DATA_MODEL `usage`
+- [ ] F1-T17 Usage/cost panel per agent, routine, project, model and node; real, estimated or unknown cost is never shown as zero without evidence. → ADR 0007, DATA_MODEL `usage`. Partial: `GET /v1/usage` with the five groupings and unknown-cost counting served and tested; known and estimated not split yet; panel pending (desktop screens).
 - [ ] F1-T18 Append-only audit of approvals, receipts, remote actions, permission changes and devices; no secrets or unnecessary content. → SECURITY
 
 ### Desktop (Electron)

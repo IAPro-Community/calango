@@ -119,21 +119,23 @@ section{position:relative;padding:104px 0}
 
 /* ===== nav ===== */
 nav.top{position:sticky;top:0;z-index:50;backdrop-filter:blur(14px) saturate(1.4);background:color-mix(in oklab,var(--bg) 82%,transparent);border-bottom:1px solid var(--line)}
-nav.top .wrap{display:flex;align-items:center;justify-content:space-between;height:68px}
-.brand{display:flex;align-items:center;gap:10px;font:800 22px/1 var(--display);text-decoration:none;letter-spacing:-.02em}
+nav.top .wrap{display:flex;align-items:center;justify-content:space-between;gap:24px;height:68px}
+.brand{display:flex;align-items:center;gap:10px;font:800 22px/1 var(--display);text-decoration:none;letter-spacing:-.02em;flex-shrink:0}
 .brand img{width:38px;height:38px;border-radius:10px;box-shadow:var(--shadow-paper)}
-nav.top ul{display:flex;gap:28px;list-style:none;margin:0;padding:0;font-weight:500;font-size:15px}
+nav.top ul{display:flex;gap:28px;list-style:none;margin:0;padding:0;font-weight:500;font-size:15px;white-space:nowrap}
 nav.top ul a{text-decoration:none;color:var(--ink-soft);transition:color .2s}
 nav.top ul a:hover{color:var(--ink)}
-.nav-cta{display:flex;gap:10px;align-items:center}
-.nav-cta .btn{padding:11px 18px;font-size:15px}
+.nav-cta{display:flex;gap:10px;align-items:center;flex-shrink:0}
+.nav-cta .btn{padding:11px 18px;font-size:15px;white-space:nowrap}
 .theme-toggle{width:40px;height:40px;border-radius:12px;border:0;background:transparent;box-shadow:inset 0 0 0 2px var(--line);cursor:pointer;color:var(--ink);display:grid;place-items:center;transition:transform .4s var(--ease-paper)}
 .theme-toggle:hover{transform:rotate(25deg)}
 .lang{display:inline-flex;gap:2px;padding:3px;border-radius:12px;box-shadow:inset 0 0 0 2px var(--line)}
 .lang button{border:0;background:transparent;color:var(--ink-soft);font:700 12px/1 var(--mono);letter-spacing:.06em;padding:9px 8px;border-radius:9px;cursor:pointer;transition:background .2s,color .2s}
 .lang button[aria-pressed="true"]{background:var(--postit);color:#22180F}
 .lang button:focus-visible{outline:3px solid var(--tangerine);outline-offset:2px}
-@media (max-width:860px){nav.top ul{display:none}}
+@media (max-width:1100px){nav.top .wrap{gap:16px}nav.top ul{gap:12px;font-size:14px}}
+@media (max-width:1020px){nav.top ul{display:none}}
+@media (max-width:520px){nav.top .wrap{padding:0 16px;gap:16px}.nav-cta{gap:8px}.lang button{padding:9px 6px}.theme-toggle{width:36px;height:36px}.brand img{width:32px;height:32px}}
 
 /* ===== hero ===== */
 .hero{position:relative;padding:64px 0 96px;overflow:hidden;isolation:isolate}
@@ -142,13 +144,13 @@ nav.top ul a:hover{color:var(--ink)}
   background:radial-gradient(closest-side,color-mix(in oklab,var(--postit) 42%,transparent),transparent 70%);
   filter:blur(10px); pointer-events:none;
 }
-.hero .wrap{display:grid;grid-template-columns:1.08fr .92fr;gap:40px;align-items:center}
-.hero h1{font-size:clamp(46px,7.4vw,96px);font-weight:800;margin:20px 0 26px}
+.hero .wrap{display:grid;grid-template-columns:minmax(0,1.08fr) minmax(0,.92fr);gap:40px;align-items:center}
+.hero .wrap>div:first-child{container-type:inline-size;min-width:0}
+.hero h1{font-size:clamp(30px,11cqi,96px);font-weight:800;margin:20px 0 26px}
 .hero h1 .rot{display:inline-grid;vertical-align:bottom;height:1.22em;padding-bottom:.12em;overflow:hidden}
 .hero h1 .rot span{grid-area:1/1;color:var(--moss-text);white-space:nowrap;transform:translateY(110%);opacity:0;transition:transform .7s var(--ease-paper),opacity .4s}
 .hero h1 .rot span.on{transform:none;opacity:1}
 .hero h1 .rot span.off{transform:translateY(-110%);opacity:0}
-@media (max-width:520px){.hero h1{font-size:44px}}
 .hero h1 .hl2{background:linear-gradient(var(--postit),var(--postit)) no-repeat 0 88%/100% 30%;color:var(--ink);padding:0 .04em}
 .hero h1 .hl{position:relative;white-space:nowrap;isolation:isolate;color:#22180F}
 .hero h1 .hl::after{content:"";position:absolute;z-index:-1;left:-3%;right:-3%;bottom:.04em;height:.36em;background:var(--postit);transform:rotate(-1.2deg) scaleX(0);transform-origin:0 50%;clip-path:polygon(0 20%,100% 0,98% 100%,2% 85%);transition:transform 1s var(--ease-out) .5s}
@@ -183,7 +185,7 @@ nav.top ul a:hover{color:var(--ink)}
 .chip b{display:grid;place-items:center;width:28px;height:28px;border-radius:8px;font-size:15px;color:#22180F}
 .stage.go .chip{opacity:1;transform:rotate(var(--r));transition-delay:var(--d)}
 .chip small{display:block;font-weight:500;color:var(--ink-soft);font-size:12px}
-@media (max-width:920px){.hero .wrap{grid-template-columns:1fr}.stage{max-width:440px}}
+@media (max-width:920px){.hero .wrap{grid-template-columns:minmax(0,1fr)}.stage{max-width:440px}}
 @media (max-width:520px){.chip{font-size:12px;padding:8px 10px}.chip b{width:22px;height:22px}}
 
 /* duct-tape strip with the capabilities */
@@ -349,7 +351,7 @@ nav.top ul a:hover{color:var(--ink)}
 .plan .btn{margin-top:auto;justify-content:center}
 .addons{margin-top:28px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;color:var(--ink-soft);font-size:15px}
 .addons span{padding:8px 12px;border-radius:10px;background:var(--card);box-shadow:var(--shadow-paper);color:var(--ink);font-weight:500}
-@media (max-width:920px){.plans{grid-template-columns:1fr}.plan.pro{transform:none}}
+@media (max-width:920px){.plans{grid-template-columns:minmax(0,1fr)}.plan.pro{transform:none}}
 
 /* ===== platforms ===== */
 .platforms{display:flex;flex-wrap:wrap;gap:12px;margin-top:30px}
@@ -1135,12 +1137,13 @@ footer .wrap{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
   };
   const LOCALE_TAG = { pt: 'pt-BR', en: 'en', es: 'es' };
   const SUPPORTED = ['pt', 'en', 'es'];
+  const normalize = v => { const b = String(v || '').slice(0, 2).toLowerCase(); return SUPPORTED.includes(b) ? b : null; };
   const detect = () => {
-    try { const q = new URLSearchParams(location.search).get('lang'); if (SUPPORTED.includes(q)) return q; } catch (e) {}
-    try { const s = localStorage.getItem('calango-lang'); if (SUPPORTED.includes(s)) return s; } catch (e) {}
+    try { const q = normalize(new URLSearchParams(location.search).get('lang')); if (q) return q; } catch (e) {}
+    try { const s = normalize(localStorage.getItem('calango-lang')); if (s) return s; } catch (e) {}
     for (const l of (navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language || ''])) {
-      const b = String(l).slice(0, 2).toLowerCase();
-      if (SUPPORTED.includes(b)) return b;
+      const b = normalize(l);
+      if (b) return b;
     }
     return 'en';
   };
