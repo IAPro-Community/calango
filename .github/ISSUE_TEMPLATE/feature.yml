@@ -1,0 +1,27 @@
+name: Feature request
+description: Propose a user-facing capability
+body:
+  - type: textarea
+    id: section_1
+    attributes:
+      label: Problem and user need
+    validations:
+      required: true
+  - type: textarea
+    id: section_2
+    attributes:
+      label: Objective and scope
+    validations:
+      required: true
+  - type: textarea
+    id: section_3
+    attributes:
+      label: Acceptance criteria
+    validations:
+      required: true
+  - type: textarea
+    id: section_4
+    attributes:
+      label: Dependencies and out of scope
+    validations:
+      required: false
