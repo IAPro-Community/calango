@@ -23,6 +23,7 @@ Atualizado: 2026-11-23.
 2. Dono: testar `docker run -p 8080:8080 calango-site` num ambiente com rede bridge funcionando, para confirmar o mapeamento de porta.
 3. Dono: decidir D3 (primeiro harness). Desbloqueia `F1-T01` (`internal/store` com SQLite).
 4. Sem bloqueio: `F0-T04` (CI, já escrito em `.github/workflows/ci.yml`, falta validar no GitHub) e `F0-T05` (config).
+4a. Site: revisão de contraste e copy feita (ver `DEV/WORKLOG.md`). Falta revisão visual completa em celular de verdade e nas seções do meio no modo escuro. As mudanças estão só no disco, sem commit.
 5. Publicar em `IAPro-Community/calango` somente com pedido explícito.
 
 ## Observações

@@ -11,12 +11,19 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 <style>
+/* ===== tokens ===== */
 :root{
   --postit:#FDD838; --postit-light:#FEE76A; --postit-deep:#F6C400;
   --lime:#B6E021; --leaf:#6CC23A; --moss:#42912E; --tangerine:#FE9904;
   --sand:#F3CC85; --clay:#B47133; --clay-deep:#8E5326; --bark:#4A2A15;
   --paper:#FFFBEF; --ink:#22180F; --ink-soft:#5C4A38;
   --bg:#FFF8E4; --card:#FFFDF6; --line:rgba(74,42,21,.14);
+  /* cores de texto e superfícies, testadas em AA (4.5:1) */
+  --moss-text:#2D6B1C;   /* selo, eyebrows, títulos verdes */
+  --btn:#2D7A22;         /* fundo do botão principal, texto claro */
+  --warn-text:#8E5326;   /* alertas em texto */
+  --num:#8E5326;         /* números do roadmap */
+  --on-tone:#22180F;     /* texto sobre cores de destaque */
   --shadow-paper:0 1px 0 rgba(74,42,21,.08),0 6px 14px -6px rgba(74,42,21,.25);
   --shadow-lift:0 2px 0 rgba(74,42,21,.08),0 18px 40px -16px rgba(74,42,21,.35);
   --ease-paper:cubic-bezier(.2,.9,.25,1.15); --ease-out:cubic-bezier(.16,1,.3,1);
@@ -30,6 +37,7 @@
   :root:not([data-theme="light"]){
     --bg:#17130D; --card:#241D14; --paper:#2B2318; --ink:#FFF4DA; --ink-soft:#D6C3A2;
     --line:rgba(255,236,190,.14);
+    --moss-text:#9BE07A; --warn-text:#FFB23A; --num:#FFB23A; --btn:#2D7A22;
     --shadow-paper:0 1px 0 rgba(0,0,0,.3),0 8px 18px -8px rgba(0,0,0,.6);
     --shadow-lift:0 2px 0 rgba(0,0,0,.3),0 22px 44px -18px rgba(0,0,0,.7);
     color-scheme:dark;
@@ -38,6 +46,7 @@
 :root[data-theme="dark"]{
   --bg:#17130D; --card:#241D14; --paper:#2B2318; --ink:#FFF4DA; --ink-soft:#D6C3A2;
   --line:rgba(255,236,190,.14);
+  --moss-text:#9BE07A; --warn-text:#FFB23A; --num:#FFB23A; --btn:#2D7A22;
   --shadow-paper:0 1px 0 rgba(0,0,0,.3),0 8px 18px -8px rgba(0,0,0,.6);
   --shadow-lift:0 2px 0 rgba(0,0,0,.3),0 22px 44px -18px rgba(0,0,0,.7);
   color-scheme:dark;
@@ -62,14 +71,23 @@ h1,h2,h3{font-family:var(--display);line-height:1.02;letter-spacing:-.025em;marg
 h2{font-size:clamp(34px,5vw,58px);font-weight:800}
 h3{font-size:22px;font-weight:700;letter-spacing:-.01em}
 p{margin:0}
+/* progresso de leitura */
+.prog{position:fixed;left:0;top:0;height:4px;width:100%;background:var(--tangerine);transform-origin:0 50%;transform:scaleX(0);z-index:60}
 .eyebrow{
   display:inline-flex;align-items:center;gap:8px;font:600 13px/1 var(--mono);text-transform:uppercase;letter-spacing:.08em;
-  color:var(--moss);
+  color:var(--moss-text);
 }
 .eyebrow::before{content:"";width:18px;height:10px;background:var(--tangerine);clip-path:polygon(0 15%,100% 0,92% 100%,6% 85%)}
 .lead{font-size:clamp(18px,2vw,21px);color:var(--ink-soft);max-width:620px}
-section{position:relative;padding:120px 0}
-.section-head{display:grid;gap:18px;margin-bottom:56px;max-width:760px}
+section{position:relative;padding:104px 0}
+.section-head{display:grid;gap:18px;margin-bottom:52px;max-width:760px}
+/* marcador que se desenha ao revelar a seção */
+.sweep{
+  color:var(--ink); padding:0 .08em; border-radius:.12em;
+  background:linear-gradient(var(--postit),var(--postit)) no-repeat 0 50%/0% 92%;
+  transition:background-size 1s var(--ease-out) .35s,color .4s .6s;
+}
+.reveal.in .sweep{background-size:100% 92%;color:#22180F}
 
 /* pedaço de papel genérico */
 .paper{
@@ -81,14 +99,15 @@ section{position:relative;padding:120px 0}
   font:600 16px/1 var(--body);text-decoration:none;transition:transform .32s var(--ease-paper),box-shadow .32s var(--ease-out),background .2s;
 }
 .btn:focus-visible{outline:3px solid var(--tangerine);outline-offset:3px}
-.btn-primary{background:var(--moss);color:#FFFBEF;box-shadow:0 2px 0 #2c6a1e,0 14px 28px -12px rgba(66,145,46,.7)}
-.btn-primary:hover{transform:translateY(-2px) rotate(-1deg);background:#3a8429}
+.btn-primary{background:var(--btn);color:#FFFBEF;box-shadow:0 2px 0 #1d5214,0 14px 28px -12px rgba(45,122,34,.7)}
+.btn-primary:hover{transform:translateY(-2px) rotate(-1deg);background:#338A27}
+.btn-primary:active{transform:translateY(1px) scale(.98)}
 .btn-ghost{background:transparent;color:var(--ink);box-shadow:inset 0 0 0 2px var(--line)}
 .btn-ghost:hover{transform:translateY(-2px) rotate(1deg);box-shadow:inset 0 0 0 2px var(--ink-soft)}
-.tag{display:inline-block;padding:4px 10px;border-radius:999px;font:600 12px/1.4 var(--mono);background:var(--postit);color:var(--ink)}
+.tag{display:inline-block;padding:4px 10px;border-radius:999px;font:600 12px/1.4 var(--mono);background:var(--postit);color:#22180F}
 
 /* ===== nav ===== */
-nav.top{position:sticky;top:0;z-index:50;backdrop-filter:blur(14px) saturate(1.4);background:color-mix(in oklab,var(--bg) 78%,transparent);border-bottom:1px solid var(--line)}
+nav.top{position:sticky;top:0;z-index:50;backdrop-filter:blur(14px) saturate(1.4);background:color-mix(in oklab,var(--bg) 82%,transparent);border-bottom:1px solid var(--line)}
 nav.top .wrap{display:flex;align-items:center;justify-content:space-between;height:68px}
 .brand{display:flex;align-items:center;gap:10px;font:800 22px/1 var(--display);text-decoration:none;letter-spacing:-.02em}
 .brand img{width:38px;height:38px;border-radius:10px;box-shadow:var(--shadow-paper)}
@@ -97,25 +116,32 @@ nav.top ul a{text-decoration:none;color:var(--ink-soft);transition:color .2s}
 nav.top ul a:hover{color:var(--ink)}
 .nav-cta{display:flex;gap:10px;align-items:center}
 .nav-cta .btn{padding:11px 18px;font-size:15px}
-.theme-toggle{width:40px;height:40px;border-radius:12px;border:0;background:transparent;box-shadow:inset 0 0 0 2px var(--line);cursor:pointer;color:var(--ink);display:grid;place-items:center}
+.theme-toggle{width:40px;height:40px;border-radius:12px;border:0;background:transparent;box-shadow:inset 0 0 0 2px var(--line);cursor:pointer;color:var(--ink);display:grid;place-items:center;transition:transform .4s var(--ease-paper)}
+.theme-toggle:hover{transform:rotate(25deg)}
 @media (max-width:860px){nav.top ul{display:none}}
 
 /* ===== hero ===== */
-.hero{padding:72px 0 110px;overflow:hidden}
+.hero{position:relative;padding:64px 0 96px;overflow:hidden;isolation:isolate}
+.hero::before{ /* mancha quente atrás do título */
+  content:""; position:absolute; z-index:-1; width:70vw; height:70vw; max-width:900px; max-height:900px; left:-22vw; top:-26vw;
+  background:radial-gradient(closest-side,color-mix(in oklab,var(--postit) 42%,transparent),transparent 70%);
+  filter:blur(10px); pointer-events:none;
+}
 .hero .wrap{display:grid;grid-template-columns:1.08fr .92fr;gap:40px;align-items:center}
 .hero h1{font-size:clamp(46px,7.4vw,96px);font-weight:800;margin:20px 0 26px}
 .hero h1 .rot{display:inline-grid;vertical-align:bottom;height:1.05em;overflow:hidden}
-.hero h1 .rot span{grid-area:1/1;color:var(--moss);transform:translateY(110%);opacity:0;transition:transform .7s var(--ease-paper),opacity .4s}
+.hero h1 .rot span{grid-area:1/1;color:var(--moss-text);transform:translateY(110%);opacity:0;transition:transform .7s var(--ease-paper),opacity .4s}
 .hero h1 .rot span.on{transform:none;opacity:1}
 .hero h1 .rot span.off{transform:translateY(-110%);opacity:0}
-.hero h1 .hl{position:relative;white-space:nowrap}
-.hero h1 .hl::after{content:"";position:absolute;left:-2%;right:-2%;bottom:.06em;height:.32em;background:var(--postit);z-index:-1;transform:rotate(-1.2deg);clip-path:polygon(0 20%,100% 0,98% 100%,2% 85%)}
+.hero h1 .hl{position:relative;white-space:nowrap;isolation:isolate;color:#22180F}
+.hero h1 .hl::after{content:"";position:absolute;z-index:-1;left:-3%;right:-3%;bottom:.04em;height:.36em;background:var(--postit);transform:rotate(-1.2deg) scaleX(0);transform-origin:0 50%;clip-path:polygon(0 20%,100% 0,98% 100%,2% 85%);transition:transform 1s var(--ease-out) .5s}
+.hero.go h1 .hl::after{transform:rotate(-1.2deg) scaleX(1)}
 .hero .ctas{display:flex;flex-wrap:wrap;gap:12px;margin-top:34px}
 .hero .meta{display:flex;flex-wrap:wrap;gap:18px;margin-top:28px;font-size:14px;color:var(--ink-soft)}
 .hero .meta span{display:inline-flex;gap:8px;align-items:center}
 .hero .meta i{width:8px;height:8px;border-radius:2px;background:var(--leaf);transform:rotate(12deg)}
 
-.stage{position:relative;aspect-ratio:1;max-width:540px;justify-self:center;width:100%}
+.stage{position:relative;aspect-ratio:1;max-width:540px;justify-self:center;width:100%;transform:perspective(900px) rotateX(var(--ty,0deg)) rotateY(var(--tx,0deg));transition:transform .5s var(--ease-out)}
 .wall{position:absolute;inset:4%;pointer-events:none}
 .note{
   position:absolute;width:var(--s);height:var(--s);background:var(--c);box-shadow:var(--shadow-paper);
@@ -128,7 +154,6 @@ nav.top ul a:hover{color:var(--ink)}
   position:absolute;inset:14%;border-radius:28%;overflow:hidden;
   box-shadow:inset 0 2px 0 rgba(255,255,255,.7),0 30px 70px -24px rgba(142,83,38,.55),0 0 0 1px rgba(255,255,255,.4);
   transform:scale(.7) rotate(-8deg);opacity:0;transition:transform 1.1s var(--ease-paper) .55s,opacity .6s .55s;
-  animation:none;
 }
 .tile img{width:100%;height:100%;object-fit:cover;transform:scale(1.02)}
 .tile::after{content:"";position:absolute;inset:0;border-radius:inherit;background:linear-gradient(155deg,rgba(255,255,255,.55) 0%,rgba(255,255,255,0) 32%,rgba(255,255,255,0) 70%,rgba(255,220,80,.25) 100%);pointer-events:none}
@@ -138,11 +163,19 @@ nav.top ul a:hover{color:var(--ink)}
   position:absolute;display:flex;gap:10px;align-items:center;padding:10px 14px;border-radius:14px;background:var(--card);box-shadow:var(--shadow-lift);
   font-size:14px;font-weight:600;white-space:nowrap;opacity:0;transform:translateY(12px) rotate(var(--r));transition:transform .8s var(--ease-paper),opacity .5s;
 }
-.chip b{display:grid;place-items:center;width:28px;height:28px;border-radius:8px;font-size:15px}
+.chip b{display:grid;place-items:center;width:28px;height:28px;border-radius:8px;font-size:15px;color:#22180F}
 .stage.go .chip{opacity:1;transform:rotate(var(--r));transition-delay:var(--d)}
 .chip small{display:block;font-weight:500;color:var(--ink-soft);font-size:12px}
 @media (max-width:920px){.hero .wrap{grid-template-columns:1fr}.stage{max-width:440px}}
 @media (max-width:520px){.chip{font-size:12px;padding:8px 10px}.chip b{width:22px;height:22px}}
+
+/* faixa de fita adesiva com as capacidades */
+.tape{position:relative;z-index:2;margin:0 -20px;transform:rotate(-1.4deg);background:var(--postit);color:#22180F;box-shadow:var(--shadow-lift);overflow:hidden;padding:14px 0}
+.tape-track{display:flex;gap:28px;width:max-content;animation:marquee 34s linear infinite;font:700 17px/1 var(--display);letter-spacing:-.01em;white-space:nowrap}
+.tape-track span{display:inline-flex;align-items:center;gap:28px}
+.tape-track span::after{content:"";width:12px;height:12px;background:var(--bark);clip-path:polygon(0 15%,100% 0,92% 100%,6% 85%)}
+.tape:hover .tape-track{animation-play-state:paused}
+@keyframes marquee{to{transform:translateX(-50%)}}
 
 /* ===== demo (relógio único) ===== */
 .demo{background:linear-gradient(180deg,transparent,color-mix(in oklab,var(--postit) 22%,transparent) 30%,color-mix(in oklab,var(--postit) 22%,transparent) 70%,transparent)}
@@ -152,7 +185,7 @@ nav.top ul a:hover{color:var(--ink)}
 .win-bar i{width:11px;height:11px;border-radius:50%;background:var(--line)}
 .win-bar i:nth-child(1){background:#F25F4C}.win-bar i:nth-child(2){background:var(--postit)}.win-bar i:nth-child(3){background:var(--leaf)}
 .win-bar .title{margin-left:10px}
-.win-bar .clock{margin-left:auto;padding:4px 8px;border-radius:6px;background:var(--postit);color:var(--ink)}
+.win-bar .clock{margin-left:auto;padding:4px 8px;border-radius:6px;background:var(--postit);color:#22180F}
 .win-body{display:grid;grid-template-columns:190px 1fr;min-height:400px}
 .side{border-right:1px solid var(--line);padding:14px 10px;font-size:14px;display:grid;align-content:start;gap:4px}
 .side .grp{font:600 11px/1 var(--mono);text-transform:uppercase;letter-spacing:.08em;color:var(--ink-soft);margin:12px 8px 6px}
@@ -161,15 +194,15 @@ nav.top ul a:hover{color:var(--ink)}
 .side .dot{width:9px;height:9px;border-radius:3px;background:var(--leaf)}
 .side .dot.vps{background:var(--tangerine)}
 .side .node{display:flex;justify-content:space-between;align-items:center;padding:7px 8px;border-radius:8px;transition:opacity .4s}
-.side .node em{font-style:normal;font:600 11px/1 var(--mono);padding:3px 6px;border-radius:5px;background:color-mix(in oklab,var(--leaf) 22%,transparent);color:var(--moss)}
-.side .node.off{opacity:.45}.side .node.off em{background:var(--line);color:var(--ink-soft)}
-.side .node.busy em{background:color-mix(in oklab,var(--tangerine) 25%,transparent);color:var(--clay-deep)}
+.side .node em{font-style:normal;font:600 11px/1 var(--mono);padding:3px 6px;border-radius:5px;background:color-mix(in oklab,var(--leaf) 22%,transparent);color:var(--ink)}
+.side .node.off{opacity:.55}.side .node.off em{background:var(--line);color:var(--ink-soft)}
+.side .node.busy em{background:color-mix(in oklab,var(--tangerine) 25%,transparent);color:var(--warn-text)}
 .chat{padding:18px;display:flex;flex-direction:column;gap:12px;position:relative;overflow:hidden}
 .msg{max-width:86%;padding:11px 14px;border-radius:14px;font-size:14.5px;line-height:1.5;opacity:0;transform:translateY(10px);transition:opacity .35s,transform .5s var(--ease-paper)}
 .msg.on{opacity:1;transform:none}
-.msg.me{align-self:flex-end;background:var(--moss);color:#FFFBEF;border-bottom-right-radius:4px}
+.msg.me{align-self:flex-end;background:var(--btn);color:#FFFBEF;border-bottom-right-radius:4px}
 .msg.ag{align-self:flex-start;background:var(--paper);border:1px solid var(--line);border-bottom-left-radius:4px}
-.msg.ag strong{display:block;font:700 12px/1 var(--mono);color:var(--moss);margin-bottom:6px}
+.msg.ag strong{display:block;font:700 12px/1 var(--mono);color:var(--moss-text);margin-bottom:6px}
 .steps{display:grid;gap:6px;margin-top:8px}
 .step{display:flex;gap:8px;align-items:center;font:500 12.5px/1.3 var(--mono);color:var(--ink-soft)}
 .step::before{content:"";width:8px;height:8px;border-radius:2px;background:var(--line);flex:none;transition:background .3s}
@@ -177,45 +210,44 @@ nav.top ul a:hover{color:var(--ink)}
 .card-appr{align-self:flex-start;width:min(92%,380px);border-radius:14px;background:var(--card);box-shadow:var(--shadow-lift);border:2px solid var(--tangerine);padding:14px;opacity:0;transform:translateY(16px) rotate(-1.5deg);transition:opacity .35s,transform .6s var(--ease-paper),border-color .3s}
 .card-appr.on{opacity:1;transform:rotate(-.6deg)}
 .card-appr.ok{border-color:var(--leaf)}
-.card-appr .k{font:600 11px/1 var(--mono);text-transform:uppercase;letter-spacing:.06em;color:var(--clay-deep)}
-.card-appr.ok .k{color:var(--moss)}
+.card-appr .k{font:600 11px/1 var(--mono);text-transform:uppercase;letter-spacing:.06em;color:var(--warn-text)}
+.card-appr.ok .k{color:var(--moss-text)}
 .card-appr .a{font-weight:700;margin:6px 0 2px}
 .card-appr code{font:500 12.5px/1.4 var(--mono);color:var(--ink-soft)}
 .composer{margin-top:auto;display:flex;gap:8px;align-items:center;padding:10px 12px;border-radius:12px;border:1px solid var(--line);background:var(--paper);font-size:14px;min-height:44px}
-.composer .caret{width:2px;height:18px;background:var(--moss);animation:blink 1s steps(1) infinite}
+.composer .caret{width:2px;height:18px;background:var(--moss-text);animation:blink 1s steps(1) infinite}
 @keyframes blink{50%{opacity:0}}
 .composer .ph{color:var(--ink-soft)}
 
 .phone{justify-self:center;width:270px;aspect-ratio:9/19;border-radius:40px;background:#1b140d;padding:10px;box-shadow:var(--shadow-lift),inset 0 0 0 2px #3a2c1c;position:relative}
-.screen{position:relative;height:100%;border-radius:31px;overflow:hidden;background:linear-gradient(180deg,var(--postit-light),var(--postit) 55%,var(--postit-deep))}
+.screen{position:relative;height:100%;border-radius:31px;overflow:hidden;background:linear-gradient(180deg,var(--postit-light),var(--postit) 55%,var(--postit-deep));color:#22180F}
 .screen .notch{position:absolute;top:8px;left:50%;transform:translateX(-50%);width:84px;height:24px;border-radius:14px;background:#1b140d}
 .screen .time{position:absolute;top:56px;left:0;right:0;text-align:center;font:800 54px/1 var(--display);color:var(--bark);letter-spacing:-.03em}
-.screen .date{position:absolute;top:116px;left:0;right:0;text-align:center;font-weight:600;font-size:13px;color:var(--clay-deep)}
-.push{position:absolute;left:10px;right:10px;top:160px;padding:12px;border-radius:18px;background:rgba(255,251,239,.92);box-shadow:var(--shadow-lift);transform:translateY(-30px) scale(.94);opacity:0;transition:transform .6s var(--ease-paper),opacity .35s}
+.screen .date{position:absolute;top:116px;left:0;right:0;text-align:center;font-weight:600;font-size:13px;color:var(--bark)}
+.push{position:absolute;left:10px;right:10px;top:160px;padding:12px;border-radius:18px;background:rgba(255,251,239,.96);box-shadow:var(--shadow-lift);transform:translateY(-30px) scale(.94);opacity:0;transition:transform .6s var(--ease-paper),opacity .35s;color:#22180F}
 .push.on{transform:none;opacity:1}
-.push{color:#22180F}
 .push .ph{display:flex;gap:8px;align-items:center;font:700 12px/1 var(--body);color:#22180F}
 .push .ph img{width:20px;height:20px;border-radius:6px}
 .push .ph small{margin-left:auto;font-weight:500;color:#5C4A38}
 .push p{font-size:13px;margin:8px 0 10px;color:#22180F;line-height:1.4}
 .push .acts{display:grid;grid-template-columns:1fr 1fr;gap:6px}
-.push .acts span{text-align:center;padding:8px;border-radius:10px;font:600 12.5px/1 var(--body);background:rgba(74,42,21,.08);color:#22180F;transition:transform .2s,background .2s}
-.push .acts span.yes{background:var(--moss);color:#FFFBEF}
-.push .acts span.yes.press{transform:scale(.92);background:#2c6a1e}
+.push .acts span{text-align:center;padding:8px;border-radius:10px;font:600 12.5px/1 var(--body);background:rgba(74,42,21,.1);color:#22180F;transition:transform .2s,background .2s}
+.push .acts span.yes{background:var(--btn);color:#FFFBEF}
+.push .acts span.yes.press{transform:scale(.92);background:#1d5214}
 .push.done .acts{display:none}
-.push .okline{display:none;font:600 12.5px/1 var(--mono);color:var(--moss)}
+.push .okline{display:none;font:600 12.5px/1 var(--mono);color:#1d5214}
 .push.done .okline{display:block}
-.tap{position:absolute;width:38px;height:38px;border-radius:50%;background:rgba(66,145,46,.35);box-shadow:0 0 0 0 rgba(66,145,46,.4);opacity:0;pointer-events:none;transition:opacity .2s;left:52px;top:286px}
+.tap{position:absolute;width:38px;height:38px;border-radius:50%;background:rgba(45,122,34,.35);box-shadow:0 0 0 0 rgba(45,122,34,.4);opacity:0;pointer-events:none;transition:opacity .2s;left:52px;top:286px}
 .tap.on{opacity:1;animation:ripple .7s var(--ease-out)}
-@keyframes ripple{to{box-shadow:0 0 0 22px rgba(66,145,46,0)}}
+@keyframes ripple{to{box-shadow:0 0 0 22px rgba(45,122,34,0)}}
 
 .player{display:flex;align-items:center;gap:14px;margin-top:22px;flex-wrap:wrap}
 .play{width:46px;height:46px;border-radius:14px;border:0;background:var(--ink);color:var(--bg);cursor:pointer;display:grid;place-items:center;flex:none}
 .play:focus-visible,.scenes button:focus-visible{outline:3px solid var(--tangerine);outline-offset:2px}
-.scrub{flex:1;min-width:180px;accent-color:var(--moss)}
+.scrub{flex:1;min-width:180px;accent-color:var(--btn)}
 .scenes{display:flex;gap:6px;flex-wrap:wrap;width:100%}
 .scenes button{border:0;cursor:pointer;padding:9px 12px;border-radius:10px;font:600 13px/1 var(--body);background:var(--card);color:var(--ink-soft);box-shadow:var(--shadow-paper);transition:background .2s,color .2s,transform .3s var(--ease-paper)}
-.scenes button.on{background:var(--moss);color:#FFFBEF;transform:rotate(-1.5deg)}
+.scenes button.on{background:var(--btn);color:#FFFBEF;transform:rotate(-1.5deg)}
 .caption{font:600 15px/1.4 var(--body);margin-top:14px;min-height:1.4em}
 @media (max-width:960px){.demo-grid{grid-template-columns:1fr}.phone{width:240px}}
 @media (max-width:640px){.win-body{grid-template-columns:1fr}.side{display:none}}
@@ -231,7 +263,8 @@ nav.top ul a:hover{color:var(--ink)}
 @keyframes travel{from{offset-distance:0%}to{offset-distance:100%}}
 .how-list{display:grid;gap:18px}
 .how-item{display:grid;grid-template-columns:54px 1fr;gap:16px;padding:20px;align-items:start}
-.how-item .ic{width:54px;height:54px;border-radius:14px;display:grid;place-items:center;font:800 20px var(--display);color:#FFFBEF}
+.how-item .ic{width:54px;height:54px;border-radius:14px;display:grid;place-items:center;font:800 22px var(--display);color:#22180F;transform:rotate(-4deg);transition:transform .4s var(--ease-paper)}
+.how-item:hover .ic{transform:rotate(4deg) scale(1.06)}
 .how-item p{color:var(--ink-soft);font-size:15.5px;margin-top:6px}
 .how-item .tag{margin-left:8px;vertical-align:middle}
 .tunnel{margin-top:24px;padding:18px 20px;border-radius:14px;border:2px dashed var(--line);font-size:15px;color:var(--ink-soft)}
@@ -239,18 +272,18 @@ nav.top ul a:hover{color:var(--ink)}
 @media (max-width:920px){.how-grid{grid-template-columns:1fr}}
 
 /* ===== recursos ===== */
-.feat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:20px}
+.feat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:18px}
 .feat{padding:26px 22px 24px;transition:transform .4s var(--ease-paper)}
-.feat:hover{transform:translateY(-4px) rotate(var(--hr,-1deg))}
-.feat .sw{width:46px;height:46px;margin-bottom:18px;position:relative}
+.feat:hover{transform:translateY(-5px) rotate(var(--hr,-1deg))}
+.feat .sw{width:46px;height:46px;margin-bottom:18px;position:relative;transition:transform .5s var(--ease-paper)}
+.feat:hover .sw{transform:rotate(-10deg) scale(1.1)}
 .feat .sw i{position:absolute;inset:0;clip-path:polygon(4% 8%,94% 0,100% 90%,0 100%)}
 .feat .sw i:nth-child(2){inset:10px -8px -8px 10px;opacity:.85;clip-path:polygon(0 0,100% 12%,88% 100%,8% 92%)}
 .feat p{color:var(--ink-soft);font-size:15px;margin-top:8px}
 
-/* ===== ADE ===== */
-.ade{background:var(--ink);color:var(--paper)}
-:root[data-theme="dark"] .ade{background:#0E0B07}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .ade{background:#0E0B07}}
+/* ===== ADE (sempre escuro, nos dois temas) ===== */
+.ade{background:#120D08;color:#FFF4DA}
+.ade h2{color:#FFF4DA}
 .ade .eyebrow{color:var(--lime)}
 .ade .lead{color:#D9C9AC}
 .ade-grid{display:grid;grid-template-columns:.9fr 1.1fr;gap:48px;align-items:center}
@@ -272,10 +305,10 @@ nav.top ul a:hover{color:var(--ink)}
 .term .ok{color:var(--lime)}.term .p{color:var(--postit)}
 @media (max-width:920px){.ade-grid{grid-template-columns:1fr}.ide-cols{grid-template-columns:1fr}.tree{display:none}}
 
-/* ===== segurança ===== */
-.sec-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px}
-.sec{padding:22px;display:grid;gap:8px}
-.sec h3{font-size:19px}
+/* ===== controle ===== */
+.sec-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px}
+.sec{padding:24px;display:grid;gap:8px;align-content:start}
+.sec h3{font-size:20px}
 .sec p{color:var(--ink-soft);font-size:15px}
 
 /* ===== planos ===== */
@@ -283,8 +316,10 @@ nav.top ul a:hover{color:var(--ink)}
 .plan{padding:30px 26px;display:flex;flex-direction:column;gap:18px}
 .plan.pro{background:var(--postit);color:#22180F;transform:rotate(-1deg) scale(1.02);box-shadow:var(--shadow-lift)}
 .plan.pro .muted,.plan.pro li{color:#3d2c1c}
+.plan.pro .btn-primary{background:#22180F;box-shadow:0 14px 28px -12px rgba(34,24,15,.7)}
+.plan.pro .btn-primary:hover{background:#3a2a1a}
 .plan .price{font:800 40px/1 var(--display);letter-spacing:-.03em}
-.plan .price small{font:500 15px var(--body);color:inherit;opacity:.7}
+.plan .price small{font:500 15px var(--body);color:inherit;opacity:.75}
 .plan .muted{color:var(--ink-soft);font-size:15px}
 .plan ul{list-style:none;margin:0;padding:0;display:grid;gap:10px;font-size:15px}
 .plan li{display:flex;gap:10px;color:var(--ink-soft)}
@@ -296,18 +331,24 @@ nav.top ul a:hover{color:var(--ink)}
 
 /* ===== plataformas ===== */
 .platforms{display:flex;flex-wrap:wrap;gap:12px;margin-top:30px}
-.pf{display:flex;gap:10px;align-items:center;padding:14px 18px;border-radius:14px;background:var(--card);box-shadow:var(--shadow-paper);font-weight:600}
+.pf{display:flex;gap:10px;align-items:center;padding:14px 18px;border-radius:14px;background:var(--card);box-shadow:var(--shadow-paper);font-weight:600;transition:transform .35s var(--ease-paper)}
+.pf:hover{transform:translateY(-3px) rotate(-1.5deg)}
 .pf small{display:block;font-weight:500;font-size:12px;color:var(--ink-soft)}
 .pf svg{width:26px;height:26px;flex:none}
 
 /* ===== roadmap ===== */
-.road{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;counter-reset:f}
+.road{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
 .ph{padding:20px;position:relative}
-.ph .n{font:800 46px/1 var(--display);color:var(--postit-deep);letter-spacing:-.04em}
+.ph .n{font:800 46px/1 var(--display);color:var(--num);letter-spacing:-.04em}
 .ph h3{font-size:18px;margin:10px 0 6px}
 .ph p{font-size:14.5px;color:var(--ink-soft)}
 .ph.now{outline:3px solid var(--leaf);outline-offset:-3px}
-.ph.now .n{color:var(--moss)}
+.ph.now .n{color:var(--moss-text)}
+.ph.now::after{content:"agora";position:absolute;top:14px;right:14px;font:600 11px/1 var(--mono);text-transform:uppercase;letter-spacing:.06em;padding:5px 8px;border-radius:999px;background:var(--leaf);color:#22180F}
+.ph.seu{background:var(--postit);color:#22180F}
+.ph.seu h3{color:#22180F}
+.ph.seu p{color:#3d2c1c}
+.ph.seu .n{color:#2D6B1C}
 @media (max-width:920px){.road{grid-template-columns:1fr 1fr}}
 @media (max-width:520px){.road{grid-template-columns:1fr}}
 
@@ -316,13 +357,18 @@ nav.top ul a:hover{color:var(--ink)}
 details{padding:0;border-radius:14px;background:var(--card);box-shadow:var(--shadow-paper)}
 summary{cursor:pointer;list-style:none;padding:20px 22px;font:700 18px/1.3 var(--display);display:flex;justify-content:space-between;gap:16px}
 summary::-webkit-details-marker{display:none}
-summary::after{content:"+";font:600 22px/1 var(--mono);color:var(--moss);transition:transform .3s var(--ease-paper)}
+summary::after{content:"+";font:600 22px/1 var(--mono);color:var(--moss-text);transition:transform .3s var(--ease-paper)}
 details[open] summary::after{transform:rotate(45deg)}
 details p{padding:0 22px 22px;color:var(--ink-soft)}
 summary:focus-visible{outline:3px solid var(--tangerine);outline-offset:-3px;border-radius:14px}
 
+/* ===== contribuir ===== */
+.term-card pre{margin:0;padding:18px;font:500 14px/1.7 var(--mono);color:var(--ink);overflow-x:auto;white-space:pre}
+.term-card .p{color:var(--moss-text)}
+
 /* ===== final ===== */
-.final{text-align:center;padding:130px 0 150px;overflow:hidden}
+.final{text-align:center;padding:120px 0 136px;overflow:hidden;position:relative}
+.final::before{content:"";position:absolute;inset:auto 0 0 0;height:60%;z-index:-1;background:radial-gradient(60% 70% at 50% 100%,color-mix(in oklab,var(--postit) 38%,transparent),transparent 70%)}
 .final .tile-sm{width:132px;height:132px;margin:0 auto 34px;border-radius:30%;overflow:hidden;box-shadow:0 26px 60px -22px rgba(142,83,38,.6);animation:bob 6s ease-in-out infinite}
 .final h2{font-size:clamp(40px,6vw,76px);max-width:900px;margin:0 auto 22px}
 .final .lead{margin:0 auto 34px}
@@ -336,12 +382,17 @@ footer .wrap{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{animation:none!important;transition-duration:.01ms!important;transition-delay:0ms!important;scroll-behavior:auto!important}
   .reveal,.note,.tile,.chip{transform:none!important;opacity:1!important}
+  .stage{transform:none!important}
+  .hero h1 .hl::after{transform:rotate(-1.2deg)!important}
+  .reveal.in .sweep,.sweep{background-size:100% 92%!important}
   .pkt{display:none}
 }
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 </style>
 </head>
 <body>
+
+<div class="prog" id="prog" aria-hidden="true"></div>
 
 <nav class="top" aria-label="Principal">
   <div class="wrap">
@@ -366,18 +417,18 @@ footer .wrap{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
 <main id="top">
 
 <!-- HERO -->
-<header class="hero">
+<header class="hero" id="hero">
   <div class="wrap">
     <div>
       <span class="eyebrow">Agente pessoal · PC + VPS + celular</span>
       <h1>Seu calango de guarda, trabalhando
         <span class="rot" aria-live="polite"><span class="on">no seu PC.</span><span>na sua VPS.</span><span>no seu bolso.</span></span>
       </h1>
-      <p class="lead">Calango mora no seu computador, continua na sua VPS quando o PC desliga e responde no celular de qualquer lugar. Conversa, lembra, roda rotinas, navega, programa e <span class="hl">nunca faz nada sensível sem perguntar</span>.</p>
+      <p class="lead">Mora no seu computador, segue na sua VPS quando o PC desliga e responde no celular. <span class="hl">Nunca faz nada sensível sem perguntar antes.</span></p>
       <div class="ctas">
         <a class="btn btn-primary" href="#planos">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3 5.5 10.5 4.4v7.1H3zM11.5 4.3 21 3v8.5h-9.5zM3 12.5h7.5v7.1L3 18.5zM11.5 12.5H21V21l-9.5-1.3z"/></svg>
-          Baixar para Windows <span class="tag" style="background:#FFFBEF;color:#22180F">em breve</span>
+          Baixar para Windows <span class="tag" style="background:#FFFBEF">em breve</span>
         </a>
         <a class="btn btn-ghost" href="#demo">Ver como funciona</a>
       </div>
@@ -391,20 +442,27 @@ footer .wrap{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
     <div class="stage" id="stage" aria-hidden="true">
       <div class="wall" id="wall"></div>
       <div class="tile"><img src="assets/logo.webp" alt="" width="1024" height="1024"></div>
-      <div class="chip" style="left:-4%;top:12%;--r:-4deg;--d:1.3s"><b style="background:var(--leaf);color:#fff">✓</b><div>Resumo da manhã<small>rotina · 08:00 · seg–sex</small></div></div>
-      <div class="chip" style="right:-6%;top:44%;--r:3deg;--d:1.55s"><b style="background:var(--tangerine);color:#fff">!</b><div>Enviar e-mail ao cliente?<small>aprovação pendente</small></div></div>
-      <div class="chip" style="left:2%;bottom:6%;--r:-2deg;--d:1.8s"><b style="background:var(--clay);color:#fff">⇄</b><div>PC offline · VPS assumiu<small>nada parou</small></div></div>
+      <div class="chip" style="left:-4%;top:12%;--r:-4deg;--d:1.3s"><b style="background:var(--leaf)">✓</b><div>Resumo da manhã<small>rotina · 08:00 · seg–sex</small></div></div>
+      <div class="chip" style="right:-6%;top:44%;--r:3deg;--d:1.55s"><b style="background:var(--tangerine)">!</b><div>Enviar e-mail ao cliente?<small>aprovação pendente</small></div></div>
+      <div class="chip" style="left:2%;bottom:6%;--r:-2deg;--d:1.8s"><b style="background:var(--sand)">⇄</b><div>PC offline · VPS assumiu<small>nada parou</small></div></div>
     </div>
   </div>
 </header>
+
+<div class="tape" aria-hidden="true">
+  <div class="tape-track">
+    <span>Rotinas</span><span>Aprovações</span><span>Navegador</span><span>ADE</span><span>Canais</span><span>Conectores MCP</span><span>Cofre</span><span>Execução híbrida</span>
+    <span>Rotinas</span><span>Aprovações</span><span>Navegador</span><span>ADE</span><span>Canais</span><span>Conectores MCP</span><span>Cofre</span><span>Execução híbrida</span>
+  </div>
+</div>
 
 <!-- DEMO -->
 <section class="demo" id="demo" aria-labelledby="demo-h">
   <div class="wrap">
     <div class="section-head reveal">
       <span class="eyebrow">Veja em ação</span>
-      <h2 id="demo-h">Um dia com o Calango, em 20 segundos.</h2>
-      <p class="lead">Você pede uma vez. Ele cria a rotina, roda todo dia, pede sua aprovação no celular antes de enviar qualquer coisa, e segue na VPS quando o notebook fecha.</p>
+      <h2 id="demo-h">Um dia com o Calango, <span class="sweep">em 20 segundos.</span></h2>
+      <p class="lead">Você pede uma vez. Ele cria a rotina, roda sozinho e pede sua aprovação no celular antes de enviar qualquer coisa.</p>
     </div>
 
     <div class="demo-grid reveal" style="--rr:1deg">
@@ -481,8 +539,8 @@ footer .wrap{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
   <div class="wrap">
     <div class="section-head reveal">
       <span class="eyebrow">Como funciona</span>
-      <h2 id="como-h">Um agente. Vários nós. Todos seus.</h2>
-      <p class="lead">Cada instalação é um nó. O PC faz o que precisa do seu computador. A VPS faz o que precisa ficar ligado. O celular manda em tudo.</p>
+      <h2 id="como-h">Um agente. Vários nós. <span class="sweep">Todos seus.</span></h2>
+      <p class="lead">O PC faz o que pede o seu computador. A VPS faz o que precisa ficar ligado. O celular manda em tudo.</p>
     </div>
     <div class="how-grid">
       <div class="diagram reveal" style="--rr:2deg">
@@ -530,28 +588,28 @@ footer .wrap{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
       <div class="how-list">
         <div class="how-item paper reveal" style="--d:0ms">
           <div class="ic" style="background:var(--leaf)">1</div>
-          <div><h3>Instale no PC <span class="tag">grátis</span></h3><p>O app abre o núcleo do Calango no seu computador. Ele acessa seus arquivos, apps e navegador, usando a sua chave de IA ou a assinatura que você já paga.</p></div>
+          <div><h3>Instale no PC <span class="tag">grátis</span></h3><p>O núcleo roda no seu computador, com acesso aos seus arquivos, apps e navegador. Usa a sua chave de IA ou a assinatura que você já paga.</p></div>
         </div>
         <div class="how-item paper reveal" style="--d:90ms">
           <div class="ic" style="background:var(--tangerine)">2</div>
-          <div><h3>Estenda para a sua VPS <span class="tag" style="background:var(--tangerine);color:#22180F">Pro</span></h3><p>Um container Docker na sua VPS vira um segundo nó. Rotinas e projetos continuam rodando com o notebook fechado. Cada tarefa escolhe onde roda: PC, VPS ou automático.</p></div>
+          <div><h3>Estenda para a VPS <span class="tag">Pro</span></h3><p>Um container Docker na sua VPS vira um segundo nó. As rotinas seguem com o notebook fechado. Cada tarefa escolhe onde roda.</p></div>
         </div>
         <div class="how-item paper reveal" style="--d:180ms">
           <div class="ic" style="background:var(--clay)">3</div>
-          <div><h3>Controle pelo celular</h3><p>Pareie com um QR. Converse, aprove, agende e veja o que cada nó está fazendo, de qualquer lugar.</p></div>
+          <div><h3>Controle pelo celular</h3><p>Pareie com um QR e converse, aprove e acompanhe cada nó, de qualquer lugar.</p></div>
         </div>
-        <div class="tunnel reveal" style="--d:240ms"><b>Conexão privada.</b> Celular, PC e VPS conversam por uma rede privada criptografada ponta a ponta (Tailscale), sem abrir porta no roteador. A Calango nunca vê suas conversas, arquivos ou chaves.</div>
+        <div class="tunnel reveal" style="--d:240ms"><b>Conexão privada.</b> Tailscale liga celular, PC e VPS ponta a ponta, sem abrir porta no roteador. A Calango não vê suas conversas, arquivos nem chaves.</div>
       </div>
     </div>
   </div>
 </section>
 
 <!-- RECURSOS -->
-<section id="recursos" aria-labelledby="rec-h" style="padding-top:40px">
+<section id="recursos" style="padding-top:40px">
   <div class="wrap">
     <div class="section-head reveal">
       <span class="eyebrow">Tudo que ele faz</span>
-      <h2 id="rec-h">Pedaço por pedaço, um assistente inteiro.</h2>
+      <h2 id="rec-h">Um assistente inteiro, <span class="sweep">pedaço por pedaço.</span></h2>
     </div>
     <div class="feat-grid" id="feats"></div>
   </div>
@@ -562,12 +620,12 @@ footer .wrap{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
   <div class="wrap ade-grid">
     <div class="reveal">
       <span class="eyebrow">ADE · ambiente de desenvolvimento com agentes</span>
-      <h2 id="ade-h" style="margin-top:18px">Programe projetos separados, em paralelo.</h2>
-      <p class="lead" style="margin-top:18px">Cada projeto tem seus agentes, sua memória e seu repositório. Cada tarefa ganha um worktree próprio, então vários agentes trabalham ao mesmo tempo sem pisar um no outro.</p>
+      <h2 id="ade-h" style="margin-top:18px">Projetos separados, agentes em paralelo.</h2>
+      <p class="lead" style="margin-top:18px">Cada projeto tem agentes, memória e repositório. Cada tarefa ganha um worktree próprio, então os agentes trabalham juntos sem pisar uns nos outros.</p>
       <ul>
-        <li>Editor, terminal, diff e servidor de preview no navegador interno</li>
-        <li>Branch, PR e status do CI no GitHub, sem sair do app</li>
-        <li>O projeto roda no PC ou na VPS, sincronizado por git</li>
+        <li>Editor, terminal, diff e preview no navegador interno</li>
+        <li>Branch, PR e CI do GitHub sem sair do app</li>
+        <li>Roda no PC ou na VPS, sincronizado por git</li>
         <li>Importa skills do Claude Code e do Codex</li>
       </ul>
     </div>
@@ -589,32 +647,30 @@ footer .wrap{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
   </div>
 </section>
 
-<!-- SEGURANÇA -->
+<!-- CONTROLE -->
 <section id="seguranca" aria-labelledby="seg-h">
   <div class="wrap">
     <div class="section-head reveal">
       <span class="eyebrow">Controle</span>
-      <h2 id="seg-h">Ele é atento. Você é quem manda.</h2>
+      <h2 id="seg-h">Ele é atento. <span class="sweep">Você manda.</span></h2>
       <p class="lead">Um agente que mexe em e-mail, navegador e código precisa de freio. O Calango tem vários.</p>
     </div>
     <div class="sec-grid">
-      <div class="sec paper reveal" style="--d:0ms"><h3>Aprovação antes de agir</h3><p>Enviar, apagar, publicar, pagar, fazer deploy: aparece um cartão com a ação e os argumentos exatos. Depois, um recibo diz se concluiu ou falhou.</p></div>
-      <div class="sec paper reveal" style="--d:70ms"><h3>Seus dados, suas máquinas</h3><p>Conversas, memória, arquivos e chaves ficam no seu PC e na sua VPS. A Calango cuida só de conta, licença e notificações.</p></div>
-      <div class="sec paper reveal" style="--d:140ms"><h3>Gasto com teto</h3><p>Cada agente e cada rotina tem orçamento. Toda chamada de modelo é medida antes de sair. Estourou, ele para e avisa.</p></div>
-      <div class="sec paper reveal" style="--d:210ms"><h3>Cofre do sistema</h3><p>Senhas e chaves no cofre do Windows, macOS ou Linux. O agente usa sem ver o valor, e nada aparece em log.</p></div>
-      <div class="sec paper reveal" style="--d:280ms"><h3>Memória que você edita</h3><p>Tudo que ele lembra está numa lista que você lê, corrige e apaga. Mudança nas instruções dele só com o seu aceite.</p></div>
-      <div class="sec paper reveal" style="--d:350ms"><h3>Tela remota só com opt-in</h3><p>Controlar o PC pelo celular vem desligado. Liga no próprio PC, mostra aviso enquanto ativo e encerra com um clique.</p></div>
+      <div class="sec paper reveal" style="--d:0ms"><h3>Aprovação antes de agir</h3><p>Enviar, apagar, publicar, pagar ou fazer deploy exige um cartão com a ação exata. Depois, um recibo mostra o resultado.</p></div>
+      <div class="sec paper reveal" style="--d:80ms"><h3>Seus dados, suas máquinas</h3><p>Conversas, memória e arquivos ficam no seu PC e na sua VPS. Senhas vão para o cofre do sistema e nunca aparecem em log.</p></div>
+      <div class="sec paper reveal" style="--d:160ms"><h3>Gasto com teto</h3><p>Cada agente e rotina tem orçamento. Toda chamada de modelo é medida antes de sair. Estourou, ele para e avisa.</p></div>
+      <div class="sec paper reveal" style="--d:240ms"><h3>Tela remota só com opt-in</h3><p>Controlar o PC pelo celular vem desligado. Quando ligado, mostra um aviso e encerra com um clique.</p></div>
     </div>
   </div>
 </section>
 
 <!-- PLANOS -->
-<section id="planos" aria-labelledby="pl-h" style="padding-top:40px">
+<section id="planos" style="padding-top:40px">
   <div class="wrap">
     <div class="section-head reveal">
       <span class="eyebrow">Planos</span>
-      <h2 id="pl-h">Grátis no seu PC. Pago quando precisa ficar ligado.</h2>
-      <p class="lead">O que roda na sua máquina é grátis. O que pede servidor 24/7 e infraestrutura entra no Pro. Preços em definição.</p>
+      <h2 id="pl-h">Grátis no seu PC. <span class="sweep">Pago quando precisa ficar ligado.</span></h2>
+      <p class="lead">O que roda na sua máquina é grátis. O que precisa de servidor 24/7 entra no Pro. Preços em definição.</p>
     </div>
     <div class="plans">
       <div class="plan paper reveal" style="--d:0ms">
@@ -645,7 +701,7 @@ footer .wrap{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
     <div class="addons reveal">Extras por uso: <span>Créditos de IA</span><span>VPS gerenciada por nós</span><span>Armazenamento</span><span>Conectores premium</span></div>
 
     <div class="platforms reveal" aria-label="Plataformas">
-      <div class="pf"><svg viewBox="0 0 24 24" fill="var(--moss)"><path d="M3 5.5 10.5 4.4v7.1H3zM11.5 4.3 21 3v8.5h-9.5zM3 12.5h7.5v7.1L3 18.5zM11.5 12.5H21V21l-9.5-1.3z"/></svg><div>Windows<small>Electron · instalador assinado</small></div></div>
+      <div class="pf"><svg viewBox="0 0 24 24" fill="var(--moss-text)"><path d="M3 5.5 10.5 4.4v7.1H3zM11.5 4.3 21 3v8.5h-9.5zM3 12.5h7.5v7.1L3 18.5zM11.5 12.5H21V21l-9.5-1.3z"/></svg><div>Windows<small>Electron · instalador assinado</small></div></div>
       <div class="pf"><svg viewBox="0 0 24 24" fill="var(--ink)"><path d="M16.4 12.6c0-2.3 1.9-3.4 2-3.5-1.1-1.6-2.8-1.8-3.4-1.8-1.4-.1-2.8.9-3.5.9s-1.8-.9-3-.8C7 7.4 5.6 8.3 4.8 9.7c-1.6 2.8-.4 7 1.2 9.2.8 1.1 1.7 2.3 2.9 2.3 1.1-.1 1.6-.7 3-.7s1.8.7 3 .7 2-1.1 2.8-2.2c.9-1.3 1.2-2.5 1.3-2.6-.1 0-2.5-1-2.6-3.8ZM14.2 5.8c.6-.8 1.1-1.8 1-2.8-.9 0-2 .6-2.7 1.4-.6.7-1.1 1.8-1 2.7 1 .1 2.1-.5 2.7-1.3Z"/></svg><div>macOS<small>assinado e notarizado</small></div></div>
       <div class="pf"><svg viewBox="0 0 24 24" fill="var(--clay)"><circle cx="12" cy="7" r="4"/><path d="M5 21c0-4 3-7 7-7s7 3 7 7z"/></svg><div>Linux<small>.deb e AppImage</small></div></div>
       <div class="pf"><svg viewBox="0 0 24 24" fill="none" stroke="var(--ink)" stroke-width="2"><rect x="6" y="2" width="12" height="20" rx="3"/><path d="M11 18h2"/></svg><div>iOS<small>Flutter</small></div></div>
@@ -656,47 +712,47 @@ footer .wrap{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
 </section>
 
 <!-- ROADMAP -->
-<section id="roadmap" aria-labelledby="rm-h" style="padding-top:40px">
+<section id="roadmap" style="padding-top:40px">
   <div class="wrap">
     <div class="section-head reveal">
       <span class="eyebrow">Roadmap</span>
-      <h2 id="rm-h">Construído em pedaços, como a logo.</h2>
+      <h2 id="rm-h">Construído em pedaços, <span class="sweep">como a logo.</span></h2>
     </div>
     <div class="road">
-      <div class="ph paper now reveal" style="--d:0ms"><div class="n">01</div><h3>Desktop local</h3><p>App Electron, agente com memória, rotinas, aprovações e painel de custos.</p></div>
+      <div class="ph paper now reveal" style="--d:0ms"><div class="n">01</div><h3>Desktop local</h3><p>Agente com memória, rotinas, aprovações e painel de custos.</p></div>
       <div class="ph paper reveal" style="--d:70ms"><div class="n">02</div><h3>Celular</h3><p>Apps Flutter, pareamento por QR, aprovações e push.</p></div>
       <div class="ph paper reveal" style="--d:140ms"><div class="n">03</div><h3>VPS e Pro</h3><p>Nó Docker, execução híbrida, licença e assinatura.</p></div>
       <div class="ph paper reveal" style="--d:210ms"><div class="n">04</div><h3>ADE</h3><p>Projetos, worktrees, editor, terminal e PRs.</p></div>
       <div class="ph paper reveal" style="--d:0ms"><div class="n">05</div><h3>Navegador</h3><p>Abas que o agente dirige e você assume. Uso do computador.</p></div>
       <div class="ph paper reveal" style="--d:70ms"><div class="n">06</div><h3>Canais e times</h3><p>Pessoas e agentes no mesmo canal, com roteador.</p></div>
       <div class="ph paper reveal" style="--d:140ms"><div class="n">07</div><h3>Expansão</h3><p>Relay próprio, Telegram, WhatsApp, voz e marketplace.</p></div>
-      <div class="ph paper reveal" style="--d:210ms;background:var(--postit);color:#22180F"><div class="n" style="color:var(--moss)">∞</div><h3>Seu jeito</h3><p style="color:#3d2c1c">Rotinas, agentes e skills criados por você e pela comunidade.</p></div>
+      <div class="ph seu paper reveal" style="--d:210ms"><div class="n">∞</div><h3>Seu jeito</h3><p>Rotinas, agentes e skills criados por você e pela comunidade.</p></div>
     </div>
   </div>
 </section>
 
 <!-- FAQ -->
-<section id="faq" aria-labelledby="faq-h" style="padding-top:40px">
+<section id="faq" style="padding-top:40px">
   <div class="wrap">
-    <div class="section-head reveal"><span class="eyebrow">Perguntas</span><h2 id="faq-h">Antes que você pergunte.</h2></div>
+    <div class="section-head reveal"><span class="eyebrow">Perguntas</span><h2 id="faq-h">Antes que você <span class="sweep">pergunte.</span></h2></div>
     <div class="faq">
-      <details class="reveal"><summary>Preciso de uma VPS para usar?</summary><p>Não. O Calango funciona inteiro no seu PC, de graça. A VPS é a extensão do plano Pro para quem quer o agente rodando 24/7, mesmo com o computador desligado.</p></details>
-      <details class="reveal"><summary>Qual IA ele usa?</summary><p>A que você escolher. Ele pode usar sua chave de API ou ferramentas que você já assina, como Claude Code e Codex. Cada agente pode ter um modelo diferente.</p></details>
-      <details class="reveal"><summary>A Calango vê minhas conversas?</summary><p>Não. Conversas, memória, arquivos e chaves ficam no seu PC e na sua VPS. Os servidores da Calango cuidam só de conta, licença, atualização e do aviso de notificação, que não carrega conteúdo.</p></details>
+      <details class="reveal"><summary>Preciso de uma VPS para usar?</summary><p>Não. O Calango funciona inteiro no seu PC, de graça. A VPS é a extensão do plano Pro para quem quer o agente rodando 24/7.</p></details>
+      <details class="reveal"><summary>Qual IA ele usa?</summary><p>A que você escolher. Pode usar sua chave de API ou ferramentas que você já assina, como Claude Code e Codex. Cada agente pode ter um modelo diferente.</p></details>
+      <details class="reveal"><summary>A Calango vê minhas conversas?</summary><p>Não. Conversas, memória, arquivos e chaves ficam no seu PC e na sua VPS. Os servidores da Calango cuidam só de conta, licença, atualização e notificação, sem conteúdo.</p></details>
       <details class="reveal"><summary>Como o celular acessa meu PC fora de casa?</summary><p>Por uma rede privada criptografada ponta a ponta (Tailscale), sem abrir porta no roteador. Você pareia o celular uma vez com um QR.</p></details>
-      <details class="reveal"><summary>E se o PC desligar no meio de uma rotina?</summary><p>Rotinas marcadas como automáticas passam para a VPS. Sem VPS, a rotina roda uma vez quando o PC voltar, sem se repetir várias vezes.</p></details>
-      <details class="reveal"><summary>Quando lança?</summary><p>O Calango está em construção. A primeira versão é o app desktop para Windows. Entre na lista para saber quando sair.</p></details>
+      <details class="reveal"><summary>E se o PC desligar no meio de uma rotina?</summary><p>Rotinas marcadas como automáticas passam para a VPS. Sem VPS, a rotina roda uma vez quando o PC voltar, sem se repetir.</p></details>
+      <details class="reveal"><summary>Quando lança?</summary><p>Está em construção. A primeira versão é o app desktop para Windows. Entre na lista para saber quando sai.</p></details>
     </div>
   </div>
 </section>
 
 <!-- CONTRIBUIR -->
-<section id="contribuir" aria-labelledby="ctb-h" style="padding-top:40px">
+<section id="contribuir" style="padding-top:40px">
   <div class="wrap">
     <div class="section-head reveal">
       <span class="eyebrow">Código aberto · AGPL-3.0</span>
-      <h2 id="ctb-h">Construa a V1 com a gente.</h2>
-      <p class="lead">O Calango é público desde o começo. O roteiro, as especificações e as tarefas estão no repositório, e qualquer pessoa pode pegar uma e enviar um pull request.</p>
+      <h2 id="ctb-h">Construa a V1 <span class="sweep">com a gente.</span></h2>
+      <p class="lead">O roteiro e as tarefas estão no repositório público. Escolha uma, rode localmente e envie um pull request.</p>
     </div>
     <div class="how-grid" style="align-items:start">
       <div class="how-list">
@@ -706,20 +762,20 @@ footer .wrap{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
         </div>
         <div class="how-item paper reveal" style="--d:90ms">
           <div class="ic" style="background:var(--tangerine)">2</div>
-          <div><h3>Rode localmente com Docker</h3><p>Um comando sobe esta própria página. O código do núcleo roda com Go 1.22+.</p></div>
+          <div><h3>Rode localmente com Docker</h3><p>Um comando sobe esta própria página. O núcleo roda com Go 1.22+.</p></div>
         </div>
         <div class="how-item paper reveal" style="--d:180ms">
           <div class="ic" style="background:var(--clay)">3</div>
-          <div><h3>Envie seu PR</h3><p>Aceite o <a href="https://github.com/IAPro-Community/calango/blob/main/CLA.md">acordo de contribuidor</a> no primeiro PR. Leia o <a href="https://github.com/IAPro-Community/calango/blob/main/CONTRIBUTING.md">guia de contribuição</a>.</p></div>
+          <div><h3>Envie seu PR</h3><p>No primeiro PR, aceite o <a href="https://github.com/IAPro-Community/calango/blob/main/CLA.md">acordo de contribuidor</a>. Leia o <a href="https://github.com/IAPro-Community/calango/blob/main/CONTRIBUTING.md">guia</a>.</p></div>
         </div>
       </div>
       <div class="reveal" style="--rr:1.5deg">
-        <div class="win">
+        <div class="win term-card">
           <div class="win-bar"><i></i><i></i><i></i><span class="title">terminal</span></div>
-          <pre style="margin:0;padding:18px;font:500 14px/1.7 var(--mono);color:var(--ink);overflow-x:auto;white-space:pre"><span style="color:var(--moss)">$</span> git clone https://github.com/IAPro-Community/calango
-<span style="color:var(--moss)">$</span> cd calango
-<span style="color:var(--moss)">$</span> docker build -t calango-site .
-<span style="color:var(--moss)">$</span> docker run --rm -p 8080:8080 calango-site
+          <pre><span class="p">$</span> git clone https://github.com/IAPro-Community/calango
+<span class="p">$</span> cd calango
+<span class="p">$</span> docker build -t calango-site .
+<span class="p">$</span> docker run --rm -p 8080:8080 calango-site
 <span style="color:var(--ink-soft)"># abra http://localhost:8080</span></pre>
         </div>
         <div class="addons" style="margin-top:18px">
@@ -727,7 +783,7 @@ footer .wrap{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
         </div>
       </div>
     </div>
-    <div class="addons reveal" style="margin-top:34px">Dúvidas sobre licença ou uso comercial: <a href="https://github.com/IAPro-Community/calango/blob/main/COMMERCIAL.md">COMMERCIAL.md</a> · Segurança: <a href="https://github.com/IAPro-Community/calango/blob/main/SECURITY.md">SECURITY.md</a></div>
+    <div class="addons reveal" style="margin-top:34px">Licença comercial: <a href="https://github.com/IAPro-Community/calango/blob/main/COMMERCIAL.md">COMMERCIAL.md</a> · Segurança: <a href="https://github.com/IAPro-Community/calango/blob/main/SECURITY.md">SECURITY.md</a></div>
   </div>
 </section>
 
@@ -749,6 +805,7 @@ footer .wrap{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
 <script>
 (() => {
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const fine = matchMedia('(pointer: fine)').matches;
   const $ = (s, r = document) => r.querySelector(s);
   const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 
@@ -760,6 +817,15 @@ footer .wrap{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
     root.dataset.theme = dark ? 'light' : 'dark';
     try { localStorage.setItem('calango-theme', root.dataset.theme); } catch (e) {}
   });
+
+  /* barra de progresso de leitura */
+  const prog = $('#prog');
+  const onScroll = () => {
+    const h = document.documentElement.scrollHeight - innerHeight;
+    prog.style.transform = `scaleX(${h > 0 ? scrollY / h : 0})`;
+  };
+  addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
 
   /* parede de post-its do hero */
   const wall = $('#wall');
@@ -773,7 +839,19 @@ footer .wrap{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
     n.style.cssText = `left:${rnd() * 82}%;top:${rnd() * 82}%;--s:${s}%;--c:${cols[i % cols.length]};--r:${(rnd() * 10 - 5).toFixed(1)}deg;--fr:${(rnd() * 80 - 40).toFixed(0)}deg;--fx:${(rnd() * 400 - 200).toFixed(0)}px;--fy:${(rnd() * -300 - 80).toFixed(0)}px;--d:${(i * 30)}ms`;
     wall.appendChild(n);
   }
-  requestAnimationFrame(() => requestAnimationFrame(() => $('#stage').classList.add('go')));
+  requestAnimationFrame(() => requestAnimationFrame(() => { $('#stage').classList.add('go'); $('#hero').classList.add('go'); }));
+
+  /* inclinação suave do palco com o ponteiro (só mouse, sem movimento se reduzido) */
+  if (fine && !reduce) {
+    const stage = $('#stage');
+    $('#hero').addEventListener('pointermove', e => {
+      const r = stage.getBoundingClientRect();
+      const x = (e.clientX - r.left) / r.width - .5, y = (e.clientY - r.top) / r.height - .5;
+      stage.style.setProperty('--tx', (x * 8).toFixed(2) + 'deg');
+      stage.style.setProperty('--ty', (-y * 8).toFixed(2) + 'deg');
+    });
+    $('#hero').addEventListener('pointerleave', () => { stage.style.setProperty('--tx', '0deg'); stage.style.setProperty('--ty', '0deg'); });
+  }
 
   /* palavra que gira no título */
   const rot = $$('.hero h1 .rot span');
@@ -793,12 +871,8 @@ footer .wrap{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
     ['Navegador interno', 'Abas reais que o agente dirige e você assume no meio, sem recarregar.', 'var(--clay)', 'var(--sand)'],
     ['ADE', 'Projetos separados, um worktree por tarefa, editor, terminal e PR.', 'var(--bark)', 'var(--tangerine)'],
     ['Canais', 'Vários agentes na mesma conversa. Um roteador decide quem responde.', 'var(--leaf)', 'var(--postit)'],
-    ['Conectores MCP', 'Gmail, Calendar, GitHub, Notion e mais, com escopo por agente.', 'var(--moss)', 'var(--sand)'],
     ['Execução híbrida', 'Cada tarefa escolhe PC, VPS ou automático. Nada para quando o notebook fecha.', 'var(--tangerine)', 'var(--clay)'],
-    ['Uso do computador', 'Opera apps do desktop quando você liga. Desligado por padrão.', 'var(--clay-deep)', 'var(--lime)'],
-    ['Custos visíveis', 'Tokens e gasto por agente, rotina, projeto e nó, com teto.', 'var(--leaf)', 'var(--tangerine)'],
-    ['Skills', 'Fluxos repetidos viram receitas reutilizáveis, com o seu aceite.', 'var(--postit-deep)', 'var(--moss)'],
-    ['Cofre', 'Senhas e chaves no cofre do sistema. O agente usa sem ver.', 'var(--bark)', 'var(--sand)']
+    ['Custos visíveis', 'Tokens e gasto por agente, rotina, projeto e nó, sempre com teto.', 'var(--leaf)', 'var(--tangerine)']
   ];
   const fg = $('#feats');
   feats.forEach(([t, d, a, b], i) => {

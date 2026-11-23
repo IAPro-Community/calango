@@ -56,8 +56,11 @@ Servido em `http://localhost:4377`, navegador embutido.
 | Imagens da logo carregam | ok |
 | Demo: 5 cenas com o estado esperado | ok, conferido pelo DOM |
 | Texto da notificação legível no modo escuro | corrigido |
-| Sem rolagem horizontal em 375 px | ok |
-| Revisão visual completa em claro e escuro | pendente |
+| Contraste medido por script (claro e escuro), transições desligadas | falhas de texto corrigidas; restam falsos positivos (gradiente do celular e nav com `oklab`, que o script não interpreta) |
+| Título da seção ADE no modo escuro | estava invisível; corrigido e conferido em captura |
+| Marcador dos títulos (`.sweep`) em claro e escuro | legível depois da revelação |
+| Overflow horizontal em 375 px | não conclusivo: a emulação ficou com 516 px de largura de layout nesta aba |
+| Revisão visual completa em claro e escuro, todas as seções | parcial: hero (claro), ADE (escuro) conferidos |
 
 ## Orquestrador Maestro
 
