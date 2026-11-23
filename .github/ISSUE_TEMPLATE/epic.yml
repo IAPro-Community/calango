@@ -1,0 +1,27 @@
+name: Epic
+description: Group a product capability
+body:
+  - type: textarea
+    id: section_1
+    attributes:
+      label: Product objective and value
+    validations:
+      required: true
+  - type: textarea
+    id: section_2
+    attributes:
+      label: Scope and non-goals
+    validations:
+      required: true
+  - type: textarea
+    id: section_3
+    attributes:
+      label: Sub-issues and dependencies
+    validations:
+      required: true
+  - type: textarea
+    id: section_4
+    attributes:
+      label: Completion criteria
+    validations:
+      required: false
