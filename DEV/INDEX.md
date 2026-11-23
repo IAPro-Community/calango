@@ -86,3 +86,10 @@
 ## Site
 
 `site/index.html`: static product presentation page. Interface in English (default), Brazilian Portuguese and Spanish.
+
+## Governance
+
+- [Governance policy](../GOVERNANCE.md)
+- [Contribution workflow](../CONTRIBUTING.md)
+- [Governance bootstrap and administrative verification](GOVERNANCE_BOOTSTRAP.md)
+- [GitHub Issues](https://github.com/IAPro-Community/calango/issues) — operational work; legacy TODO/roadmap pending reconciliation.
