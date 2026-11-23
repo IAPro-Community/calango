@@ -59,7 +59,8 @@ Servido em `http://localhost:4377`, navegador embutido.
 | Contraste medido por script (claro e escuro), transições desligadas | falhas de texto corrigidas; restam falsos positivos (gradiente do celular e nav com `oklab`, que o script não interpreta) |
 | Título da seção ADE no modo escuro | estava invisível; corrigido e conferido em captura |
 | Marcador dos títulos (`.sweep`) em claro e escuro | legível depois da revelação |
-| Overflow horizontal em 375 px | não conclusivo: a emulação ficou com 516 px de largura de layout nesta aba |
+| Overflow horizontal (medido em iframe de largura fixa) | corrigido: `scrollWidth` igual à largura da janela em 320, 360, 390, 414, 600, 768 e 1024 px. Causas: colunas de grid sem `minmax(0,1fr)` (como/contribuir e demo), notas do mural, fita rotacionada |
+| Diagrama "Como funciona" em celular | legendas maiores, subtextos encurtados, rótulos fora da base do PC |
 | Revisão visual completa em claro e escuro, todas as seções | parcial: hero (claro), ADE (escuro) conferidos |
 
 ## Orquestrador Maestro

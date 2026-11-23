@@ -99,6 +99,13 @@ section{position:relative;padding:104px 0}
   font:600 16px/1 var(--body);text-decoration:none;transition:transform .32s var(--ease-paper),box-shadow .32s var(--ease-out),background .2s;
 }
 .btn:focus-visible{outline:3px solid var(--tangerine);outline-offset:3px}
+.btn .tag{white-space:nowrap}
+@media (max-width:520px){
+  .nav-cta .btn{padding:10px 14px;white-space:nowrap}
+  .btn{padding:14px 20px}
+  .hero .ctas .btn{width:100%;justify-content:center}
+  .brand{font-size:20px}
+}
 .btn-primary{background:var(--btn);color:#FFFBEF;box-shadow:0 2px 0 #1d5214,0 14px 28px -12px rgba(45,122,34,.7)}
 .btn-primary:hover{transform:translateY(-2px) rotate(-1deg);background:#338A27}
 .btn-primary:active{transform:translateY(1px) scale(.98)}
@@ -142,7 +149,7 @@ nav.top ul a:hover{color:var(--ink)}
 .hero .meta i{width:8px;height:8px;border-radius:2px;background:var(--leaf);transform:rotate(12deg)}
 
 .stage{position:relative;aspect-ratio:1;max-width:540px;justify-self:center;width:100%;transform:perspective(900px) rotateX(var(--ty,0deg)) rotateY(var(--tx,0deg));transition:transform .5s var(--ease-out)}
-.wall{position:absolute;inset:4%;pointer-events:none}
+.wall{position:absolute;inset:4%;pointer-events:none;overflow:hidden;border-radius:24px}
 .note{
   position:absolute;width:var(--s);height:var(--s);background:var(--c);box-shadow:var(--shadow-paper);
   clip-path:polygon(0 3%,96% 0,100% 95%,4% 100%);
@@ -170,7 +177,8 @@ nav.top ul a:hover{color:var(--ink)}
 @media (max-width:520px){.chip{font-size:12px;padding:8px 10px}.chip b{width:22px;height:22px}}
 
 /* faixa de fita adesiva com as capacidades */
-.tape{position:relative;z-index:2;margin:0 -20px;transform:rotate(-1.4deg);background:var(--postit);color:#22180F;box-shadow:var(--shadow-lift);overflow:hidden;padding:14px 0}
+.tape-wrap{position:relative;z-index:2;overflow:hidden;padding:22px 0;margin:-10px 0 -10px}
+.tape{position:relative;transform:rotate(-1.4deg);background:var(--postit);color:#22180F;box-shadow:var(--shadow-lift);overflow:hidden;padding:14px 0;margin:0 -8px}
 .tape-track{display:flex;gap:28px;width:max-content;animation:marquee 34s linear infinite;font:700 17px/1 var(--display);letter-spacing:-.01em;white-space:nowrap}
 .tape-track span{display:inline-flex;align-items:center;gap:28px}
 .tape-track span::after{content:"";width:12px;height:12px;background:var(--bark);clip-path:polygon(0 15%,100% 0,92% 100%,6% 85%)}
@@ -184,7 +192,7 @@ nav.top ul a:hover{color:var(--ink)}
 .win-bar{display:flex;align-items:center;gap:8px;padding:12px 14px;border-bottom:1px solid var(--line);font:600 13px/1 var(--mono);color:var(--ink-soft)}
 .win-bar i{width:11px;height:11px;border-radius:50%;background:var(--line)}
 .win-bar i:nth-child(1){background:#F25F4C}.win-bar i:nth-child(2){background:var(--postit)}.win-bar i:nth-child(3){background:var(--leaf)}
-.win-bar .title{margin-left:10px}
+.win-bar .title{margin-left:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
 .win-bar .clock{margin-left:auto;padding:4px 8px;border-radius:6px;background:var(--postit);color:#22180F}
 .win-body{display:grid;grid-template-columns:190px 1fr;min-height:400px}
 .side{border-right:1px solid var(--line);padding:14px 10px;font-size:14px;display:grid;align-content:start;gap:4px}
@@ -249,15 +257,18 @@ nav.top ul a:hover{color:var(--ink)}
 .scenes button{border:0;cursor:pointer;padding:9px 12px;border-radius:10px;font:600 13px/1 var(--body);background:var(--card);color:var(--ink-soft);box-shadow:var(--shadow-paper);transition:background .2s,color .2s,transform .3s var(--ease-paper)}
 .scenes button.on{background:var(--btn);color:#FFFBEF;transform:rotate(-1.5deg)}
 .caption{font:600 15px/1.4 var(--body);margin-top:14px;min-height:1.4em}
-@media (max-width:960px){.demo-grid{grid-template-columns:1fr}.phone{width:240px}}
-@media (max-width:640px){.win-body{grid-template-columns:1fr}.side{display:none}}
+.demo-grid>*,.win,.win-body>*{min-width:0}
+@media (max-width:960px){.demo-grid{grid-template-columns:minmax(0,1fr)}.phone{width:240px}}
+@media (max-width:640px){.win-body{grid-template-columns:minmax(0,1fr)}.side{display:none}.win-bar{gap:6px;padding:10px 12px}.win-bar .title{font-size:12px}}
 
 /* ===== como funciona ===== */
-.how-grid{display:grid;grid-template-columns:1fr 1fr;gap:56px;align-items:center}
+.how-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:56px;align-items:center}
+.how-grid>*{min-width:0}
 .diagram{position:relative}
 .diagram svg{width:100%;height:auto;overflow:visible}
-.node-label{font:700 15px var(--display)}
-.node-sub{font:500 11px var(--mono);fill:var(--ink-soft)}
+.node-label{font:700 24px var(--display)}
+.node-sub{font:500 18px var(--mono);fill:var(--ink-soft)}
+@media (max-width:520px){.node-label{font-size:30px}.node-sub{font-size:21px}}
 .link{fill:none;stroke:var(--line);stroke-width:3;stroke-dasharray:6 8}
 .pkt{offset-rotate:0deg;animation:travel var(--t,3.2s) linear infinite;animation-delay:var(--dl,0s)}
 @keyframes travel{from{offset-distance:0%}to{offset-distance:100%}}
@@ -269,7 +280,7 @@ nav.top ul a:hover{color:var(--ink)}
 .how-item .tag{margin-left:8px;vertical-align:middle}
 .tunnel{margin-top:24px;padding:18px 20px;border-radius:14px;border:2px dashed var(--line);font-size:15px;color:var(--ink-soft)}
 .tunnel b{color:var(--ink)}
-@media (max-width:920px){.how-grid{grid-template-columns:1fr}}
+@media (max-width:920px){.how-grid{grid-template-columns:minmax(0,1fr)}}
 
 /* ===== recursos ===== */
 .feat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:18px}
@@ -291,7 +302,8 @@ nav.top ul a:hover{color:var(--ink)}
 .ade li{display:flex;gap:12px;color:#E8DBC2}
 .ade li::before{content:"";flex:none;margin-top:8px;width:10px;height:10px;background:var(--lime);clip-path:polygon(0 10%,100% 0,90% 100%,10% 90%)}
 .ide{border-radius:14px;background:#1E1810;border:1px solid rgba(255,236,190,.12);overflow:hidden;font:400 13px/1.65 var(--mono);box-shadow:0 30px 60px -30px #000}
-.ide-tabs{display:flex;gap:2px;padding:8px 8px 0;background:#16110A}
+.ide-tabs{display:flex;gap:2px;padding:8px 8px 0;background:#16110A;overflow-x:auto;scrollbar-width:none}
+.ide-tabs span{white-space:nowrap}
 .ide-tabs span{padding:8px 12px;border-radius:8px 8px 0 0;color:#B8A88C;font-size:12px}
 .ide-tabs span.on{background:#1E1810;color:#FFF4DA}
 .ide-cols{display:grid;grid-template-columns:170px 1fr}
@@ -363,7 +375,8 @@ details p{padding:0 22px 22px;color:var(--ink-soft)}
 summary:focus-visible{outline:3px solid var(--tangerine);outline-offset:-3px;border-radius:14px}
 
 /* ===== contribuir ===== */
-.term-card pre{margin:0;padding:18px;font:500 14px/1.7 var(--mono);color:var(--ink);overflow-x:auto;white-space:pre}
+.term-card{max-width:100%}
+.term-card pre{margin:0;padding:18px;font:500 14px/1.7 var(--mono);color:var(--ink);overflow-x:auto;white-space:pre;max-width:100%}
 .term-card .p{color:var(--moss-text)}
 
 /* ===== final ===== */
@@ -449,12 +462,12 @@ footer .wrap{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
   </div>
 </header>
 
-<div class="tape" aria-hidden="true">
+<div class="tape-wrap" aria-hidden="true"><div class="tape">
   <div class="tape-track">
     <span>Rotinas</span><span>Aprovações</span><span>Navegador</span><span>ADE</span><span>Canais</span><span>Conectores MCP</span><span>Cofre</span><span>Execução híbrida</span>
     <span>Rotinas</span><span>Aprovações</span><span>Navegador</span><span>ADE</span><span>Canais</span><span>Conectores MCP</span><span>Cofre</span><span>Execução híbrida</span>
   </div>
-</div>
+</div></div>
 
 <!-- DEMO -->
 <section class="demo" id="demo" aria-labelledby="demo-h">
@@ -556,18 +569,18 @@ footer .wrap{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
             <polygon points="22,96 170,90 174,224 18,228" fill="var(--card)"/>
             <rect x="40" y="112" width="112" height="70" rx="6" fill="var(--leaf)"/>
             <rect x="80" y="186" width="32" height="10" fill="var(--clay)"/>
-            <text x="96" y="214" text-anchor="middle" class="node-label" fill="var(--ink)">Nó PC</text>
+            <text x="96" y="226" text-anchor="middle" class="node-label" fill="var(--ink)">Nó PC</text>
           </g>
-          <text x="96" y="252" text-anchor="middle" class="node-sub">grátis · seus arquivos e apps</text>
+          <text x="96" y="252" text-anchor="middle" class="node-sub">grátis</text>
           <!-- VPS -->
           <g filter="url(#ps)" transform="rotate(3 425 160)">
             <polygon points="348,92 500,98 496,226 352,222" fill="var(--card)"/>
             <rect x="366" y="112" width="116" height="20" rx="4" fill="var(--tangerine)"/>
             <rect x="366" y="138" width="116" height="20" rx="4" fill="var(--tangerine)" opacity=".75"/>
             <rect x="366" y="164" width="116" height="20" rx="4" fill="var(--tangerine)" opacity=".5"/>
-            <text x="424" y="212" text-anchor="middle" class="node-label" fill="var(--ink)">Nó VPS</text>
+            <text x="424" y="226" text-anchor="middle" class="node-label" fill="var(--ink)">Nó VPS</text>
           </g>
-          <text x="424" y="252" text-anchor="middle" class="node-sub">Pro · 24/7 · Docker</text>
+          <text x="424" y="252" text-anchor="middle" class="node-sub">Pro · 24/7</text>
           <!-- Celular -->
           <g filter="url(#ps)" transform="rotate(-2 260 370)">
             <rect x="222" y="300" width="76" height="132" rx="16" fill="var(--bark)"/>
