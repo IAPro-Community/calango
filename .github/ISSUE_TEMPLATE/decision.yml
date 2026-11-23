@@ -24,4 +24,4 @@ body:
     attributes:
       label: Decision owner and blocking dependencies
     validations:
-      required: false
+      required: true
