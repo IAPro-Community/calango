@@ -1,0 +1,27 @@
+name: Spike
+description: Investigate a technical uncertainty
+body:
+  - type: textarea
+    id: section_1
+    attributes:
+      label: Hypothesis or question
+    validations:
+      required: true
+  - type: textarea
+    id: section_2
+    attributes:
+      label: Investigation scope and timebox
+    validations:
+      required: true
+  - type: textarea
+    id: section_3
+    attributes:
+      label: Expected evidence or deliverable
+    validations:
+      required: true
+  - type: textarea
+    id: section_4
+    attributes:
+      label: Dependencies and risks
+    validations:
+      required: false
