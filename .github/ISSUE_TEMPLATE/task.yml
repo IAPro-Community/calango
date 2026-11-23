@@ -1,0 +1,27 @@
+name: Technical task
+description: Propose a technical delivery
+body:
+  - type: textarea
+    id: section_1
+    attributes:
+      label: Technical context
+    validations:
+      required: true
+  - type: textarea
+    id: section_2
+    attributes:
+      label: Scope and deliverable
+    validations:
+      required: true
+  - type: textarea
+    id: section_3
+    attributes:
+      label: Acceptance criteria and validation
+    validations:
+      required: true
+  - type: textarea
+    id: section_4
+    attributes:
+      label: Dependencies and risks
+    validations:
+      required: false
