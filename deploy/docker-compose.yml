@@ -1,0 +1,29 @@
+# Exemplo. Não testado. Ajuste domínio e versões antes de usar.
+services:
+  calango:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.node
+    image: calango/calango:latest
+    restart: unless-stopped
+    environment:
+      CALANGO_ADDR: 0.0.0.0:7317
+    volumes:
+      - calango-data:/data
+    expose:
+      - "7317"
+
+  proxy:
+    image: caddy:2
+    restart: unless-stopped
+    ports:
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+    depends_on:
+      - calango
+
+volumes:
+  calango-data:
+  caddy-data:

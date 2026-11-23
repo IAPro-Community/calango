@@ -1,0 +1,13 @@
+Calango
+Copyright 2026 Calango contributors
+
+Este produto inclui software de terceiros:
+
+Orquestrador Maestro
+  Copyright IAPro Community
+  Licenciado sob Apache License, Version 2.0
+  https://github.com/IAPro-Community/Orquestrador-Maestro
+  Instalado pelo pacote npm @iapro/orquestrador-maestro-cli.
+  O Calango consome a versão oficial pelo canal npm; o código do projeto não é copiado para este repositório.
+
+As marcas e nomes dos projetos citados pertencem aos seus donos.

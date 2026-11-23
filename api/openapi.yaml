@@ -1,0 +1,436 @@
+openapi: 3.1.0
+info:
+  title: Calango node API
+  version: 0.1.0-draft
+  description: >
+    API de um nó Calango (PC ou VPS). Fonte única dos SDKs TypeScript (desktop/web)
+    e Dart (mobile). Rascunho: rotas e esquemas mudam até a fase 1 fechar.
+    Tempo real em GET /v1/events (WebSocket); ver DEV/DATA_MODEL.md.
+servers:
+  - url: http://127.0.0.1:7317
+security:
+  - device: []
+tags:
+  - name: system
+  - name: auth
+  - name: agents
+  - name: conversations
+  - name: runs
+  - name: approvals
+  - name: routines
+  - name: memory
+  - name: usage
+paths:
+  /healthz:
+    get:
+      tags: [system]
+      security: []
+      summary: Saúde do nó
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: string, example: ok }
+  /v1/pair:
+    post:
+      tags: [auth]
+      security: []
+      summary: Troca um código de pareamento por token de dispositivo
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [code, device_name, platform]
+              properties:
+                code: { type: string }
+                device_name: { type: string }
+                platform: { type: string, enum: [desktop, ios, android, web] }
+      responses:
+        "200":
+          description: Pareado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  device_id: { type: string }
+                  token: { type: string }
+        "400": { $ref: "#/components/responses/Error" }
+        "429": { $ref: "#/components/responses/Error" }
+  /v1/agents:
+    get:
+      tags: [agents]
+      summary: Lista agentes
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Agent" }
+    post:
+      tags: [agents]
+      summary: Cria agente
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AgentInput" }
+      responses:
+        "201":
+          description: Criado
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Agent" }
+        "400": { $ref: "#/components/responses/Error" }
+  /v1/agents/{id}:
+    parameters:
+      - $ref: "#/components/parameters/Id"
+    get:
+      tags: [agents]
+      summary: Detalhe do agente
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Agent" }
+        "404": { $ref: "#/components/responses/Error" }
+    patch:
+      tags: [agents]
+      summary: Atualiza agente
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AgentInput" }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Agent" }
+  /v1/agents/pause-all:
+    post:
+      tags: [agents]
+      summary: Pausa todos os agentes e para os runs em curso
+      responses:
+        "204": { description: Pausado }
+  /v1/conversations:
+    get:
+      tags: [conversations]
+      summary: Lista conversas
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Conversation" }
+  /v1/conversations/{id}/messages:
+    parameters:
+      - $ref: "#/components/parameters/Id"
+    get:
+      tags: [conversations]
+      summary: Mensagens da conversa
+      parameters:
+        - name: before
+          in: query
+          schema: { type: string }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Message" }
+    post:
+      tags: [conversations]
+      summary: Envia mensagem (pode iniciar runs)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [body]
+              properties:
+                body: { type: string }
+                thread_id: { type: string }
+      responses:
+        "201":
+          description: Criada
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Message" }
+  /v1/runs/{id}/stop:
+    parameters:
+      - $ref: "#/components/parameters/Id"
+    post:
+      tags: [runs]
+      summary: Para um run
+      responses:
+        "204": { description: Parado }
+  /v1/runs/{id}/steer:
+    parameters:
+      - $ref: "#/components/parameters/Id"
+    post:
+      tags: [runs]
+      summary: Orienta um run em curso
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [instruction]
+              properties:
+                instruction: { type: string }
+      responses:
+        "204": { description: Entregue }
+  /v1/approvals:
+    get:
+      tags: [approvals]
+      summary: Lista aprovações
+      parameters:
+        - name: status
+          in: query
+          schema: { type: string, enum: [pending, approved, denied, expired] }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Approval" }
+  /v1/approvals/{id}/decide:
+    parameters:
+      - $ref: "#/components/parameters/Id"
+    post:
+      tags: [approvals]
+      summary: Decide uma aprovação
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [decision]
+              properties:
+                decision: { type: string, enum: [approve, deny] }
+                remember: { type: boolean, default: false }
+      responses:
+        "200":
+          description: Decidida
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Approval" }
+        "409": { $ref: "#/components/responses/Error" }
+  /v1/routines:
+    get:
+      tags: [routines]
+      summary: Lista rotinas
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Routine" }
+    post:
+      tags: [routines]
+      summary: Cria rotina
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/RoutineInput" }
+      responses:
+        "201":
+          description: Criada
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Routine" }
+  /v1/routines/{id}/run:
+    parameters:
+      - $ref: "#/components/parameters/Id"
+    post:
+      tags: [routines]
+      summary: Roda a rotina agora
+      responses:
+        "202": { description: Enfileirada }
+  /v1/memories:
+    get:
+      tags: [memory]
+      summary: Lista memórias
+      parameters:
+        - name: scope
+          in: query
+          schema: { type: string, enum: [account, agent, project] }
+        - name: scope_id
+          in: query
+          schema: { type: string }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Memory" }
+  /v1/usage:
+    get:
+      tags: [usage]
+      summary: Uso e custo agregados
+      parameters:
+        - name: from
+          in: query
+          schema: { type: string, format: date-time }
+        - name: to
+          in: query
+          schema: { type: string, format: date-time }
+        - name: group_by
+          in: query
+          schema: { type: string, enum: [agent, routine, project, node, model] }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/UsageRow" }
+components:
+  securitySchemes:
+    device:
+      type: http
+      scheme: bearer
+  parameters:
+    Id:
+      name: id
+      in: path
+      required: true
+      schema: { type: string }
+  responses:
+    Error:
+      description: Erro
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+  schemas:
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code:
+              type: string
+              enum: [budget_exceeded, approval_required, not_found, invalid_input, unauthorized, node_offline, harness_signed_out, conflict, rate_limited]
+            message: { type: string }
+    RunOn:
+      type: string
+      enum: [pc, vps, auto]
+    AgentInput:
+      type: object
+      required: [name, token_limit_month]
+      properties:
+        name: { type: string }
+        role: { type: string }
+        instructions: { type: string }
+        harness: { type: string, example: claude-code }
+        model: { type: string }
+        reasoning_effort: { type: string, enum: [low, medium, high, max] }
+        run_on: { $ref: "#/components/schemas/RunOn" }
+        token_limit_month: { type: integer, minimum: 1 }
+        approval_level: { type: string, enum: [always, sensitive, trusted] }
+    Agent:
+      allOf:
+        - $ref: "#/components/schemas/AgentInput"
+        - type: object
+          required: [id, paused, tokens_used_month]
+          properties:
+            id: { type: string }
+            paused: { type: boolean }
+            tokens_used_month: { type: integer }
+    Conversation:
+      type: object
+      required: [id, kind]
+      properties:
+        id: { type: string }
+        kind: { type: string, enum: [dm, channel] }
+        title: { type: string }
+        unread: { type: integer }
+    Message:
+      type: object
+      required: [id, conversation_id, author_kind, author_id, body, created_at]
+      properties:
+        id: { type: string }
+        conversation_id: { type: string }
+        thread_id: { type: string }
+        author_kind: { type: string, enum: [person, agent, system] }
+        author_id: { type: string }
+        body: { type: string }
+        created_at: { type: string, format: date-time }
+    Approval:
+      type: object
+      required: [id, agent_id, action, target, status]
+      properties:
+        id: { type: string }
+        run_id: { type: string }
+        agent_id: { type: string }
+        action: { type: string, example: email.send }
+        target: { type: string, example: cliente@exemplo.com }
+        args: { type: object, additionalProperties: true }
+        status: { type: string, enum: [pending, approved, denied, expired] }
+        outcome: { type: string, enum: [completed, failed, not_run] }
+    RoutineInput:
+      type: object
+      required: [agent_id, name, trigger_kind, schedule]
+      properties:
+        agent_id: { type: string }
+        name: { type: string }
+        trigger_kind: { type: string, enum: [cron, interval, event] }
+        schedule: { type: string, example: "0 8 * * 1-5" }
+        run_on: { $ref: "#/components/schemas/RunOn" }
+        notify_on: { type: string, enum: [always, news, failure] }
+        max_retries: { type: integer, minimum: 0, maximum: 5 }
+    Routine:
+      allOf:
+        - $ref: "#/components/schemas/RoutineInput"
+        - type: object
+          required: [id, paused]
+          properties:
+            id: { type: string }
+            paused: { type: boolean }
+            next_run_at: { type: string, format: date-time }
+    Memory:
+      type: object
+      required: [id, scope, kind, text]
+      properties:
+        id: { type: string }
+        scope: { type: string, enum: [account, agent, project] }
+        scope_id: { type: string }
+        kind: { type: string, enum: [fact, preference, decision] }
+        text: { type: string }
+    UsageRow:
+      type: object
+      required: [key, tokens_in, tokens_out, cost_micros]
+      properties:
+        key: { type: string }
+        tokens_in: { type: integer }
+        tokens_out: { type: integer }
+        cost_micros: { type: integer }

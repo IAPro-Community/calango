@@ -1,0 +1,14 @@
+.git
+.github
+.claude
+node_modules
+data
+dist
+out
+*.db
+*.db-wal
+*.db-shm
+.env
+.env.*
+DEV
+deploy/Caddyfile

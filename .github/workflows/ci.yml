@@ -1,0 +1,45 @@
+# CI mínimo. Não executado ainda: validar no GitHub após o primeiro push.
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  go:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.22"
+      - run: go vet ./...
+      - run: go test ./... -count=1
+      - run: test -z "$(gofmt -l .)"
+
+  site-image:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build da imagem do site
+        run: docker build -t calango-site:ci .
+      - name: Sobe o container e checa /healthz
+        run: |
+          docker run -d --name site -p 8080:8080 calango-site:ci
+          for i in $(seq 1 20); do
+            curl -fsS http://127.0.0.1:8080/healthz && exit 0
+            sleep 1
+          done
+          docker logs site
+          exit 1
+
+  node-image:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build da imagem do nó
+        run: docker build -f deploy/Dockerfile.node -t calango/calango:ci .

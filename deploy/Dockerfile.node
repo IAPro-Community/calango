@@ -1,0 +1,16 @@
+# Imagem do nó Calango (servidor). Build a partir da raiz: docker build -f deploy/Dockerfile.node -t calango/calango .
+# Não testado: o daemon Docker não estava disponível no ambiente de desenvolvimento.
+FROM golang:1.22-alpine AS build
+WORKDIR /src
+COPY go.mod ./
+COPY . .
+RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/calango ./cmd/calango
+
+FROM gcr.io/distroless/static-debian12:nonroot
+COPY --from=build /out/calango /usr/local/bin/calango
+# Dentro do container o servidor precisa escutar em todas as interfaces; o acesso externo
+# deve passar pelo proxy TLS, nunca direto.
+ENV CALANGO_ADDR=0.0.0.0:7317
+EXPOSE 7317
+USER nonroot:nonroot
+ENTRYPOINT ["/usr/local/bin/calango"]

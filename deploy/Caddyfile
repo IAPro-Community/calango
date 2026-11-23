@@ -1,0 +1,4 @@
+# Substitua pelo seu domínio. Caddy obtém o certificado TLS automaticamente.
+calango.seudominio.com {
+	reverse_proxy calango:7317
+}
