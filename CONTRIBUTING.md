@@ -7,7 +7,8 @@ Before anything else, read:
 - [CLA.md](CLA.md): you must accept the contributor agreement in your first pull request
 - [TRADEMARKS.md](TRADEMARKS.md): rules for using the name and logo
 - [AGENTS.md](AGENTS.md): rules for contributing code, including with AI agents
-- [DEV/TODO_V1.md](DEV/TODO_V1.md): what is left for V1
+- [GOVERNANCE.md](GOVERNANCE.md): roles, decisions and workflow
+- [GitHub Issues](https://github.com/IAPro-Community/calango/issues): operational work; legacy V1 TODO remains historical until migration is verified
 
 ## Language
 
@@ -25,10 +26,14 @@ Translated versions of the README are available in [Español](README.es.md) and 
 
 ## Where to start
 
-1. Pick an open task from the [V1 TODO](DEV/TODO_V1.md) or the [roadmap](DEV/SPECS/ROADMAP.md).
-2. If the task has an identifier (e.g., `F1-T03`), use it in the title of your PR.
-3. For a large change, open an issue first with the proposal. Architecture decisions become ADRs in `DEV/ADR/`.
-4. Not sure where to start? Items marked "good first issue" are small and well defined.
+1. Find or propose an issue in [GitHub Issues](https://github.com/IAPro-Community/calango/issues). Check existing work to avoid duplicates.
+2. Ask for assignment and confirm Ready status before implementation. Keep the legacy task ID in the issue when available.
+3. Update main locally; create a short-lived branch `<type>/<issue-number>-<short-description>` from main. Types: feat, fix, refactor, docs, test, ci, chore, spike, hotfix. Use forks for external contributions and isolated worktrees for parallel sessions.
+4. Open a draft PR linked to the issue early; test, request independent human review, resolve conversations and pass CI.
+5. Maintainers squash merge after all gates. Use Refs #N for partial deliveries; Closes #N only if acceptance is complete at merge. Delete the branch after merge.
+6. Significant architecture decisions require a reviewed ADR in DEV/ADR/. Use good first issue for suitable starter tasks.
+
+Never push directly to main. See [GOVERNANCE.md](GOVERNANCE.md) for Ready/Done and decision authority.
 
 ## Development environment
 
@@ -63,7 +68,9 @@ docker run --rm -p 8080:8080 calango-site
 - Tests for domain rules.
 - Describe what changed, why, and how to verify it.
 - Update the documentation in `DEV/` when the change affects scope, architecture or the API.
-- Accept the CLA when the bot asks.
+- Accept the CLA in your first PR; follow the documented maintainer process until automation is verified.
+- PR titles use Conventional Commits (e.g. `feat(vault): rotate master keys`). The squash commit must retain this format.
+- Do not approve your own work. Disclose material AI assistance; report actual validation and any unrun checks.
 
 ## Code of conduct
 
