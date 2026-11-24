@@ -56,11 +56,6 @@ func NewCodex(bin, workDir, home string) (*Codex, error) {
 	return &Codex{bin: bin, workDir: workDir, home: home}, nil
 }
 
-// command builds a Codex CLI invocation for this account.
-func (c *Codex) command(ctx context.Context, args ...string) *exec.Cmd {
-	return c.commandWithHome(ctx, c.home, args...)
-}
-
 func (c *Codex) commandWithHome(ctx context.Context, home string, args ...string) *exec.Cmd {
 	cmd := exec.CommandContext(ctx, c.bin, args...)
 	if home != "" {

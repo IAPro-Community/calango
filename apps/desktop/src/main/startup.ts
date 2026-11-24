@@ -8,6 +8,7 @@ export function linuxAutostartFilePath(configHome: string | undefined, home: str
 
 export function linuxAutostartEntry(executable: string, args: readonly string[]): string {
   const quote = (value: string): string => {
+    // biome-ignore lint/suspicious/noControlCharactersInRegex: rejeitar caracteres de controle é uma proteção intencional do arquivo desktop.
     if (/[\u0000-\u001F\u007F]/.test(value)) {
       throw new Error('desktop command arguments cannot contain control characters');
     }

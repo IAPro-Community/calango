@@ -18,10 +18,7 @@ export function UsageScreen({ client, t }: ScreenProps) {
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
 
-  const query = useMemo<UsageQuery>(
-    () => ({ groupBy, from: dayStart(from), to: dayStart(to) }),
-    [groupBy, from, to],
-  );
+  const query = useMemo<UsageQuery>(() => ({ groupBy, from: dayStart(from), to: dayStart(to) }), [groupBy, from, to]);
   const load = useCallback(() => client.getUsage(query), [client, query]);
   const { data, error } = usePoll(load, 15_000);
   const rows = data ?? [];
@@ -32,12 +29,10 @@ export function UsageScreen({ client, t }: ScreenProps) {
         <h1>{t('navUsage')}</h1>
         <div className="actions">
           <label>
-            {t('usageFrom')}{' '}
-            <input type="date" value={from} onChange={(event) => setFrom(event.target.value)} />
+            {t('usageFrom')} <input type="date" value={from} onChange={(event) => setFrom(event.target.value)} />
           </label>
           <label>
-            {t('usageTo')}{' '}
-            <input type="date" value={to} onChange={(event) => setTo(event.target.value)} />
+            {t('usageTo')} <input type="date" value={to} onChange={(event) => setTo(event.target.value)} />
           </label>
           <label>
             {t('usageGroupBy')}{' '}

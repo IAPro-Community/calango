@@ -13,6 +13,7 @@ export function usePoll<T>(load: () => Promise<T>, intervalMs: number): Poll<T> 
   const [error, setError] = useState<string | null>(null);
   const [tick, setTick] = useState(0);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: tick reinicia o polling ao chamar refresh().
   useEffect(() => {
     let active = true;
     let timer: number | undefined;
