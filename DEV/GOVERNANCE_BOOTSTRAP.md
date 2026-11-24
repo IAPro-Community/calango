@@ -23,7 +23,7 @@ Milestones propostos: v0.1.0 Fundação; v0.2.0 Assistente local; v0.3.0 Assiste
 
 ## CI
 
-Preservar checks existentes. quality-gate exige sucesso de todos os jobs dependentes, inclusive sem skipped/cancelled. Evoluir com Staticcheck, race, govulncheck, CodeQL, detecção de segredos/dependências, desktop/mobile, assinatura e smoke. Privilégio mínimo; forks não recebem segredos.
+A implementação da CI e quality-gate foi concentrada no PR #114 (issue #51), baseado na main atual; não duplicar ci.yml no PR #2. Preservar checks existentes. quality-gate exige sucesso de todos os jobs dependentes, inclusive sem skipped/cancelled. Evoluir com Staticcheck, race, govulncheck, CodeQL, detecção de segredos/dependências, desktop/mobile, assinatura e smoke. Privilégio mínimo; forks não recebem segredos.
 
 ## Transição e evidências
 
