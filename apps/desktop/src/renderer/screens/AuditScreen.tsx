@@ -63,22 +63,38 @@ export function AuditScreen({ client, t }: ScreenProps) {
           </button>
         </div>
       </header>
-      {error && <p className="error" role="alert">{t('auditError')}</p>}
-      {exportError && <p className="error" role="alert">{t('auditExportError')}</p>}
+      {error && (
+        <p className="error" role="alert">
+          {t('auditError')}
+        </p>
+      )}
+      {exportError && (
+        <p className="error" role="alert">
+          {t('auditExportError')}
+        </p>
+      )}
       <div className="card" aria-live="polite">
         {result === null ? (
           <p className="muted">{loading ? t('auditLoading') : t('auditNeverChecked')}</p>
         ) : (
           <>
             <h2>{result.ok ? t('auditValid') : t('auditInvalid')}</h2>
-            <p>{t('auditEntriesChecked')}: {result.entries_checked}</p>
+            <p>
+              {t('auditEntriesChecked')}: {result.entries_checked}
+            </p>
             {result.entries_checked === 0 && <p className="muted">{t('auditEmptyChain')}</p>}
             {result.first_break !== null && (
               <div>
                 <h3>{t('auditFirstBreak')}</h3>
-                <p>{t('auditBreakSequence')}: {result.first_break.seq}</p>
-                <p>{t('auditBreakId')}: <code>{result.first_break.id}</code></p>
-                <p>{t('auditBreakReason')}: {result.first_break.reason}</p>
+                <p>
+                  {t('auditBreakSequence')}: {result.first_break.seq}
+                </p>
+                <p>
+                  {t('auditBreakId')}: <code>{result.first_break.id}</code>
+                </p>
+                <p>
+                  {t('auditBreakReason')}: {result.first_break.reason}
+                </p>
               </div>
             )}
           </>
