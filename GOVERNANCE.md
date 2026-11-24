@@ -1,6 +1,6 @@
 # Governança do Calango v1.0
 
-O Calango adota GitHub Flow, desenvolvimento orientado a issues e releases incrementais. Esta política entra em vigor após aprovação humana e integração do PR de governança; configurações do GitHub precisam de verificação independente.
+O Calango adota fluxo com branches permanentes main e develop, desenvolvimento orientado a issues e releases incrementais. Esta política entra em vigor após aprovação humana e integração do PR de governança; configurações do GitHub precisam de verificação independente.
 
 ## Idioma e responsabilidades
 
@@ -19,7 +19,7 @@ Qualquer colaborador pode propor mudanças. Alterações de escopo, licenciament
 
 GitHub Issues registra escopo; GitHub Projects organiza prioridades e status; milestones representam entregas; especificações e ADRs definem contratos. Uma issue por unidade de trabalho, um responsável humano e uma atividade principal por sessão. Dependências explícitas e sub-issues para entregas independentes.
 
-Branches temporárias a partir da main, PR vinculado, CI aprovada, revisão humana independente, conversas resolvidas e squash merge. Proibido push direto, force push, exclusão da main e bypass permanente. Exceções emergenciais exigem autorização, registro e restauração da política.
+Branches temporárias a partir da develop, PR vinculado para develop, CI aprovada, revisão humana independente, conversas resolvidas e squash merge. Promoção develop → main por PR, com merge commit para preservar ancestralidade e evitar reapresentar commits; sincronizar correções da main de volta à develop por PR. Proibido push direto, force push, exclusão de main/develop e bypass permanente. Nunca excluir a develop após promoção. Exceções emergenciais exigem autorização, registro e restauração da política.
 
 Ready: objetivo, escopo, critérios, dependências, prioridade e ausência de bloqueios. Done: evidência dos critérios, testes, CI, revisão, merge e validação pós-merge quando aplicável. Duplicatas são encerradas com motivo, sem contar como entregas.
 
