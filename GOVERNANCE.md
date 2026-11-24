@@ -1,36 +1,34 @@
-# Calango governance v1.0
+# Governança do Calango v1.0
 
-Calango uses issue-driven GitHub Flow and incremental releases. This policy takes effect when the governance PR is accepted; repository settings must be independently verified.
+O Calango adota GitHub Flow, desenvolvimento orientado a issues e releases incrementais. Esta política entra em vigor após aprovação humana e integração do PR de governança; configurações do GitHub precisam de verificação independente.
 
-## Roles and decisions
+## Idioma e responsabilidades
 
-- Product Owner: vision, scope, backlog priority, release objectives and functional acceptance.
-- Maintainers: repository policy, human review, merge and release authority.
-- Technical leads: architecture and technical standards; significant decisions require a reviewed ADR.
-- Contributors: implementation, testing and documentation of assigned issues.
-- Reviewers: independent human review; authors must not approve their own work.
-- AI agents: delegated execution under an accountable human; no independent approval, policy bypass or publication authority.
+Português brasileiro é o idioma operacional: issues, PRs, revisões, commits e documentação de trabalho. Preservar nomes de APIs, símbolos de código, identificadores técnicos e catálogos de tradução. Documentação pública multilíngue continua disponível. Traduzir documentos legados gradualmente, sem alterar contratos ou histórico.
 
-Anyone may propose changes. Scope, licensing, commercial policy and other owner decisions require the appropriate owners' approval. Record decisions in the issue and ADR where applicable. Maintainer identities and code ownership are established by the repository owners, not inferred from commits.
+- Product Owner: visão, escopo, prioridades, critérios de aceite e releases.
+- Mantenedores: políticas, revisão humana, integração e publicação.
+- Liderança técnica: arquitetura, padrões e ADRs.
+- Colaboradores: implementação, testes e documentação das issues.
+- Revisores: revisão humana independente; ninguém aprova o próprio trabalho.
+- Agentes de IA: execução delegada sob responsabilidade humana; sem aprovação, bypass ou publicação autônoma.
 
-## Work and review
+Qualquer colaborador pode propor mudanças. Alterações de escopo, licenciamento e política comercial exigem decisão dos responsáveis. Registrar decisões na issue e ADR quando aplicável. Não inferir responsáveis a partir de commits.
 
-GitHub Issues owns work scope; GitHub Projects owns prioritization and workflow status; milestones own target deliveries. Specs and ADRs remain the technical source of truth. One primary issue per unit of work, one accountable human, and one active task per contributor/session by default. Use sub-issues for independently verifiable slices; dependencies must be explicit.
+## Fluxo de trabalho
 
-Use short-lived branches off main, linked PRs, a successful required CI gate, independent human approval, resolved conversations and squash merge. No direct pushes, force pushes, main deletion or permanent administrative bypass. Emergency policy changes require explicit owner authorization, an audit record and restoration. A green CI does not imply functional acceptance.
+GitHub Issues registra escopo; GitHub Projects organiza prioridades e status; milestones representam entregas; especificações e ADRs definem contratos. Uma issue por unidade de trabalho, um responsável humano e uma atividade principal por sessão. Dependências explícitas e sub-issues para entregas independentes.
 
-See [CONTRIBUTING](CONTRIBUTING.md), [engineering conventions](DEV/CONVENTIONS.md), [delivery process](DEV/TECHNICAL_DELIVERY.md) and [bootstrap settings](DEV/GOVERNANCE_BOOTSTRAP.md).
+Branches temporárias a partir da main, PR vinculado, CI aprovada, revisão humana independente, conversas resolvidas e squash merge. Proibido push direto, force push, exclusão da main e bypass permanente. Exceções emergenciais exigem autorização, registro e restauração da política.
 
-## Ready and done
+Ready: objetivo, escopo, critérios, dependências, prioridade e ausência de bloqueios. Done: evidência dos critérios, testes, CI, revisão, merge e validação pós-merge quando aplicável. Duplicatas são encerradas com motivo, sem contar como entregas.
 
-Ready: objective, scope, acceptance criteria, dependencies, priority and no unresolved blocking decision. Done: acceptance evidence, relevant tests, required CI, independent review, merge and any required post-merge validation; update documentation when affected. Keep issues open until all criteria are met. A rejected or duplicate issue is closed with a reason, not counted as delivered.
+## Registros retroativos
 
-## Releases
+Trabalho anterior à governança recebe título [Retroativa], IDs legados, SHA da main auditada, commits originais, módulos, evidências registradas e limitações. Não recriar branches/PRs históricos nem inventar autoria, aprovação ou testes. Encerrar somente o recorte comprovado; entregas parciais permanecem abertas. Preservar autoria Git; validação de release é independente. Não reescrever a história.
 
-Use Semantic Versioning, v-prefixed immutable tags, optional alpha/beta/rc prereleases and a traceable main commit. Release scope is set by the Product Owner and maintainers; pre-1.0 releases do not change the approved V1 scope. Require changelog, compatibility, limitations, installation/update guidance, artifacts and verification appropriate to the milestone. Publishing requires maintainer authorization.
+## Releases e cadência
 
-## Cadence
+SemVer, tags v imutáveis, alpha/beta/rc quando necessário, commit rastreável da main, changelog, compatibilidade, limitações, instalação/atualização, artefatos e validação. Publicação autorizada por mantenedor. Triagem contínua, refinamento semanal quando útil, revisão de bloqueios, milestones e releases. Medir fluxo da equipe, não linhas de código individuais.
 
-Continuous triage; review blockers and PRs when active; weekly refinement where useful; review milestone scope and release evidence. Measure team flow (lead/cycle time, throughput, WIP, blockers and review latency), not individual lines of code or commit counts.
-
-Security reports follow [SECURITY.md](SECURITY.md). Contributions remain subject to [CLA.md](CLA.md) and the code of conduct.
+Consultar [CONTRIBUTING](CONTRIBUTING.md), [convenções](DEV/CONVENTIONS.md), [entrega técnica](DEV/TECHNICAL_DELIVERY.md) e [bootstrap](DEV/GOVERNANCE_BOOTSTRAP.md). Respeitar [SECURITY](SECURITY.md), [CLA](CLA.md) e código de conduta.
