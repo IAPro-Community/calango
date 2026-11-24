@@ -33,6 +33,10 @@ npm run build -w apps/desktop
 npm run test:main -w apps/desktop
 ```
 
+## Qualidade obrigatória
+
+Após integração do PR #114 (issue #51), executar na raiz `npm ci`, `npm run format`, `npm run lint` e `npm run quality` antes de solicitar revisão; CI não corrige fontes. `npm run lint:fix` apenas para correções seguras, com revisão do diff. Não editar arquivos gerados nem suprimir regras globalmente. Consulte DEV/QUALIDADE.md; enquanto PR #114 estiver aberto, execute os checks existentes e relate limitações.
+
 ## Após trabalhar
 
 Registre escopo, comandos, resultados reais, limitações e próximos passos na issue/PR. Atualize ADR/especificações quando afetados. Não atualize rotineiramente ACTIVE/HANDOFF/WORKLOG/VERIFY globais ou checkboxes do roadmap; preservar legados durante transição. Solicite revisão humana. Não encerre issue antes do aceite.
