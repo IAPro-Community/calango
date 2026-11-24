@@ -165,8 +165,8 @@ button.danger {
   font-size: 13px;
 }
 
-.form label.check-label,
-label.check-label {
+label.check-label,
+.form label.check-label {
   flex-direction: row;
   align-items: center;
   gap: 8px;
@@ -188,8 +188,13 @@ label.check-label {
   gap: 12px;
 }
 
-.approval {
-  align-items: flex-start !important;
+.list li.approval {
+  align-items: flex-start;
+}
+
+output.muted {
+  display: block;
+  margin-block: 1em;
 }
 
 .muted {
