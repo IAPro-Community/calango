@@ -46,7 +46,7 @@ textarea {
   border-radius: var(--calango-radius-sm);
   padding: 6px 10px;
 }
-input[type='checkbox'] {
+input[type="checkbox"] {
   width: 18px;
   min-height: 18px;
   height: 18px;
@@ -341,5 +341,4 @@ output.muted {
     width: 100%;
     min-height: 100px;
   }
-
 }
