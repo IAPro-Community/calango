@@ -5,12 +5,12 @@ Este checklist não comprova que as configurações administrativas já foram ap
 ## Administração
 
 - [ ] Confirmar mantenedores, revisores humanos independentes e permissões; adicionar CODEOWNERS somente com usuários/equipes reais confirmados.
-- [ ] Settings > General: somente squash merge; título do PR como commit squash; exclusão automática de branches; auto-merge opcional condicionado aos gates; verificar Issues e Discussions.
-- [ ] Settings > Rules > Rulesets: protected-main ativo; impedir exclusão e force push; exigir PR, uma aprovação independente, invalidar aprovações obsoletas, resolver conversas, histórico linear e squash; sem bypass permanente.
+- [ ] Settings > General: permitir squash para tarefas e merge commit para promoção develop → main; título do PR como commit squash; excluir branches temporárias após merge, preservar develop; auto-merge opcional condicionado aos gates; verificar Issues e Discussions.
+- [ ] Settings > Rules > Rulesets: rulesets ativos para main e develop; impedir exclusão e force push; exigir PR, uma aprovação independente, invalidar aprovações obsoletas, resolver conversas, squash em PRs de tarefas para develop; permitir merge commit na promoção para main (não exigir histórico linear nesse ruleset); sem bypass permanente.
 - [ ] Confirmar execução real de CI e nome do quality-gate antes de exigir o check e branch atualizada.
 - [ ] Confirmar canal privado de segurança e processo CLA; não presumir bot.
 - [ ] Configurar projeto, labels e milestones; evidenciar na issue #1.
-- [ ] Sincronizar branch de governança com main atual e revisar conflitos, preservando Go 1.23 e alterações do core/desktop.
+- [ ] Sincronizar branch de governança com develop atual e revisar conflitos, preservando Go 1.23 e alterações do core/desktop.
 - [ ] Registrar CI, aprovação humana, squash merge e validação posterior. Não encerrar #1 antes disso.
 
 ## Projeto
@@ -27,4 +27,4 @@ A implementação da CI e quality-gate foi concentrada no PR #114 (issue #51), b
 
 ## Transição e evidências
 
-TODO e roadmap legados preservados. Issues retroativas registram recortes históricos e validações restantes, sem inventar PRs/aprovações. A migração de tarefas futuras ainda não foi executada. Ver DEV/AUDITORIA_RETROATIVA.md e issue #1. As traduções de documentos legados serão graduais. A base original do PR era dee8efa; a main auditada depois avançou para 1e8868b. A CI e configurações administrativas ainda precisam de confirmação.
+TODO e roadmap legados preservados. Issues retroativas registram recortes históricos e validações restantes, sem inventar PRs/aprovações. A migração de tarefas futuras foi registrada em #31–#112; verificar cobertura. A develop foi criada por decisão posterior do PO a partir da main; preservar CI e revisão humana. Ver DEV/AUDITORIA_RETROATIVA.md e issue #1. As traduções de documentos legados serão graduais. A base original do PR era dee8efa; a main auditada depois avançou para 1e8868b. A CI e configurações administrativas ainda precisam de confirmação.
