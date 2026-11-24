@@ -1,27 +1,27 @@
-name: Spike
-description: Investigate a technical uncertainty
+name: Investigação
+description: Investigar incerteza técnica
 body:
   - type: textarea
     id: section_1
     attributes:
-      label: Hypothesis or question
+      label: Hipótese ou pergunta
     validations:
       required: true
   - type: textarea
     id: section_2
     attributes:
-      label: Investigation scope and timebox
+      label: Escopo e limite da investigação
     validations:
       required: true
   - type: textarea
     id: section_3
     attributes:
-      label: Expected evidence or deliverable
+      label: Evidência ou entrega esperada
     validations:
       required: true
   - type: textarea
     id: section_4
     attributes:
-      label: Dependencies and risks
+      label: Dependências e riscos
     validations:
       required: false
