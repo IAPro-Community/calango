@@ -1,7 +1,8 @@
-# Changelog
+# Histórico de alterações
 
-Notable changes will be documented here for published versions.
+Alterações relevantes serão registradas por versão publicada.
 
-## Unreleased
+## Não publicado
 
-- Establish issue-driven development governance, contribution templates and a stable CI quality gate (pending review and administrative verification).
+- Governança orientada a issues, templates de contribuição e gate de CI (pendente de revisão e confirmação administrativa).
+- Política operacional em português brasileiro e registro retroativo do trabalho anterior à governança.
