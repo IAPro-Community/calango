@@ -64,7 +64,9 @@ function readCatalog() {
         const details = [
           missing.length > 0 ? `missing: ${missing.join(', ')}` : '',
           extra.length > 0 ? `unexpected: ${extra.join(', ')}` : '',
-        ].filter(Boolean).join('; ');
+        ]
+          .filter(Boolean)
+          .join('; ');
         throw new Error(`locale ${locale.source} has a different key set (${details})`);
       }
     }

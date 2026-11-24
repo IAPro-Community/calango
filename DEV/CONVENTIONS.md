@@ -1,50 +1,39 @@
-# Code conventions
+# Convenções de engenharia
 
-## General
+## Geral
 
-- **Repository language is English.** Code, identifiers, comments, commit messages, issues, pull requests, `DEV/` docs, ADRs, specs and the public docs are written in English.
-- The product interface ships in three languages: English (default), Brazilian Portuguese (`pt-BR`) and Spanish (`es`). Every user-facing string goes through the catalog in `packages/i18n`. No hard-coded text on screen.
-- Locale detection order: explicit user choice > saved preference > browser/OS language (first supported match) > `en`.
-- Small commits, imperative messages. Never commit secrets (`.env` stays out of git).
+- Português brasileiro em issues, PRs, revisões, descrições de commits e documentação operacional. Identificadores, APIs, nomes de arquivos e símbolos técnicos permanecem estáveis.
+- Interface em en (padrão), pt-BR e es via packages/i18n; sem textos fixos na tela. Ordem: escolha explícita > preferência salva > idioma do navegador/SO > en.
+- Branch por issue; PR e commit squash com Conventional Commits: type(scope): descrição; indicar ! e BREAKING CHANGE quando incompatível. Escopos seguem módulos (core, api, store, config, agents, gateway, harness, memory, routines, approvals, mcp, maestro, auth, vault, audit, pairing, desktop, mobile, web, cloud, ade, browser, terminal, teams, billing, licensing, ci, deploy, release, deps).
+- Commits pequenos e imperativos; nunca segredos (.env fora do Git).
+- Revisão humana e CI obrigatórias antes do merge.
 
-## Go (`cmd/`, `internal/`)
+## Go
 
-- Go 1.23+. `gofmt` and `go vet` clean. `staticcheck` once CI exists.
-- `internal/core` is pure domain: no network, no disk, no global clock (injected clock).
-- Errors with context (`fmt.Errorf("routine %s: %w", id, err)`); exported sentinel errors for what the caller must distinguish.
-- `context.Context` as the first parameter in everything that does I/O.
-- No panics in production code, except for impossible invariants.
-- External dependencies only with a written reason in the PR. Prefer the standard library.
-- Interfaces are declared in the package that consumes them, not in the one that implements them.
+- Go 1.23+; gofmt e go vet sem problemas; Staticcheck quando incorporado à CI.
+- internal/core é domínio puro: sem rede, disco ou relógio global; injetar relógio.
+- Erros com contexto (fmt.Errorf com %w), sentinelas exportadas para casos distinguíveis.
+- context.Context primeiro parâmetro em operações de I/O; sem panic em produção salvo invariantes impossíveis.
+- Justificar dependências no PR; preferir biblioteca padrão; interfaces no pacote consumidor.
 
-## Tests
+## Testes
 
-- Unit test required for every domain rule.
-- Tests do not depend on the network, Docker or real keys. The AI model is a fake in tests (fake provider).
-- Database in tests: in-memory SQLite (`file::memory:?cache=shared`).
-- Name: `TestUnit_Behavior`.
+- Teste unitário para cada regra de domínio; sem rede, Docker ou chaves reais em unitários.
+- Fake provider; SQLite em memória (file::memory:?cache=shared); TestUnit_Behavior.
 
-## TypeScript (desktop, web)
+## TypeScript
 
-- `strict: true`, no `any` (use `unknown` with a guard).
-- React with PascalCase components, hooks prefixed with `use`.
-- API client: only the generated one (`packages/sdk-ts`). Never a hand-written `fetch` to the `calango` API.
-- Style: tokens from `packages/tokens`; no loose colors in CSS.
+- strict: true, sem any (unknown com guard); React PascalCase, hooks use.
+- API exclusivamente pelo SDK gerado packages/sdk-ts; sem fetch manual para API Calango.
+- Estilo por tokens packages/tokens; sem cores avulsas.
 
-## Dart (mobile)
+## Dart
 
-- `flutter analyze` clean, `dart format`.
-- API client: only the generated one (`packages/sdk-dart`).
-- Theme: `ThemeData` composed from the Dart constants generated from `packages/tokens`.
+- flutter analyze e dart format; SDK gerado packages/sdk-dart; ThemeData a partir dos tokens Dart.
 
-## API
+## API e banco
 
-- Contract first: change `api/openapi.yaml`, regenerate the SDKs, then implement.
-- Versioned routes: `/v1/...`. Errors as JSON `{ "error": { "code": "...", "message": "..." } }`.
-- Error codes are words from a fixed list (`budget_exceeded`, `approval_required`, `not_found`, `invalid_input`, `unauthorized`, `node_offline`).
-- Real time over WebSocket at `/v1/events` with typed events (see `DATA_MODEL.md`).
-
-## Database
-
-- Numbered migrations in `internal/store/migrations/NNNN_name.sql`, immutable once committed.
-- Every domain table has `id` (ULID text), `created_at`, `updated_at` and `owner_id` where applicable.
+- Contrato primeiro em api/openapi.yaml, gerar SDKs, implementar.
+- Rotas /v1/...; erros JSON com error.code e error.message; códigos estáveis: budget_exceeded, approval_required, not_found, invalid_input, unauthorized, node_offline.
+- WebSocket /v1/events, eventos tipados (DATA_MODEL.md).
+- Migrações numeradas em internal/store/migrations/NNNN_name.sql, imutáveis após commit; tabelas de domínio com id ULID, created_at, updated_at e owner_id quando aplicável.

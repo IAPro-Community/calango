@@ -1,0 +1,27 @@
+name: Funcionalidade
+description: Propor uma capacidade do produto
+body:
+  - type: textarea
+    id: section_1
+    attributes:
+      label: Problema e necessidade do usuário
+    validations:
+      required: true
+  - type: textarea
+    id: section_2
+    attributes:
+      label: Objetivo e escopo
+    validations:
+      required: true
+  - type: textarea
+    id: section_3
+    attributes:
+      label: Critérios de aceite
+    validations:
+      required: true
+  - type: textarea
+    id: section_4
+    attributes:
+      label: Dependências e fora de escopo
+    validations:
+      required: false

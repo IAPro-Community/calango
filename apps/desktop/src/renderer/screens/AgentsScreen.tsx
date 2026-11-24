@@ -51,20 +51,28 @@ export function AgentsScreen({ client, t }: ScreenProps) {
       <header className="screen-header">
         <h1>{t('navAgents')}</h1>
         <div className="actions">
-          <button type="button" onClick={() => {
-            setActionError(null);
-            void client.pauseAll().then(refresh).catch((err) =>
-              setActionError(err instanceof Error ? err.message : String(err)),
-            );
-          }}>
+          <button
+            type="button"
+            onClick={() => {
+              setActionError(null);
+              void client
+                .pauseAll()
+                .then(refresh)
+                .catch((err) => setActionError(err instanceof Error ? err.message : String(err)));
+            }}
+          >
             {t('agentPauseAll')}
           </button>
-          <button type="button" onClick={() => {
-            setActionError(null);
-            void client.resumeAll().then(refresh).catch((err) =>
-              setActionError(err instanceof Error ? err.message : String(err)),
-            );
-          }}>
+          <button
+            type="button"
+            onClick={() => {
+              setActionError(null);
+              void client
+                .resumeAll()
+                .then(refresh)
+                .catch((err) => setActionError(err instanceof Error ? err.message : String(err)));
+            }}
+          >
             {t('agentResumeAll')}
           </button>
         </div>
@@ -162,12 +170,23 @@ function AccountForm({ client, t, onCreated }: ScreenProps & { onCreated: () => 
       </label>
       <label>
         {t('accountLabel')}
-        <input value={label} onChange={(event) => setLabel(event.target.value)} required pattern="[a-z0-9][a-z0-9-]{0,31}" />
+        <input
+          value={label}
+          onChange={(event) => setLabel(event.target.value)}
+          required
+          pattern="[a-z0-9][a-z0-9-]{0,31}"
+        />
       </label>
       {kind === 'anthropic' ? (
         <label>
           {t('accountAnthropicKey')}
-          <input type="password" value={secret} onChange={(event) => setSecret(event.target.value)} required autoComplete="off" />
+          <input
+            type="password"
+            value={secret}
+            onChange={(event) => setSecret(event.target.value)}
+            required
+            autoComplete="off"
+          />
         </label>
       ) : (
         <p className="muted">{t('accountCodexNote')}</p>
@@ -181,7 +200,12 @@ function AccountForm({ client, t, onCreated }: ScreenProps & { onCreated: () => 
   );
 }
 
-function AgentForm({ client, t, accounts, onCreated }: ScreenProps & { accounts: ProviderAccount[]; onCreated: () => void }) {
+function AgentForm({
+  client,
+  t,
+  accounts,
+  onCreated,
+}: ScreenProps & { accounts: ProviderAccount[]; onCreated: () => void }) {
   const [name, setName] = useState('');
   const [role, setRole] = useState('');
   const [instructions, setInstructions] = useState('');
@@ -265,7 +289,13 @@ function AgentForm({ client, t, accounts, onCreated }: ScreenProps & { accounts:
       </label>
       <label>
         {t('agentTokenLimit')}
-        <input type="number" min={1} value={tokenLimit} onChange={(event) => setTokenLimit(Number(event.target.value))} required />
+        <input
+          type="number"
+          min={1}
+          value={tokenLimit}
+          onChange={(event) => setTokenLimit(Number(event.target.value))}
+          required
+        />
       </label>
       <label>
         {t('agentRunOn')}
@@ -277,7 +307,10 @@ function AgentForm({ client, t, accounts, onCreated }: ScreenProps & { accounts:
       </label>
       <label>
         {t('agentApprovalLevel')}
-        <select value={approvalLevel} onChange={(event) => setApprovalLevel(event.target.value as 'always' | 'sensitive' | 'trusted')}>
+        <select
+          value={approvalLevel}
+          onChange={(event) => setApprovalLevel(event.target.value as 'always' | 'sensitive' | 'trusted')}
+        >
           <option value="always">{t('approvalAlways')}</option>
           <option value="sensitive">{t('approvalSensitive')}</option>
           <option value="trusted">{t('approvalTrusted')}</option>

@@ -1,0 +1,27 @@
+name: Decisão
+description: Solicitar decisão de produto ou arquitetura
+body:
+  - type: textarea
+    id: section_1
+    attributes:
+      label: Decisão necessária
+    validations:
+      required: true
+  - type: textarea
+    id: section_2
+    attributes:
+      label: Alternativas e impactos
+    validations:
+      required: true
+  - type: textarea
+    id: section_3
+    attributes:
+      label: Recomendação
+    validations:
+      required: true
+  - type: textarea
+    id: section_4
+    attributes:
+      label: Responsável pela decisão e dependências bloqueantes
+    validations:
+      required: true

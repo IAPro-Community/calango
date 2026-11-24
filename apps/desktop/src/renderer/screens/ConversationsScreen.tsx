@@ -143,9 +143,7 @@ function ConversationView({ client, t, conversationId }: ScreenProps & { convers
       return;
     }
     setSendError(null);
-    const key = pendingSend.current?.body === body
-      ? pendingSend.current.key
-      : crypto.randomUUID();
+    const key = pendingSend.current?.body === body ? pendingSend.current.key : crypto.randomUUID();
     pendingSend.current = { body, key };
     setSending(true);
     try {
@@ -198,9 +196,10 @@ function ConversationView({ client, t, conversationId }: ScreenProps & { convers
 function RunWatcher({ client, t, runId }: ScreenProps & { runId: string }) {
   const load = useCallback(async () => {
     const detail = await client.getRun(runId);
-    const approvals = detail.status === 'waiting_approval'
-      ? (await client.listApprovals('pending')).filter((approval) => approval.run_id === runId)
-      : [];
+    const approvals =
+      detail.status === 'waiting_approval'
+        ? (await client.listApprovals('pending')).filter((approval) => approval.run_id === runId)
+        : [];
     return { detail, approvals };
   }, [client, runId]);
   const { data, error, refresh } = usePoll(load, 1_500);
@@ -232,12 +231,17 @@ function RunWatcher({ client, t, runId }: ScreenProps & { runId: string }) {
         {error && <span className="error">{error}</span>}
         {stopError && <span className="error">{stopError}</span>}
         {!terminal && (
-          <button type="button" className="danger" onClick={() => {
-            setStopError(null);
-            void client.stopRun(runId).then(refresh).catch((err) =>
-              setStopError(err instanceof Error ? err.message : String(err)),
-            );
-          }}>
+          <button
+            type="button"
+            className="danger"
+            onClick={() => {
+              setStopError(null);
+              void client
+                .stopRun(runId)
+                .then(refresh)
+                .catch((err) => setStopError(err instanceof Error ? err.message : String(err)));
+            }}
+          >
             {t('actionStop')}
           </button>
         )}
@@ -261,7 +265,12 @@ function RunWatcher({ client, t, runId }: ScreenProps & { runId: string }) {
                   <button type="button" disabled={deciding} onClick={() => void decide(approval, 'approve', true)}>
                     {t('actionAlwaysAllow')}
                   </button>
-                  <button type="button" className="danger" disabled={deciding} onClick={() => void decide(approval, 'deny', false)}>
+                  <button
+                    type="button"
+                    className="danger"
+                    disabled={deciding}
+                    onClick={() => void decide(approval, 'deny', false)}
+                  >
                     {t('actionDeny')}
                   </button>
                 </div>

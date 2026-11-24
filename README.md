@@ -25,7 +25,7 @@
 ---
 
 > [!NOTE]
-> **Under construction.** We are building Calango V1 in public. Read the [V1 TODO](DEV/TODO_V1.md) and [how to contribute](CONTRIBUTING.md).
+> **Under construction.** We are building Calango V1 in public. See [GitHub Issues](https://github.com/IAPro-Community/calango/issues), the [V1 planning snapshot](DEV/TODO_V1.md), and [how to contribute](CONTRIBUTING.md).
 
 ## Why Calango
 
@@ -88,13 +88,15 @@ node scripts/generate-i18n.mjs --check
 
 ## Documentation
 
+- [GOVERNANCE.md](GOVERNANCE.md): branch policy and decision authority.
+
 - [AGENTS.md](AGENTS.md): entry point for anyone writing code here, human or AI agent.
 - [DEV/INDEX.md](DEV/INDEX.md): map of all documentation.
 - [DEV/PLANO.md](DEV/PLANO.md): full product overview.
 
 ## Language policy
 
-The repository is in **English**. Issues, pull requests, commit messages, code comments and documentation must be written in English. Read [CONTRIBUTING.md](CONTRIBUTING.md#language) for details. The README is also available in [Español](README.es.md) and [Português (BR)](README.pt-BR.md).
+Brazilian Portuguese is the team's operational language. Technical identifiers and contracts remain stable. See [CONTRIBUTING.md](CONTRIBUTING.md#idioma).
 
 ## License
 

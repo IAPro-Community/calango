@@ -53,7 +53,11 @@ export function App() {
         ))}
       </nav>
       <main className="content">
-        {client === null ? <DaemonStatusView state={state} t={t} /> : <SectionView section={section} client={client} t={t} />}
+        {client === null ? (
+          <DaemonStatusView state={state} t={t} />
+        ) : (
+          <SectionView section={section} client={client} t={t} />
+        )}
       </main>
     </div>
   );
@@ -75,7 +79,6 @@ function SectionView({ section, client, t }: { section: Section; client: Calango
       return <AuditScreen client={client} t={t} />;
     case 'settings':
       return <SettingsScreen client={client} t={t} />;
-
   }
 }
 

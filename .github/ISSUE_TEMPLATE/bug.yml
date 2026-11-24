@@ -1,0 +1,27 @@
+name: Erro
+description: Reportar um erro reproduzível
+body:
+  - type: textarea
+    id: section_1
+    attributes:
+      label: Ambiente e versão
+    validations:
+      required: true
+  - type: textarea
+    id: section_2
+    attributes:
+      label: Passos para reproduzir
+    validations:
+      required: true
+  - type: textarea
+    id: section_3
+    attributes:
+      label: Comportamento esperado
+    validations:
+      required: true
+  - type: textarea
+    id: section_4
+    attributes:
+      label: Comportamento observado e evidências sem dados pessoais
+    validations:
+      required: true

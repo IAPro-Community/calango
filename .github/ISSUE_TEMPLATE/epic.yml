@@ -1,0 +1,27 @@
+name: Épico
+description: Agrupar capacidade de produto
+body:
+  - type: textarea
+    id: section_1
+    attributes:
+      label: Objetivo e valor
+    validations:
+      required: true
+  - type: textarea
+    id: section_2
+    attributes:
+      label: Escopo e não objetivos
+    validations:
+      required: true
+  - type: textarea
+    id: section_3
+    attributes:
+      label: Sub-issues e dependências
+    validations:
+      required: true
+  - type: textarea
+    id: section_4
+    attributes:
+      label: Critério de conclusão
+    validations:
+      required: true
