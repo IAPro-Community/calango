@@ -31,3 +31,12 @@ Storing every secret directly in the OS vault cannot work: Linux Secret Service 
 - **One global key in the config file.** Gives no binding between owners; the upstream project removed this design for that reason.
 - **Porting upstream Fernet.** Fernet uses AES-128-CBC with HMAC and a fixed format; GCM with explicit nonces is the boring choice in Go's standard library.
 - **HKDF from `golang.org/x/crypto/hkdf`.** Needs a new module; the one-block HKDF used here is about 15 lines over `crypto/hmac`, with the RFC 5869 structure.
+
+## Amendment: master-key rotation at startup (Q31, 2026-11-23)
+
+- Explicit keys carry a version. `CALANGO_VAULT_KEY_VERSION` (default `1`) is the version of the current key from `CALANGO_VAULT_KEY` or `CALANGO_VAULT_KEY_FILE`. The OS keyring key stays at version 1; keyring rotation is not in V1.
+- Rotation: set `CALANGO_VAULT_KEY_PREVIOUS` (or `CALANGO_VAULT_KEY_PREVIOUS_FILE`) to the old key, set the current key to the new one, set `CALANGO_VAULT_KEY_VERSION` to the old version + 1, and restart. `vault.LoadMasterKeys` loads the previous key as version − 1. Startup calls `Service.Rotate` before serving: each data key sealed under another version is re-wrapped to the current one. Payload ciphertext is not touched. Each re-wrap is audited as `vault.rewrap` (name only) before the row is stored; if that audit write fails, the row is unchanged.
+- When the log reports the count, remove the PREVIOUS variables and restart. `Rotate` is idempotent: a restart mid-rotation skips rows already at the current version.
+- Refusal: if a row names a version with no configured key, the daemon exits before serving (`vault key rotation stopped after N secrets: … no master key configured for this version: V`). Rolling back to an older key without its version is refused for the same reason. Recover by configuring the key and version that the row names.
+- Rules: PREVIOUS needs an explicit current key and a version ≥ 2; PREVIOUS and PREVIOUS_FILE are mutually exclusive; a version above 1 needs an explicit current key.
+- Verified with a binary smoke test (`DEV/VERIFY.md`, 2026-11-23).

@@ -9,7 +9,7 @@
 
 ## Go (`cmd/`, `internal/`)
 
-- Go 1.22+. `gofmt` and `go vet` clean. `staticcheck` once CI exists.
+- Go 1.23+. `gofmt` and `go vet` clean. `staticcheck` once CI exists.
 - `internal/core` is pure domain: no network, no disk, no global clock (injected clock).
 - Errors with context (`fmt.Errorf("routine %s: %w", id, err)`); exported sentinel errors for what the caller must distinguish.
 - `context.Context` as the first parameter in everything that does I/O.

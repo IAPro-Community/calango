@@ -22,8 +22,14 @@ apps/desktop/
 - Distribution: signed NSIS (Windows), notarized DMG (macOS), `.deb` and AppImage (Linux). Signed auto-update.
 
 ## Screens in phase 1
-Sidebar (DMs, agents, routines, "For you"), conversation with steps, approval card, agent editor, routine editor, usage and costs, settings (you, agents, models, connections, vault).
+- Sidebar (DMs, agents, routines, "For you"), conversation with steps, approval card, agent/routine editors, usage/costs, settings and audit.
 
 ## Acceptance
 - Killing the `calango` process → the app shows "restarting" and comes back on its own within 10 s.
 - The Windows installer does not trigger a SmartScreen warning because of missing signing.
+
+## Current implementation status
+
+- Agents, conversations, approvals, routines, usage, settings and audit screens are implemented. Fake-provider E2E covers chat, routine and usage; approval-card dispatch has a mocked renderer smoke.
+- Electron launches the local daemon, creates a tray menu and registers `CommandOrControl+Shift+Space`. On Linux, startup-at-login uses an XDG autostart entry; isolated UI smoke verified create/remove.
+- Tray creation and shortcut registration did not log errors, but OS-level shortcut activation and tray-menu interaction were not exercised. Windows/macOS login behavior, signing and installers remain unverified.

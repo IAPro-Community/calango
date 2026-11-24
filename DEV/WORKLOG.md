@@ -124,7 +124,7 @@
 - Route `POST /v1/auth/rotate-token` (`internal/api/auth.go`): full scope (`PermWrite`); 200 with `{token}`, the only response that carries a token. Read and approve_only devices get 403. Contract in `api/openapi.yaml`.
 - `api.Config.Token` is now `*auth.LocalToken` instead of a string. `cmd/calango/main.go` wraps the token it loads from the vault.
 - The reserved-name guard for `api-token` still refuses PUT and DELETE. Rotation calls the vault service directly, so it is the only route that changes that item.
-- Risk: if the rotation response is lost, the client has no token and no route returns the new one. Recovering needs a local operator; V1 has no tool for that. Owner decision pending.
+- Risk: if the rotation response is lost, the client has no token and no route returns the new one. Recovering needs a local operator; V1 has no tool for that. Accepted by the owner on 2026-11-23 and documented here and in `DEV/HANDOFF.md`.
 - Not built: a route that revokes the local token without replacing it (it would leave no local client); master-key rotation at startup (Q31).
 
 ## 2026-11-23 — Usage known/estimated split (F1-T17, Q18)
@@ -133,3 +133,171 @@
 - Changed: `usage.Row`, `store.UsageTotals`, `api.usageRow`, `api/openapi.yaml` (`UsageRow` and `GET /v1/usage` description). No migration.
 - `TestUsageTotalsScopesToOwnerAndCountsUnknownCost` now includes an estimated row and checks the split.
 - Not done: desktop panel (F1-T17) and projects group (no table in V1).
+
+## 2026-11-23 — Audit export (F1-T18, Q08) and master-key rotation at startup (F1-T10, Q31)
+
+- Q08: `GET /v1/audit/export` (read scope) returns JSONL (default; checkpoint line first, omitted for an empty chain) or CSV (entries only). Other formats return 400. The export is buffered and sent with `Cache-Control: no-store`. The contract is in `api/openapi.yaml`; reads are not audited.
+- Q31: `CALANGO_VAULT_KEY_VERSION` (default 1), `CALANGO_VAULT_KEY_PREVIOUS` and `CALANGO_VAULT_KEY_PREVIOUS_FILE` (mutually exclusive) in `internal/config`; `vault.KeySources` drives `LoadMasterKeys`, which loads the previous key as version − 1. `cmd/calango` runs `Service.Rotate` before serving; each re-wrap is audited as `vault.rewrap` (name only) and fails closed. Startup refuses a row whose version has no configured key.
+- Docs: ADR 0012 amendment (rotation procedure); `modules/config.md`; `modules/vault.md`; ROADMAP F1-T10; TODO_V1 Q01, Q04, Q05, Q08, Q11, Q31, F1-T10, F1-T14; HANDOFF; CONTEXT.
+- Decisions recorded: Q11 accepted (pre-0008 rows verify as breaks; no reset). A lost response from `POST /v1/auth/rotate-token` leaves no token and no recovery route; accepted by the owner and documented. Q19 (`RemoteAddr`) deferred until VPS deploy.
+- Not done: keyring-key rotation; owner acknowledgement of startup strictness (the daemon refuses to start without a master key); Q08 UI (Q09); commit and push of this batch (needs an explicit request).
+
+## 2026-11-23 — Codex CLI harness (F1-T05 partial, ADR 0013)
+
+- `internal/harness.Codex` is a `gateway.Provider` named `codex`. `Complete` runs `codex exec --ephemeral --ignore-user-config --ignore-rules --skip-git-repo-check --sandbox workspace-write -C <dir> -o <file> -m <model> -` with the prompt on stdin. Stdout and stderr are discarded; errors never echo CLI output. The final message is read from the `-o` file and streamed as one chunk. Usage is always estimated (about 4 characters per token) because the `--json` schema is unverified.
+- `Available` checks the binary with `exec.LookPath` and runs `codex login status`. Signed out returns `ErrSignedOut`; `conversations` maps it to `failed/harness_signed_out` (`core.ErrCodeHarnessSignedOut`).
+- Cancellation kills the CLI; `cmd.WaitDelay` (2 s) stops a child process from blocking `Wait`. Found by a test that took 30 s before the fix.
+- Owner decisions used: isolation shares `~/.codex` (`compartilhar`); no real Codex model call (`nao`); sandbox `workspace-write` after the risk was shown.
+- Not done: real run; `--json` parsing; daemon wiring (config `CALANGO_CODEX_BIN`, workdir); Claude Code CLI, OpenCode, Antigravity `agy`, direct API; killing the whole process group.
+
+## 2026-11-23 — Maestro npm probe and D6 amendment (F1-T16 prep, Q24)
+
+- ADR 0009 amendment: automatic update on by default (D6). Aligned: `ORQUESTRADOR_MAESTRO.md`, `PLANO.md` §14, `TECHNICAL_DELIVERY.md`, `SPECS/modules/maestro.md`, `TODO_V1.md` (D6 done, F3-T08 wording).
+- Probed `@iapro/orquestrador-maestro-cli@1.1.1` outside the repo. Findings in `SPECS/modules/maestro.md` ("Probe findings"): `--home-path` confines files; telemetry id goes to `XDG_CONFIG_HOME`; `verify` requires the Codex target; JSON only from `status`, `context`, `route`, `usage`.
+- Decided by owner (ADR 0014): isolated install in `<calango-home>/maestro/`, telemetry off, Codex target under its own `CODEX_HOME`. Calango never calls `update` (global npm self-update; see `SPECS/modules/maestro.md`).
+- Applied `update --only codex --non-interactive` and `rollback --to` in a temp home with `ORQUESTRADOR_MAESTRO_SKIP_CLI_UPDATE=1`; `verify` passed after each. `version --check` is broken with this npm (array output). Global Maestro installs exist on this machine (`/usr/local`, root-owned; `~/.npm-global`), both 1.1.1; the probe did not change them.
+
+## 2026-11-23 — Proxy-aware pairing limit (Q19, F1-T15)
+
+- `/v1/pair` counts attempts per origin. The origin is the TCP peer, unless the peer is in `CALANGO_TRUSTED_PROXIES` (new in `internal/config`: comma-separated IPs or CIDRs, empty by default). Then it is the right-most `X-Forwarded-For` entry that is not a trusted proxy. A malformed chain falls back to the peer, so a spoofed header cannot leave its bucket.
+- Tests: `internal/api/pairing_origin_test.go` (trusted proxy keys by client; untrusted peer ignores the header; malformed chain falls back) and `internal/config/trusted_proxies_test.go` (parse and reject). `newTestEnvWith` in `api_test.go` takes the trusted list; `newTestEnv` is unchanged for callers.
+- Not done: no real reverse proxy run (no VPS yet); the setting is not checked against the proxy's actual address.
+
+## 2026-11-23 — Conversations and runs routes (Q22, F1-T07/T13) and daemon wiring
+
+- Routes in `internal/api/conversations.go`: `GET/POST /v1/conversations`, `GET/POST /v1/conversations/{id}/messages` (POST needs `Idempotency-Key`, 201 `{message, run}`), `GET /v1/runs/{id}`, `POST /v1/runs/{id}/stop` (204; 409 on a finished run), `POST /v1/runs/{id}/retry` (`Idempotency-Key`, body `instructions`, 201). `Config.Conversations` is required by `NewHandler`.
+- Daemon: `cmd/calango` builds `gateway.New` with the store as ledger and `harness.NewCodex("codex", <data-dir>/workspace)` (directory created at startup); a `conversations.Service` with provider `codex` runs `Start(ctx)` before serving. No new config variable. The price table is empty, so cost stays unknown.
+- Contract: `api/openapi.yaml` conversations and runs paths match the code. Added `Run`, `RunDetail`, `Step`. Removed `thread_id`, `unread`, `before` (not implemented) and the `steer` path (not routed).
+- Tests: `internal/api/conversations_test.go` (create, list, send, idempotency; stop and retry). `api_test.go` uses a `blockingGateway` so runs stay queued or running without a provider.
+- Not done: steer/guide (owner decision); one reply at a time per agent; a real Codex run; WebSocket; routines routes; approvals card; direct Anthropic provider; Maestro.
+- Note: line-range `PUT` on `conversations_test.go` corrupted the file twice; it was rewritten whole.
+
+## 2026-11-23 — WebSocket `/v1/events` (Q23, F1-T13)
+
+- Dependency: `github.com/gorilla/websocket` v1.5.3 (BSD-2-Clause, `go 1.12` directive). `coder/websocket` rejected: its `go.mod` needs Go 1.23 and the project declares `go 1.22`. Decision in ADR 0015; `NOTICE` updated.
+- `internal/events/hub.go`: in-process hub. `Publish` never blocks; subscriptions filter by owner; buffer 64; a full buffer closes that subscription.
+- `internal/conversations/service.go` publishes `message.created` inside admission, before dispatch, so it precedes `run.started`; `run.started`; `run.step` after a successful `AppendStep`; `run.finished` from `execute` and from the queued-stop path.
+- `internal/api/events.go`: `GET /v1/events`. Bearer header through `need(PermRead)`; subscribes before the upgrade; ping every 25 s, pong wait 60 s, write wait 10 s; close 1013 on overflow.
+- Wiring: `api.Config.Events`; `cmd/calango` creates one hub shared by the conversations service and the API.
+- Contract: `api/openapi.yaml` `/v1/events` (101, 401, 403; frame described in the description).
+- Not done: Electron relay (main process to renderer over IPC); reconnect loop in desktop and mobile clients; replay; routine events.
+
+## 2026-11-23 — Direct Anthropic provider (F1-T04)
+
+- `internal/anthropic/anthropic.go`: `gateway.Provider` named `anthropic` over `POST /v1/messages` with `stream: true`. Key read from the vault item `anthropic-api-key` for each call, sent only in `x-api-key`. Parses SSE `data:` lines: `text_delta` chunks, exact input and output tokens (`message_start`, `message_delta`), `error` events, and a stream that ends without `message_stop` (error).
+- Errors: non-200 gives status and API error type and message; the key and headers are never included.
+- Daemon: `cmd/calango/main.go` registers the provider in the gateway next to Codex. Conversations still use `Config.Provider = codex`, so no agent reaches Anthropic yet. Choosing the provider per agent or per node is an open decision.
+- No new dependency. No ADR: the provider follows ADR 0013.
+
+## 2026-11-23 — Provider chain per agent (Q32, ADR 0016)
+
+- Migration `0010_provider_chain.sql`: adds `provider_accounts` and `agent_providers`; copies `agents.harness`/`agents.model` into a `default` account and chain position 0, then drops both columns. Agents with an empty model get no chain and must be saved again with `providers`.
+- `internal/core`: `ProviderAccount`, `ProviderRef`; `Agent.Providers` (1–8 entries). `StepProviderAttempt`, `ErrCodeNoProvider`.
+- `internal/conversations`: `call` walks the chain. Fallback only before the first output chunk and only for `ErrUnavailable`, `harness.ErrNotInstalled` and `harness.ErrSignedOut`. Each attempt is one gateway call and one `provider_attempt` step.
+- `internal/gateway`: `ErrUnavailable` sentinel; `Config.Resolve` resolves keys `<kind>/<label>` that are not in the static map. Static registrations removed from `cmd/calango`.
+- `internal/providers`: account CRUD and resolution. Codex accounts get `<data-dir>/accounts/codex/<label>`; `default` shares `~/.codex`. Anthropic accounts use `anthropic-<label>-api-key`.
+- `internal/harness`: Codex sets `CODEX_HOME` only when an account home is given.
+- `internal/anthropic`: `NewAccount` and `KeyName` per account; HTTP 429, 5xx, transport and stream failures wrap `ErrUnavailable`.
+- `internal/api`: agents take `providers` (replaces `harness`/`model`); `GET/POST /v1/provider-accounts`, `DELETE /v1/provider-accounts/{id}`; `api/openapi.yaml` updated.
+- Not done: steer, Q33 routines, real CLI or API runs.
+
+## 2026-11-23 — Steer (`POST /v1/runs/{id}/steer`, Q22, F1-T07)
+
+- Migration `0011_steer.sql`: `runs.steer_of` references the run being steered (`ON DELETE SET NULL`). `internal/core`: `Run.SteerOf`; `internal/store`: column in `runColumns`, insert and `scanRun`.
+- `internal/conversations`: `Service.Steer`. Queued run: stopped at once and a continuation is admitted. Running run: `activeRun.steer` holds the continuation (pre-generated ID, not persisted) and the run is cancelled; `execute` admits the continuation after `FinishRun`. `Stop` on a run with a pending steer and steer on a run that is not queued or running return `ErrConflict`. Continuation prompt: `steeredPrompt` (reply so far, guidance).
+- `internal/api`: `POST /v1/runs/{id}/steer` (write scope), body `{"guidance": "..."}`, `Idempotency-Key`, 202 with the continuation run; `steer_of` in run JSON; `api/openapi.yaml` path and `Run.steer_of`.
+- Tests: `internal/conversations/steer_test.go` (queued steer, running steer with partial output and repeated key, rejections); `internal/api/conversations_test.go` (400 without key, 202, same ID on repeat, 404).
+- Not covered: Stop on a running run with a pending steer (code path only); crash while a steer is pending (loss documented, not tested); a real model call (not authorised).
+
+## 2026-11-23 — Routines fire agent runs (Q33, F1-T09/T13, ADR 0017)
+
+- Migration `0012_routine_conversation.sql`: `routines.conversation_id` (FK to `conversations`) and `ended_at`. Ended routines are excluded from `ListDueRoutines`.
+- `core.Routine.Validate`: whitespace-only prompt rejected (ErrInvalidInput) before the DB CHECK would return 500. `core/routine_signal.go`: `RoutineMessage(prompt)` appends the control contract; `ParseRoutineSignal` reads the last valid `ROUTINE: {...}` line; missing or malformed means `had_news=true, finish=false`.
+- `internal/routines`: `Service.Update` (PATCH, including `paused` and `clear_quiet`), `Delete`, `RunNow` (`@manual:<id>` occurrence for the next tick), `Occurrences`, `Get`. `ChatExecutor` (`executor.go`) opens one DM per routine and sends one agent message per attempt through `conversations.WaitRun` (polls every 250 ms), idempotency key `<OccurrenceID>#<Attempt>`. Ended routines reject pause, run now and update with 409; finish on a failed attempt is ignored. `runMu` serializes ticks; `mu` guards store state; executions run without `mu`.
+- `internal/api/routines.go`: `GET/POST /v1/routines`, `GET/PATCH/DELETE /v1/routines/{id}`, `POST /v1/routines/{id}/run` (202), `GET /v1/routines/{id}/runs`.
+- `cmd/calango/main.go`: routine service wired with the agent service; `routineTick = 30s`; `routine.fired` and `routine.failed` published to the events hub (`hub.Publish` with `ev.Kind`).
+- `api/openapi.yaml`: routine paths and schemas (`RoutineInput`, `RoutinePatch`, `Routine`, `RoutineOccurrence`). Nullable fields use OpenAPI 3.1 `type: [..., "null"]`. The trigger enum is `cron, interval` (the `event` value was removed; events are phase 3).
+- Known limits: a crash between `CreateDM` and saving `conversation_id` creates a second DM; a failed attempt's run stays in the conversation; `waiting_approval` counts as a failed attempt until Q15; one occurrence at a time per node; V1 wiring runs on the PC node only.
+
+## 2026-11-23 — Maestro validation (Q24, validation only)
+
+- Ran Calango's settings on npm `@iapro/orquestrador-maestro-cli@1.1.1` in the throwaway `/tmp/maestro-calango-probe` (not deleted; owner approval needed). Results in `SPECS/modules/maestro.md`.
+- Corrected probe note: `verify` takes `--home-path` only. `--only codex` also writes a Codex desktop plugin under `<home>/.codex/plugins/`.
+- Still open: the Calango code for F1-T16 (`internal/maestro`, routes, audit, auto-update) and the `CODEX_HOME` check (ADR 0014).
+
+## 2026-11-23 — Approvals check run ownership (Q15 slice, F1-T08)
+
+- `approvals.Request` now loads the run (`Repository.GetRun`, store method already existed) and rejects a run that belongs to another agent with `core.ErrInvalidInput`. Previously any run ID of the owner was accepted.
+- Test: `TestRequestRejectsRunOfAnotherAgent` in `internal/approvals/service_test.go`.
+- Still open in Q15: `waiting_approval` run state, reconciliation of approved actions without receipt, and any caller of `Request`/`Execute` (depends on MCP, Q20; Go minimum decision pending).
+
+## 2026-11-23 — Go minimum 1.23 (MCP prerequisite)
+
+- Owner chose option A: Go minimum 1.23, so `github.com/modelcontextprotocol/go-sdk` v1.3.0 can be used (v1.4.0 needs Go 1.24; v1.5.0 and later need 1.25).
+- `go.mod` declares `go 1.23.0`. CI, `deploy/Dockerfile.node`, CONTRIBUTING, the three READMEs and the DEV docs moved to 1.23. go-sdk stays `// indirect` until code imports it.
+- Still open: MCP (Q20) and the NOTICE entries for go-sdk and its dependencies, which are added once code imports them.
+
+## 2026-11-23 — MCP gateway per turn (Q20, F1-T12, ADR 0018)
+
+- Migration `0013_mcp.sql`: `connectors` (per owner, `stdio` or `http`, `UNIQUE (owner_id, name)`) and `agent_tools` (agent × connector, access `read` or `write`; no row means none).
+- `internal/tools`: register, list, get, delete, grants (`Grant`, `Revoke`, `Grants`), `Catalog`, `RemoteTools`, `CallRemote`. Stdio children get only `PATH` and `HOME`. Unreachable connectors return `ErrUnavailable`.
+- `internal/mcpgw`: `/mcp` on the root mux, outside the API bearer middleware; per-turn 32-byte token (SHA-256 kept in memory); `read` exposes `readOnlyHint` tools only; `write` calls go through `approvals.Request` with `core.ActionConnectorWrite` and wait up to 2 min; `Execute` runs the stored snapshot and keeps the result for 1 h.
+- Token goes in env `CALANGO_MCP_TOKEN` (Codex `bearer_token_env_var`), not in the URL. Deviation from the spec's secret URL, recorded in ADR 0018.
+- `internal/harness/codex.go` adds the `mcp_servers.calango` config only when the run has grants. `internal/conversations` opens and releases one endpoint per run.
+- API: `GET/POST /v1/connectors`, `DELETE /v1/connectors/{id}`, `GET /v1/connectors/{id}/tools`, `GET /v1/agents/{id}/tools`, `PUT /v1/agents/{id}/tools/{connectorID}`. OpenAPI updated (`connector_unavailable` 502).
+- `cmd/calango/main.go` wires `tools.Service`, `mcpgw.Gateway`, the approvals executor for `ActionConnectorWrite`, and `/mcp`.
+- NOTICE: go-sdk (MIT), jsonschema-go (MIT), go-humanize (MIT), uritemplate/v3, google/uuid, x/exp, bigfft, modernc libc/memory/mathutil (BSD-3-Clause).
+- Not done: connector credentials; Calango's own tools (`memory_save` and the rest); a custom refusal for hidden tools; restart durability for results; Q15 `waiting_approval` (the run stays `running` while a write waits).
+
+## 2026-11-23 — Waiting approval and reconciliation (Q15, F1-T08)
+
+- `internal/mcpgw`: a write call that opens a pending approval moves its run `running` → `waiting_approval`, and back to `running` when the call stops waiting (decision, timeout or cancel). `moveRun` logs and continues if the run is not in the expected state.
+- `internal/store`: `SetRunStatus` is a compare-and-set and rejects transitions outside the allowed ones (`waiting_approval` → `failed` tested). `CountRunningRuns` counts `waiting_approval` runs, so they keep their slot. `InterruptRunningRuns` ends a `waiting_approval` run left by a crash as `failed`. Test: `internal/store/run_status_test.go`.
+- `internal/conversations.WaitRun` keeps waiting while a run is `waiting_approval`. Before, it returned at once, so a routine attempt that waited for approval counted as failed. Test: `TestWaitRunHoldsWhileRunWaitsForApproval`.
+- `internal/approvals.Reconcile`, called at startup in `cmd/calango/main.go` before the conversations service starts: closes approved actions without a receipt as `failed` with a reason, audits `approval.reconciled`, and never retries them. Test: `TestReconcileClosesApprovedWithoutReceiptAndNeverRetries`.
+- `Execute` refuses an approval that already has an outcome with `ErrConflict`, so a reconciled action cannot run later.
+- Test: `TestWriteHoldsRunWhileWaitingForDecision` (mcpgw) checks the run is `waiting_approval` while the write waits and `running` after the decision; the timeout test checks it is `running` again after the call stops waiting.
+- The in-conversation card is implemented; a mocked renderer smoke covers card rendering/decision dispatch, but the real pending→decision API/action flow remains unverified.
+- Not covered: stopping a run that is `waiting_approval`; a daemon restart while a write waits (only the store transition is tested); a real model call (not authorised).
+
+## 2026-11-23 — memory_save through the gateway (Q17, F1-T11, ADR 0018 amendment)
+
+- `internal/mcpgw`: built-in tool `memory_save` (`text` required; `kind` fact, preference or decision). Scope and agent come from the turn; the arguments cannot pick another agent. It calls `memory.Service.Create` with `ScopeAgent`. Empty text returns a tool error.
+- `Open` returns an endpoint when the agent has grants or a memory service is wired. An agent without grants gets only `memory_save`. The daemon always wires memory (`cmd/calango/main.go`).
+- `conversations.Tools` doc updated to the new nil rule.
+- Tests: `TestOpenWithoutGrantsOffersOnlyMemorySave` (replaces "no grants, no endpoint"), `TestMemorySaveWritesAgentMemoryOnly`; `TestReadGrantAdvertisesAndRunsOnlyReadTools` now expects `memory_save` too.
+- Not done: purge schedule; `project` scope. The owner addendum (channel and agent actions as memory base) is recorded in `DEV/SPECS/modules/memory.md` ("Adendo") with its design open; no code.
+
+## 2026-11-23 — Desktop functionality and chat replies
+
+- The owner's report that desktop actions did nothing was treated as a functional repro. The isolated Electron run showed `harness_signed_out`: npm/npx had prepended `node_modules/.bin`, whose `codex` shadowed the selected CLI. The daemon now removes those entries from the child `PATH`.
+- Agent, conversation and routine forms select the first available provider/agent after loading. Pause/resume, approval decisions, routine toggles and run-stop failures now appear in the UI instead of disappearing.
+- Successful message-triggered runs now persist their joined text steps as an agent-authored conversation message in the same transaction as run completion; `message.created` is published after commit. This makes replies visible in polled conversation history after reload.
+- Desktop smoke used a disposable data directory and a fake Codex CLI: create agent, pause/resume, create a conversation, send a message and see the fake reply, create/pause a routine, and see its usage row. No real model call or production data was used.
+- Isolated Chromium renderer smoke used mocked IPC/API with a simulated waiting run and pending approval: action/target rendered, and Approve, Always allow, and Decline each reached the mock decision endpoint with HTTP 200. This does not verify the daemon approval path or action execution.
+- V1 remains incomplete: Windows packaging, live approval-flow validation, event reconnect/replay, settings/audit UI, verified provider pricing and real-model validation remain open.
+- Rebuilt canonical `bin/calango` and restarted Electron with the same isolated profile/data directory already in use; `/healthz` on `127.0.0.1:7317` returned 200 and CDP stayed disabled. The default `~/.config/calango` database was not opened or modified.
+
+## 2026-11-23 — V1 TODO continuation
+
+- Replaced `OpenMemory`'s shared URI with a unique in-memory SQLite URI per store. Added `TestOpenMemoryCreatesIsolatedDatabases`; separate stores no longer see each other's rows.
+- Fixed the desktop translation build: the i18n generator now emits a small, typed tray catalog under `apps/desktop/src/main`, inside the main TypeScript root. Removed a stale CommonJS `messages.js` that shadowed the renderer's generated TypeScript import.
+- Implemented Linux startup-at-login through an XDG autostart `.desktop` entry; Electron's generic login-item setting did not apply on Linux. Added a Node regression test and `npm run test:main -w apps/desktop`.
+- Continued F1-T16 integration: manager/API/scheduler, V1 install/verify, agent link, update, audit and rollback are present; kept the task partial because per-version `CODEX_HOME` conflicts with ADR 0014's stable-home decision.
+- Updated screen and conversation behavior/status: audit/settings UI, one-active-run-per-agent FIFO, memory purge scheduler, approval API integration, secret-canary coverage and bounded API requests. Phase 1 exit remains unmet.
+- Reviewed D5 against official sources and recorded BSD-3-Clause, Personal plan limits and the unresolved commercial-embedding Terms question in ADR 0005. No Tailscale dependency added.
+- Reviewed the site at 1440 px desktop and 390 px mobile in light/dark. Mobile has no horizontal overflow; plan cards present phone/cloud/team features that remain roadmap items and need owner copy review.
+- Verification: Go race suite and vet; desktop typecheck/build; i18n drift check; main-process startup tests; isolated Electron settings/audit/export smoke. No real model call or production user data. No commit/push.
+
+## 2026-11-23 — TODO status reconciliation
+
+- Classified owner/platform/engineering/phase-gated items; marked REST reconnect and API routes complete without WebSocket replay per ADR 0015; confirmed Calango telemetry is absent and Maestro telemetry is forcibly disabled. Corrected stale CI, Redocly, SDK/i18n and desktop status text.
+- Added `DEV/BACKUP_RESTORE.md` and a migration restore test for an offline pre-migration SQLite snapshot. Previous-binary compatibility and OS-keyring recovery stay open.
+
+## 2026-11-23 — Desktop launch, checks and push
+
+- `gofmt -w internal/api/server.go`: struct alignment only. `.gitignore` now ignores `/bin/` (local daemon binary) and `apps/desktop/dist/` (build output). `package-lock.json` and `packages/i18n/generated/arb/*.arb` stay tracked.
+- Commit in scope-based commits and push `main` on the owner's explicit request ("sobe no github branch principal"). Diff checked for env/key files before commit.
+- Stopped at the phase boundary: Phase 1 exit not met; phases 2–6 gated; open items in `DEV/TODO_V1.md` "Status and resume point".
+- Stopped a leftover smoke Electron instance (CDP 9225, isolated `/tmp` profile) before launch. Desktop relaunched on display `:1` with the shell environment (`CALANGO_VAULT_KEY_FILE`, `CALANGO_ADDR=127.0.0.1:7399`), without CDP. Data directory not overridden in this session and not checked.
+- Verification and the unverified items are in `DEV/VERIFY.md`, entry "2026-11-23 — Desktop launch, checks and push".

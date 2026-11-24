@@ -201,7 +201,8 @@ Environment: Go 1.27.4 linux/amd64.
 | `go test ./... -count=1`, `go vet ./...`, `gofmt -l .` | ok |
 | Redocly lint `api/openapi.yaml --max-problems=0` | valid, no warnings |
 | Smoke: built `calango`, temporary `CALANGO_DATA_DIR`, `CALANGO_ADDR=127.0.0.1:7399` | `/healthz` 200; code issued with the local token (8 characters); `POST /v1/pair` without token returns a device with scope `full`; device token reads `/v1/agents` 200; device listed as `Phone`, `ios`, `full`, not revoked; code reuse 401; `DELETE /v1/devices/{id}` 204; revoked token 401; token file mode 600; process stopped |
-| Limits | Rate limit keys on the TCP `RemoteAddr`: behind a reverse proxy (VPS deployment) all clients share one bucket. No QR code, no mobile app, no administrator password on the VPS. Desktop token is a file, not the vault (F1-T10), and has no rotation. Owner is single (`owner`). Device tokens have no expiry or rotation |
+| Limits | Rate limit keys on the TCP peer, or on the `X-Forwarded-For` client when the peer is listed in `CALANGO_TRUSTED_PROXIES` (Q19). Not verified behind a real proxy (no VPS yet). No QR code, no mobile app, no administrator password on the VPS. Desktop token is a file, not the vault (F1-T10), and has no rotation. Owner is single (`owner`). Device tokens have no expiry or rotation |
+| Proxy-aware pairing limit (Q19, 2026-11-23) | `go test ./internal/api ./internal/config -count=1 -v` on the tests named Pairing and TrustedProxies: 7 api tests (4 existing pairing tests, 3 new origin tests) and 2 config tests pass. `gofmt -l` and `go vet` clean for `internal/config`, `internal/api`, `cmd/calango`. Not run behind a real reverse proxy |
 
 ## Usage endpoint (F1-T17 partial, F1-T13 partial, 2026-11-23)
 
@@ -315,7 +316,7 @@ Limits:
 Limits:
 
 - The fail-closed test uses a closed store, so the vault write fails before the swap. It does not inject a failure in the middle of the write.
-- A lost rotation response leaves the client with no token; no V1 route recovers it. Owner decision pending.
+- A lost rotation response leaves the client with no token; no V1 route recovers it. Accepted by the owner on 2026-11-23.
 - The smoke ran on Linux only; the keyring backends were not involved (key file used).
 
 ## Usage known/estimated split (F1-T17, Q18, 2026-11-23)
@@ -331,3 +332,190 @@ Limits:
 
 - `CGO_ENABLED=0 GOOS/GOARCH go build ./cmd/calango`: OK for windows/amd64, darwin/arm64, darwin/amd64, linux/amd64.
 - Limit: a successful build does not run the keyring backends. The Windows Credential Manager, macOS Keychain and Linux Secret Service paths have not been exercised at runtime (Q13).
+
+## Push and CI for commit dee8efa (2026-11-23)
+
+- Gate before commit: `go vet ./...` clean; `go test ./... -count=1` 15 packages ok; `git status` clean after commit.
+- Pushed `main` to `origin` (`6c62ceb..dee8efa`) on the owner's explicit request.
+- GitHub CI run 45188079827 on `dee8efa`: success (build jobs for each target).
+
+## Audit export and master-key rotation (Q08, Q31, 2026-11-23)
+
+- Checks: `gofmt -l .` clean; `go vet ./...` clean; `go test ./... -count=1` 15 packages ok; `git diff --check` clean; Redocly lint of `api/openapi.yaml` (`minimal`, `--max-problems=0`) valid.
+- Tests: `internal/config/vault_rotation_test.go` (7: settings read; default version 1; malformed version; both PREVIOUS sources; PREVIOUS without current; PREVIOUS at version 1; version 2 without explicit key); `internal/vault/bootstrap_test.go` (previous key opens the old version during rotation; PREVIOUS needs version 2; a version needs an explicit key); `internal/vault/rotate_audit_test.go` (each re-wrap audited with name only; nothing stored when the audit fails); `internal/store/audit_export_test.go`; `internal/api/audit_export_test.go` (4 tests).
+- Throwaway probe on real SQLite (deleted after the run): set under v1, `Rotate` with v2 and previous v1, reveal ok, stored key version 2, one `vault.rewrap` row; v2-only `Rotate` = 0; v1-only refused with `vault: rotate "old-key": vault: no master key configured for this version: 1`.
+- Binary smoke (`go build ./cmd/calango`, temporary data dir and key files, removed afterward), `127.0.0.1:7399`:
+  1. v1 start: legacy `api-token` moved into the vault; `PUT /v1/vault/smoke-secret` → 200.
+  2. v2 current, v1 previous: `vault: re-wrapped 2 secrets under master key version 2`; `GET /v1/vault` → 200.
+  3. v2 only: no rewrap log; `GET /v1/vault` → 200; `GET /v1/audit/verify` → `{"ok":true,"entries_checked":8,"first_break":null}`; JSONL export has 2 `vault.rewrap` lines; CSV header and rows as specified.
+  4. v1 only after rotation: exit 1, nothing served: `vault key rotation stopped after 0 secrets: vault: rotate "api-token": vault: no master key configured for this version: 2`.
+  5. Grep of the logs for the secret value and the token: no match.
+- Not checked: the export's first entry is a `vault.reveal` on `api-token` written at first start (legacy import); the import path was not inspected in this step. Docker not run; keyring backends not run on Windows or macOS.
+- Limits: the export is buffered in memory; CSV has no checkpoint line, so tail truncation shows only in JSONL; CSV fields are not neutralised against spreadsheet formulas (fixed prefixes and JSON facts; low risk); the export itself is not audited.
+
+## Codex CLI harness (F1-T05 partial, 2026-11-23)
+
+- Tests with a fake `codex` shell script in `t.TempDir()` (no real Codex run; owner did not authorise a model call): `internal/harness/codex_test.go` (streams the final message and estimates usage; isolation flags present and the prompt absent from argv and sent on stdin; signed out → `ErrSignedOut` with `exec` not called; not installed → `ErrNotInstalled`; failing exec streams nothing and does not echo CLI output; cancellation returns `DeadlineExceeded` quickly; `NewCodex` requires a working directory) and `internal/harness/codex_gateway_test.go` (through `gateway.Call`: tokens recorded as estimated, cost unknown with no price, signed-out error reaches the caller).
+- Finding: the cancellation test ran 30 s (grandchild `sleep` held the stdout pipe). Fixed with `cmd.WaitDelay = 2 * time.Second`; the test now takes about 2.3 s.
+- Checks: `gofmt -l .` clean; `go vet ./...` clean; `go test ./... -count=1` 16 packages ok (harness and conversations among them); `git diff --check` clean.
+- Not checked: a real `codex exec` run; the `--json` event schema; whether `~/.codex/AGENTS.md` loads under `--ignore-user-config`; the sandbox's effect on a real workspace.
+
+## Maestro npm probe (F1-T16 prep, 2026-11-23)
+
+- Isolated install with `--home-path` in a temp dir: `install --core-only` (exit 0), then `install --only codex` (exit 0). `verify --home-path` exit 0 with 20 Codex agents, 20 Codex prompts and 58 skills. The temp `HOME` received only `.config/orquestrador-maestro/telemetry.json`.
+- Reproduced: `verify` after `--core-only` exits 1 with `Codex agents missing` and `Codex prompts missing`.
+- Read-only commands with a temp `HOME`: `status --json`, `version`, `update --dry-run`, `rollback --list`.
+- Caveat: the first `install --core-only` ran with the real `HOME`. Files that changed in that window under `~/.codex`, `~/.local/share` and `~/.local/state` were not attributed to Maestro. The later windows, run with a temp `HOME`, showed no writes to the real `HOME` from Maestro.
+- Not checked: real install in the user's home; desktop plugin; skill sync; behaviour on Node below 20.19 (engines `>=20.19.0`; this machine has Node 22.23.4).
+- Applied (temp `HOME`, `--home-path`, `ORQUESTRADOR_MAESTRO_SKIP_CLI_UPDATE=1`): `update --only codex --non-interactive --skip-desktop-plugin --skip-community-skills --skip-skill-sync` exit 0; `verify` exit 0; `rollback --to <stamp>` exit 0; `verify` exit 0 after rollback.
+- Failed without the skip flag: `update` ran `npm install -g @iapro/orquestrador-maestro-cli@latest --force`, exit 243 (EACCES renaming the root-owned `/usr/local` install). Global dirs keep their pre-probe mtimes (2026-10-31 and 2026-11-21).
+- Failed: `version --check` exit 1, "npm retornou uma versão inválida" (npm returns `["1.1.1"]` for `view <pkg>@latest version --json`).
+
+## 2026-11-23 — Conversations routes and daemon wiring (Q22)
+
+- `gofmt -l cmd internal` empty; `go vet ./...` clean; `go test ./... -count=1` all packages ok, including `internal/api` conversations tests (`TestConversationsCreateListAndSendMessage`, `TestConversationRunStopAndRetry`).
+- Smoke on the built daemon: `CALANGO_DATA_DIR=<tmp> CALANGO_ADDR=127.0.0.1:7399 CALANGO_VAULT_KEY=<base64>`; log `calango listening on 127.0.0.1:7399`; `GET /healthz` → `{"status":"ok"}`; `<tmp>/workspace` created.
+- Not checked: `POST /v1/conversations/{id}/messages` with the real Codex CLI (no owner authorisation for a model call); `api/openapi.yaml` was checked only as YAML (python yaml parse), not by the repo's OpenAPI lint; steer is absent by design.
+## 2026-11-23 — WebSocket `/v1/events` (Q23)
+
+- Checks:
+  - `gofmt -l cmd internal` empty; `go vet ./...` clean; `go test ./... -count=1` all 17 packages ok; `go test -race ./internal/events ./internal/api -run 'Events|Conversation'` ok.
+  - `internal/events/hub_test.go`: owner filter, slow subscriber dropped, idempotent Close. `internal/api/events_test.go`: no token gives 401 on the upgrade; with the token, `message.created`, then `run.started` (status `running`), then `run.finished` (status `stopped`) after `POST /v1/runs/{id}/stop`.
+  - Daemon smoke on the built binary: `CALANGO_ADDR=127.0.0.1:7398`; log `calango listening on 127.0.0.1:7398 (api token in the vault)`; `/healthz` 200 `{"status":"ok"}`; upgrade request without bearer returns 401.
+  - Not checked: a real WebSocket client from Electron or mobile; `run.step` payload has no test of its own (only the publish path); slow-client close over a real network; a real Codex run emitting steps; the repo's OpenAPI lint.
+
+## 2026-11-23 — Direct Anthropic provider (F1-T04)
+
+- `gofmt -l cmd internal` empty; `go vet ./...` clean; `go test ./... -count=1` all 18 packages ok.
+- `internal/anthropic/anthropic_test.go` against an `httptest` server (no real API call): streamed text and exact tokens; request headers (`x-api-key` from vault, `anthropic-version`) and body (`stream`, `model`, `max_tokens`, prompt); HTTP 401 error without the key; stream error keeps partial text; stream cut before `message_stop` is an error; missing key makes no request; bad base URL rejected; `gateway.Call` records provider/model/tokens in the ledger with unknown cost.
+- Daemon smoke: build OK; `/healthz` 200; `/v1/conversations` without token 401; log `calango listening on 127.0.0.1:7398`.
+- Not checked: a real Anthropic call (no owner authorisation); a real vault key flow through `Reveal` with the audit row; agents reaching this provider (not wired).
+
+## 2026-11-23 — Provider chain per agent (Q32, ADR 0016)
+
+- `gofmt -l cmd internal` empty; `go vet ./...` clean; `go test ./... -count=1` all 18 test packages ok (`cmd/calango` and `internal/providers` have no test files).
+- Migration: `internal/store/provider_chain_migration_test.go` applies 0001–0009, seeds three legacy agents, applies 0010; asserts legacy columns gone, chains per agent, empty-model agent has no chain, three `default` accounts.
+- Fallback: `internal/conversations/chain_test.go`: falls back to the next account before output; no fallback once output streamed; budget exhaustion never falls back.
+- Accounts API: `internal/api/provider_accounts_test.go`: create 201 with key `anthropic/work` and setup text; duplicate 409; list shows defaults and `work`; account used by an agent → delete 409; spare account delete 204, then 404.
+- Codex home: `internal/harness/codex_test.go` (fake `codex` records `CODEX_HOME`): account home overrides an inherited `CODEX_HOME`; `default` keeps the inherited value.
+- Events: `internal/api/events_test.go` skips `run.step` frames before `run.finished` (a stopped run keeps its cancelled attempt step).
+- OpenAPI: `api/openapi.yaml` parses (python yaml).
+- Daemon smoke on the built binary (`go run ./cmd/calango`, `CALANGO_ADDR=127.0.0.1:7398`, fresh data dir): `/healthz` 200 `{"status":"ok"}`; `/v1/provider-accounts` 401 and `/v1/events` 401 without token; process stopped.
+- Stale throwaway data dir `/tmp/calango-smoke-data` fails to start with a vault key mismatch; not used, not deleted.
+- Not checked: a real Codex run or `codex login` with `CODEX_HOME`; a real Anthropic call (no owner authorisation); migration on a real legacy database file (the test seeds a fixture); Windows and macOS keyring.
+
+## 2026-11-23 — Steer (Q22)
+
+- Checks:
+  - `gofmt -l cmd internal` empty; `go vet ./...` clean; `go test ./... -count=1` all 18 test packages ok.
+  - `internal/conversations/steer_test.go`: queued steer stops the queued run and runs a continuation after it, whose prompt has the body and the guidance; running steer keeps the partial reply in the continuation prompt, a repeated key returns the same continuation, a different pending guidance is `ErrConflict`; steer on a finished run is `ErrConflict`, empty guidance `ErrInvalidInput`.
+  - `internal/api/conversations_test.go`: steer without `Idempotency-Key` 400; 202 with `steer_of` and instructions; repeat returns the same run; unknown run 404.
+  - Daemon smoke on the built binary (`CALANGO_ADDR=127.0.0.1:7398`, fresh data dir, `CALANGO_VAULT_KEY` unset): `/healthz` 200; `POST /v1/runs/run_x/steer` 401 and `/v1/events` 401 without token.
+- Not checked: a real model call (no owner authorisation); the repo's OpenAPI lint; the steer route with a valid token on the daemon (needs an agent and a run; covered by the API test instead).
+
+## 2026-11-23 — Routines fire agent runs (Q33, ADR 0017)
+
+- Checks:
+  - `gofmt -l cmd internal` empty; `go vet ./...` clean; `go test ./... -count=1` all 18 test packages ok (`cmd/calango` and `internal/providers` have no test files).
+  - `internal/routines/control_test.go`: finish ends the routine and stops future occurrences; an ended routine rejects pause, run now and update with `ErrConflict`; finish on a failed attempt is ignored; the conversation survives a failed attempt; run now fires once as a manual occurrence on the next tick; a schedule update recomputes the next run.
+  - `internal/routines/executor_test.go` (fake `Chat`): one conversation per routine; each attempt keyed `<OccurrenceID>#<Attempt>`; the control line is read; a missing control line defaults to news and keeps the routine alive; a failed run keeps the conversation for the retry.
+  - `internal/api/routines_test.go`: route status codes and validation.
+  - Daemon smoke on the built binary (`env -u CALANGO_VAULT_KEY`, `CALANGO_ADDR=127.0.0.1:7398`, fresh data dir, key file): `/healthz` 200; `GET /v1/routines` and `GET /v1/routines/x/runs` 401 without token; daemon stopped by PID.
+- Not checked: a real model call from a routine (no owner authorisation); the repo's OpenAPI lint (Redocly); a routine run that waits for approval (Q15); VPS execution (`run_on=vps`); the `routine.fired` event over a real WebSocket client; restart while a run is in flight.
+
+## 2026-11-23 — Maestro validation (Q24)
+
+- Checks (npm 1.1.1, `/tmp/maestro-calango-probe`, `ORQUESTRADOR_MAESTRO_TELEMETRY=0`, `XDG_CONFIG_HOME=<home>/config`):
+  - `npm install --prefix versions/1.1.1 @iapro/orquestrador-maestro-cli@1.1.1`: exit 0.
+  - `install --home-path H --only codex --non-interactive`: exit 0. `verify --home-path H`: exit 0.
+  - Marker check on the real `$HOME` (`find -newer`, npm cache excluded): nothing changed.
+  - `ORQUESTRADOR_MAESTRO_SKIP_CLI_UPDATE=1 update --home-path H --only codex --non-interactive`: exit 0; `verify`: exit 0.
+  - `rollback --home-path H --list`: exit 0, one stamp. `status --json --project-path H`: exit 0, `jq -e .` valid.
+- Not checked: `rollback --to` in this run (only in the earlier probe); Codex with `CODEX_HOME` loading the agents (needs a real session; not authorised); `version --check` (known broken). No Calango code path exists yet.
+
+## 2026-11-23 — Approvals run ownership (Q15 slice)
+
+- Checks: `gofmt -l internal/approvals` empty; `go vet ./internal/approvals/` clean; `go test ./internal/approvals/ -count=1` ok; `go test ./internal/api/ -count=1` ok.
+- Not checked: a live approval flow over HTTP with a second agent's run; the owner-scope test for `GetRun` (it has no owner argument; `GetAgent` enforces owner before the run check).
+
+## 2026-11-23 — Go minimum 1.23
+
+- Checks (local toolchain go1.27.4): `gofmt -l cmd internal` empty; `go vet ./...` clean; `go test ./... -count=1` all 18 test packages ok.
+- Not checked: a Go 1.23 toolchain itself, the CI jobs on `actions/setup-go` with `1.23`, and the `golang:1.23-alpine` image build. Those run in CI or Docker, not here.
+
+## 2026-11-23 — MCP gateway per turn (Q20, F1-T12)
+
+- Checks:
+  - `gofmt -l cmd internal` empty; `go vet ./cmd/... ./internal/...` clean.
+  - `go test ./... -count=1 -timeout 120s`: all 19 test packages ok (`cmd/calango` and `internal/providers` have no test files). One failure found and fixed: `internal/store` expected table list lacked `agent_tools` and `connectors`.
+  - `go test -race` on `./internal/mcpgw ./internal/tools ./internal/api ./internal/harness`: ok.
+  - `internal/tools/catalog_test.go`: `ReadOnly` from `readOnlyHint`; unreachable connector → `ErrUnavailable`; catalog owner-scoped (`ErrNotFound`).
+  - `internal/mcpgw/gateway_test.go` (7 tests): token scope, approval gating, execution from snapshot.
+  - `internal/harness/codex_test.go`: token appears only in the child environment, never in argv.
+  - Daemon smoke on built binary (`env -u CALANGO_VAULT_KEY`, `CALANGO_ADDR=127.0.0.1:7399`, fresh data dir, key file): `/healthz` 200; `POST /mcp` with no token 401 `unauthorized`; `POST /mcp` with `Bearer abc` 401; `GET /v1/connectors` without token 401. Daemon stopped by PID.
+- Not checked: an authenticated `/v1/connectors` round trip on the daemon (the local token is in the vault; not read for this smoke); a real Codex 0.171 run with `sandbox: workspace-write` reaching the loopback gateway and using the `mcp_servers` keys (needs owner authorisation for a model call); the OpenAPI lint (Redocly); Go 1.23 toolchain; CI.
+
+## 2026-11-23 — Waiting approval and reconciliation (Q15, F1-T08)
+
+- Checks:
+  - `gofmt -l cmd internal` empty; `go vet ./...` clean; `go test ./... -count=1 -timeout 240s`: all 20 test packages ok (`cmd/calango` and `internal/providers` have no test files).
+  - `go test -race` on `./internal/conversations ./internal/routines` with the WaitRun, Stop, retry, routine and executor tests: ok.
+  - `internal/store/run_status_test.go`: a waiting run keeps its slot; a repeated move from running is a no-op; `waiting_approval` → `failed` is refused; interrupt ends a waiting run as failed and frees its slot.
+  - `internal/mcpgw/gateway_test.go`: `TestWriteHoldsRunWhileWaitingForDecision` (waiting_approval while the write waits, running after approval); the timeout test checks the run is running again.
+  - `internal/approvals/service_test.go`: `TestReconcileClosesApprovedWithoutReceiptAndNeverRetries` (second reconcile closes nothing; execute after reconcile is `ErrConflict`; one audit entry).
+  - `internal/conversations/service_test.go`: `TestWaitRunHoldsWhileRunWaitsForApproval` (WaitRun does not return while waiting; returns done after the run resumes and finishes).
+- Not checked: a live write approval over HTTP while a Codex run waits (needs owner authorisation for a model call); the approval card; stopping a run in `waiting_approval`; a daemon restart while a write waits; the mcpgw test and the reconcile test on Go 1.23 (local toolchain go1.27.4 only).
+
+## 2026-11-23 — memory_save through the gateway (Q17, F1-T11)
+
+- Checks:
+  - `gofmt -l cmd internal` empty; `go vet ./...` clean; `go test ./... -count=1`: all 20 test packages ok (`cmd/calango` and `internal/providers` have no test files).
+  - `go test ./internal/mcpgw/ ./internal/conversations/ ./internal/memory/ -count=1`: ok, run before the full suite.
+- Not checked: a real Codex run calling `memory_save`; an authenticated daemon round trip; a saved memory appearing in the next run's prompt over MCP; the Go 1.23 toolchain; no REST route was added, so the OpenAPI lint has nothing new to check.
+
+## 2026-11-23 — Desktop chat and workflow smoke
+
+- `gofmt -d internal/conversations/service.go internal/conversations/service_test.go internal/store/conversations.go`: no diff.
+- `go test ./internal/conversations ./internal/api -count=1`: both packages passed.
+- `go build -o /tmp/calango-v1-smoke/bin/calango ./cmd/calango` and `go build -o bin/calango ./cmd/calango`: passed.
+- `npm run typecheck -w apps/desktop` and `npm run build -w apps/desktop`: passed.
+- `node scripts/generate-i18n.mjs --check`: passed; generated translations are current.
+- Isolated Electron E2E on Linux, fresh `/tmp` data/profile and fake Codex executable: agent creation, visible pause/resume, conversation creation and displayed fake response, routine creation and pause/resume, and usage row all passed. The usage row reported 8 input tokens, 6 output tokens and one unknown-cost row.
+- Isolated Chromium renderer smoke with mocked IPC/API: a simulated waiting run displayed the pending action/target; Approve, Always allow, and Decline each dispatched to the mock decision endpoint with HTTP 200. This verifies renderer wiring only, not the daemon approval path or action execution.
+- Confirmed the daemon child's `codex` resolves to the fake executable after npm's `node_modules/.bin` entries are removed from `PATH`.
+- No real model call, actual provider cost, Windows install, or real approval request/decision/action was exercised. The isolated profile/data directory was used; the default `~/.config/calango` database was not touched.
+- Restarted Electron with the same isolated profile/data directory; `/healthz` returned 200 on `127.0.0.1:7317`; CDP port `9222` remained closed.
+
+## 2026-11-23 — V1 TODO continuation
+
+- `go test -race ./... -count=1 -timeout 300s && go vet ./...`: passed across all Go packages; vet clean.
+- `npm run typecheck -w apps/desktop && node scripts/generate-i18n.mjs --check && npm run build -w apps/desktop`: passed. Vite transformed 43 modules and built the renderer. The generated tray catalog was current.
+- `npm run test:main -w apps/desktop`: 2/2 tests passed (XDG path/fallback; autostart file create/remove and escaped command entry).
+- Isolated Electron smoke with `/tmp` profile/data/key, a loopback-only daemon and isolated `XDG_CONFIG_HOME`: app opened; Settings showed no secret values; enabling startup created `autostart/calango.desktop`, disabling it removed the file, and no UI error remained.
+- Isolated audit UI smoke: chain verified (`ok`, 23 entries); JSONL and CSV downloads completed (8,602 and 5,815 bytes).
+- Site review at 1440×1000 desktop and 390×844 mobile, light/dark: `scrollWidth` matched viewport (390 px mobile, 1440 px desktop); no mobile horizontal overflow. Plan cards list phone/cloud/team capabilities still on the roadmap; owner copy review remains open.
+- `npx @redocly/cli@2.81.0 lint --extends minimal --max-problems=0 api/openapi.yaml`: valid; one non-blocking warning.
+- Not exercised: real model/provider cost, live external approval action, physical OS shortcut activation, tray-menu click, Windows/macOS runtime, Windows signing/install, Docker bridge. No production data or user Codex login used.
+
+## 2026-11-23 — TODO status reconciliation
+
+- `go test -race ./... -count=1 -timeout 300s` and `go vet ./...` passed earlier in this work session; no source changed after those checks.
+- `npm run typecheck -w apps/desktop`, `node scripts/generate-i18n.mjs --check`, `npm run build -w apps/desktop`, and `npm run test:main -w apps/desktop` passed earlier; no source changed after those checks.
+- `codex exec --help` ran locally without a model call. It confirms `--json` emits JSONL but does not document the event/usage schema; F1-T05 remains partial.
+- Repository search found no Calango telemetry client/sender; `internal/maestro` sets `ORQUESTRADOR_MAESTRO_TELEMETRY=0` and private `XDG_CONFIG_HOME` for the CLI.
+- The latest Redocly lint is valid with one non-blocking warning. GitHub run 45188079827 passed on `dee8efa`; it does not include current uncommitted changes.
+- No real model call, external approval action, Docker image run, Windows/macOS runtime test, commit or push was performed.
+- `go test ./internal/store -run TestPreMigrationSnapshotRestoresAndAppliesPendingMigration -count=1`: passed; `gofmt -d internal/store/backup_restore_test.go` produced no output.
+- The new test applies all but the latest migration, seeds an agent, snapshots the closed database, applies the migration, restores the snapshot, then verifies the record after the current binary reapplies the migration. It does not test a previous binary or OS keyring recovery.
+
+## 2026-11-23 — Desktop launch, checks and push
+
+- `gofmt -l cmd internal`: empty after `gofmt -w internal/api/server.go`.
+- `go vet ./...`: exit 0.
+- `go test ./... -count=1`: 21 packages `ok`; `cmd/calango` and `internal/providers` have no test files.
+- `npm run typecheck -w apps/desktop`: exit 0. `npm run build -w apps/desktop`: exit 0 (`bin/calango` built; Vite transformed 43 modules; `index-DAGH1Jkq.js` 242.19 kB, `index-CdleRBvq.css` 5.52 kB).
+- `node --test apps/desktop/test/startup.test.cjs`: 2/2 pass.
+- Daemon kill recovery (earlier this session): SIGKILL on the daemon; supervisor restarted it as PID 208776; `listening` logged at 15:05:15; `/healthz` 200 after restart.
+- Desktop relaunch: `DISPLAY=:1 npm run desktop:start`. Log: `calango listening on 127.0.0.1:7399 (api token in the vault)`; `curl 127.0.0.1:7399/healthz` returned `{"status":"ok"}` (HTTP 200). Electron started under Wayland and logged `'--ozone-platform=wayland' is not compatible with Vulkan` (GPU warning). Log also shows `maestro automatic update failed` at start; cause not investigated.
+- CDP was not enabled in this launch.
+- Not verified: window visibility on the owner's screen (no screenshot or window-list tool on this machine); real model call; Windows; real approval action; Maestro update failure cause.

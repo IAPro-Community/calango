@@ -25,3 +25,13 @@ The Orquestrador Maestro (`IAPro-Community/Orquestrador-Maestro`, Apache-2.0) or
 - Dependency on Node.js 20.19+ on the owner's machine (or inside the container, on the VPS). Enters in `F1-T03`/`F3-T01`.
 - The Maestro version becomes part of the contract: when it changes, Calango shows the version in the agents panel.
 - Anyone who does not want Maestro runs without it; nothing in the core depends on it.
+
+## Amendment: automatic update on by default (D6, 2026-11-23)
+
+Owner decision D6 overrides the default in item 2: automatic update inside the V1 line is **on by default**. Items 1, 3, 4 and 5, and the rule in item 2 that a major version never installs on its own, are unchanged.
+
+Consequences of the new default:
+- The owner can turn it off at any time; the state is shown in the agents panel.
+- Verification (item 4) and rollback (item 5) are mandatory for automatic updates. A failed `verify` reverts to the previous version and shows a warning card.
+- An automatic update never runs during a run (`SPECS/modules/maestro.md`).
+- Every automatic install and rollback is recorded in the audit chain.

@@ -56,7 +56,7 @@ The competitive landscape has changed: self-hosted products, agent desktops and 
 
 | Function | Choice |
 |---|---|
-| Language | Go 1.22+ |
+| Language | Go 1.23+ |
 | API | HTTP + WebSocket, OpenAPI contract (generates the TypeScript SDK) |
 | Database | pure-Go SQLite (`modernc.org/sqlite`), versioned and immutable migrations |
 | Scheduler | persisted routines (`internal/routines`): cron, intervals, quiet windows and retries; events in phase 3 |
@@ -320,7 +320,7 @@ Activation (first routine created within 24 h), weekly retention, free→Pro con
 4. **First MVP harness**: Claude Code, Codex or direct API (D3); blocks the implementation that depends on the harness, not the SQLite store.
 5. **Go module name and domain** (D4).
 6. **tsnet**: Tailscale license and commercial limits before embedding (D5).
-7. **Automatic Maestro update**: keep off by default until the default is confirmed (D6).
+7. ~~Automatic Maestro update~~: decided, on by default (D6; ADR 0009 amendment).
 
 ## 15. Risks
 

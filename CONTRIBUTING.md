@@ -32,7 +32,7 @@ Translated versions of the README are available in [Español](README.es.md) and 
 
 ## Development environment
 
-Requirements: Go 1.22 or later. Node.js 20.19 or later for the Orquestrador Maestro.
+Requirements: Go 1.23 or later. Node.js 20.19 or later for the Orquestrador Maestro.
 
 ```bash
 go vet ./...

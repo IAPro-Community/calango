@@ -35,3 +35,7 @@ Thumbs.db
 
 # configuração local de ferramentas (não publicar)
 .claude/
+
+# build do desktop e binário local (gerados por npm run build)
+/bin/
+apps/desktop/dist/

@@ -28,6 +28,7 @@ It also works with the server on the computer itself (local mode). Same binary; 
 ## Secure access (required)
 
 - **Never expose the port in plain text.** Everything goes through TLS, via a reverse proxy (Caddy or Traefik with automatic certificates) or over a private network.
+- **Behind a reverse proxy**, set `CALANGO_TRUSTED_PROXIES` to the proxy's address. Without it, every client behind the proxy shares one pairing rate-limit bucket.
 - **Alternative without a public port**: a private network (Tailscale or WireGuard). Recommended as the default for anyone who does not want to expose the VPS.
 - Strong administrator password on first access; no default credentials.
 - Device tokens with scope and expiry; immediate revocation.
@@ -40,8 +41,8 @@ A self-hosted server cannot talk directly to APNs (iOS) or FCM (Android) without
 ## Updates
 
 - Versioned image (`calango/calango:<version>`). Updating means changing the tag and restarting.
-- Database migrations run at startup and are irreversible without a backup: the compose file documents the volume to save.
-- Backup of the data volume: the person's responsibility, with a documented command.
+- Database migrations run at startup and have no down-migrations. Take an offline snapshot before upgrading.
+- The local-node backup procedure, vault-key requirements and restore-before-rollback policy are in [BACKUP_RESTORE.md](BACKUP_RESTORE.md). Docker volume backup/restore remains unvalidated.
 
 ## Managed hosting (paid option)
 
@@ -54,6 +55,6 @@ For those who do not want to run a VPS, offer the same server hosted by us, with
 
 ## Pending
 
-- Pairing and device tokens: not implemented yet.
+- Local pairing and device-token APIs are implemented; QR/mobile and VPS administrator-password flows remain pending (phases 2–3).
 - Push relay: to be defined.
 - Browser in the container (chromium) requires a larger image; evaluate a separate image.

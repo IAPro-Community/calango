@@ -14,6 +14,7 @@ Store secrets (model keys, connector tokens, site passwords) in the operating sy
 - HTTP (`/v1/vault`): list names and dates; set and delete on `/v1/vault/{name}`. Full scope only. No route returns a value. The name `api-token` is reserved: set and delete return 409. The local token changes only through `POST /v1/auth/rotate-token`, which writes the vault item directly.
 - Set, reveal and delete append an audit event (`vault.set`, `vault.reveal`, `vault.delete`; actor and name only, never the value) before they act. If the audit write fails the action is refused: a secret is never changed or revealed unrecorded.
 - The agent uses a secret by reference (`vault://name`); the value is resolved at the time of the call and masked in logs and steps.
+- Master-key rotation at startup (`CALANGO_VAULT_KEY_VERSION`, `CALANGO_VAULT_KEY_PREVIOUS[_FILE]`): each secret sealed under another key version is re-wrapped to the current one before the daemon serves. Each re-wrap is audited as `vault.rewrap` (name only). Procedure and refusal rules: ADR 0012 amendment.
 - An agent can ask the person for a secret (`request_secret`): a card where the person fills it in; the agent is notified when the value is available.
 
 ## Acceptance

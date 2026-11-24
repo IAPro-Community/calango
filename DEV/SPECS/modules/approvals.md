@@ -32,4 +32,4 @@ No sensitive action happens without a person approving it.
 
 ## Status (F1-T08, partial)
 - Done: canonical action and SHA-256 digest (`internal/core/approval.go`); migration `0004_approvals.sql` (snapshot columns, status and outcome change once, `approval_rules`); store (`internal/store/approvals.go`); service `internal/approvals` (request, decide, execute, sweep, "always allow" rules, 24 h expiry enforced in `Decide` and `Sweep`).
-- HTTP list and decide are served (F1-T13). Pending: the card (client side, F1-T20+); run state `waiting_approval` wired to the executor; reconciliation of an approved action that crashed before its receipt (it stays without outcome); `Request` does not check that `runID` belongs to the agent.
+- HTTP list and decision are served. `TestApprovalDecisionAPIExecutesApprovedSnapshot` creates an approval through `Service.Request`, posts the HTTP decision and verifies the exact approved snapshot reaches a fake executor. The in-conversation card and mocked decision dispatch are implemented. Not verified: a live Codex/MCP write or an action against an external connector; no real model call was authorized.
