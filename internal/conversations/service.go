@@ -17,6 +17,8 @@ import (
 	"calango/internal/events"
 	"calango/internal/gateway"
 	"calango/internal/harness"
+
+	"github.com/IAPro-Community/IAPro-SDK/routing"
 )
 
 const (
@@ -807,7 +809,10 @@ func (s *Service) call(ctx context.Context, run core.Run) (core.RunStatus, strin
 			return core.RunDone, "", total
 		}
 		slog.Warn("provider attempt failed", "run", run.ID, "account", ref.Key(), "error_code", code)
-		if emitted || !fallsBack(ctx, err) {
+		// The direct Anthropic adapter does not call tools. A CLI or an
+		// endpoint-capable provider may have performed an action before text.
+		effectsPossible := ref.Kind == core.ProviderKindCodex || (endpoint != nil && ref.Kind != core.ProviderKindAnthropic)
+		if !canAdvanceChain(ctx, err, emitted, effectsPossible) {
 			break
 		}
 	}
@@ -855,17 +860,21 @@ func steeredPrompt(body, partial, guidance string) string {
 	return b.String()
 }
 
-// fallsBack reports whether the next chain entry may run after err. Budget and
-// cancellation never fall back, since the limit applies to every provider. A
-// ledger failure never falls back: the first call may already have spent tokens.
-func fallsBack(ctx context.Context, err error) bool {
-	switch {
-	case ctx.Err() != nil, errors.Is(err, gateway.ErrBudgetExceeded), errors.Is(err, gateway.ErrLedger):
-		return false
-	}
-	return errors.Is(err, gateway.ErrUnavailable) ||
-		errors.Is(err, harness.ErrNotInstalled) ||
-		errors.Is(err, harness.ErrSignedOut)
+// canAdvanceChain delegates the safety boundary to IAPro-SDK. The host's
+// configured account chain is the explicit authorization; SDK does not
+// discover or select accounts outside that chain. A native CLI failure after
+// dispatch is never retried automatically without reconciliation.
+func canAdvanceChain(ctx context.Context, err error, emitted, effectsPossible bool) bool {
+	beforeDispatch := errors.Is(err, harness.ErrNotInstalled) || errors.Is(err, harness.ErrSignedOut)
+	return routing.CanAdvanceChain(routing.ChainBoundary{
+		Authorized:      true,
+		Retryable:       beforeDispatch || errors.Is(err, gateway.ErrUnavailable),
+		Canceled:        ctx.Err() != nil || errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded),
+		BudgetOrLedger:  errors.Is(err, gateway.ErrBudgetExceeded) || errors.Is(err, gateway.ErrLedger),
+		OutputEmitted:   emitted,
+		BeforeDispatch:  beforeDispatch,
+		EffectsPossible: effectsPossible,
+	})
 }
 
 // attemptErrorCode maps one failed attempt to the run's error code; "" means success.

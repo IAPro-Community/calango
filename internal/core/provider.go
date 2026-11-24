@@ -4,11 +4,13 @@ import (
 	"fmt"
 	"regexp"
 	"time"
+
+	"github.com/IAPro-Community/IAPro-SDK/model"
 )
 
 // Provider kinds. An account's kind selects the adapter that runs its calls.
 const (
-	ProviderKindCodex     = "codex"
+	ProviderKindCodex     = string(model.ProviderCodex)
 	ProviderKindAnthropic = "anthropic"
 )
 

@@ -17,6 +17,9 @@ import (
 	"strings"
 
 	"calango/internal/gateway"
+
+	"github.com/IAPro-Community/IAPro-SDK/classifier"
+	"github.com/IAPro-Community/IAPro-SDK/model"
 )
 
 const (
@@ -166,7 +169,8 @@ func httpError(resp *http.Response) error {
 	if json.Unmarshal(raw, &env) == nil && env.Error != nil {
 		err = fmt.Errorf("anthropic: HTTP %d %s: %s", resp.StatusCode, env.Error.Type, env.Error.Message)
 	}
-	if resp.StatusCode == http.StatusTooManyRequests || resp.StatusCode >= http.StatusInternalServerError {
+	switch classifier.HTTPStatus(resp.StatusCode) {
+	case model.FailureRateLimit, model.FailureProvider:
 		return fmt.Errorf("%w: %w", gateway.ErrUnavailable, err)
 	}
 	return err
