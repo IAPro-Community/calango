@@ -133,7 +133,7 @@ export function SettingsScreen({ client, t }: ScreenProps) {
               />
             </label>
             {actionError && <p className="error" role="alert">{actionError}</p>}
-            {saved && <p className="muted" role="status">{t('settingsSecretSaved')}</p>}
+            {saved && <output className="muted">{t('settingsSecretSaved')}</output>}
             <button type="submit" disabled={busy || name.trim() === '' || secret.length === 0}>
               {busy ? t('commonLoading') : t('commonSave')}
             </button>
@@ -199,9 +199,9 @@ export function SettingsScreen({ client, t }: ScreenProps) {
                 {t('maestroVersion')}: <code>{maestroStatus.version ?? t('maestroNotInstalled')}</code>
               </p>
               {maestroStatus.update_available && (
-                <p className="muted" role="status">
+                <output className="muted">
                   {t('maestroUpdateAvailable')}: <code>{maestroStatus.update_available.version}</code>
-                </p>
+                </output>
               )}
               <label className="check-label">
                 <input
