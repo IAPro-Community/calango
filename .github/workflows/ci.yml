@@ -101,6 +101,22 @@ jobs:
       - run: npm run lint:web
         if: ${{ !cancelled() }}
 
+      - name: Gerar prévia temporária do baseline formatado
+        if: ${{ failure() && github.head_ref == 'ci/51-qualidade-engenharia' }}
+        run: |
+          npm run format:web
+          node --input-type=module <<'NODE'
+          import { execFileSync } from 'node:child_process';
+          import { readFileSync } from 'node:fs';
+          const git = (...args) => execFileSync('git', args, { encoding: 'utf8' });
+          for (const path of git('diff', '--name-only', '-z').split('\0').filter(Boolean)) {
+            console.log('CALANGO_FORMAT ' + JSON.stringify({
+              path, before: git('rev-parse', 'HEAD:' + path).trim(),
+              after: git('hash-object', path).trim(), content: readFileSync(path, 'utf8')
+            }));
+          }
+          NODE
+
   desktop:
     runs-on: ubuntu-latest
     env:
