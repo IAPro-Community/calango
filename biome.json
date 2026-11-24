@@ -7,7 +7,8 @@
       "apps/desktop/vite.config.ts",
       "packages/sdk-ts/src/**",
       "scripts/*.mjs",
-      "!packages/sdk-ts/src/schema.ts"
+      "!packages/sdk-ts/src/schema.ts",
+      "!apps/desktop/src/main/trayMessages.ts"
     ]
   },
   "formatter": {
