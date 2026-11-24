@@ -178,8 +178,9 @@ func (s *Service) Delete(ctx context.Context, name string) error {
 }
 
 // Rotate re-wraps every secret that is not under the current master key version. It
-// returns how many were re-wrapped. Payloads are not re-encrypted. It stops at the
-// first envelope that cannot be opened, because that row needs an operator.
+// returns how many were re-wrapped. Each re-wrap is audited before it is stored, as
+// vault.rewrap with the name only. Payloads are not re-encrypted. It stops at the first
+// envelope that cannot be opened, because that row needs an operator.
 func (s *Service) Rotate(ctx context.Context) (int, error) {
 	stored, err := s.repo.ListStored(ctx, s.owner)
 	if err != nil {
@@ -194,6 +195,9 @@ func (s *Service) Rotate(ctx context.Context) (int, error) {
 		next, err := Rewrap(item.Ciphertext, s.scope(), s.keys, item.KeyVersion, current)
 		if err != nil {
 			return rotated, fmt.Errorf("vault: rotate %q: %w", item.Name, err)
+		}
+		if err := s.audit(ctx, "vault.rewrap", item.Name); err != nil {
+			return rotated, err
 		}
 		if err := s.repo.ReplaceCiphertext(ctx, s.owner, item.Name, next, current); err != nil {
 			return rotated, fmt.Errorf("vault: store rotated %q: %w", item.Name, err)

@@ -11,15 +11,22 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"net/netip"
 	"strings"
 	"time"
 
 	"calango/internal/agents"
 	"calango/internal/approvals"
 	"calango/internal/auth"
+	"calango/internal/conversations"
 	"calango/internal/core"
 	"calango/internal/devices"
+	"calango/internal/events"
+	"calango/internal/maestro"
 	"calango/internal/memory"
+	"calango/internal/providers"
+	"calango/internal/routines"
+	"calango/internal/tools"
 	"calango/internal/usage"
 )
 
@@ -32,40 +39,61 @@ type Config struct {
 	Memories  *memory.Service
 	Approvals *approvals.Service
 	Devices   *devices.Service
-	Usage     *usage.Service
-	// Vault stores secrets for the /v1/vault routes. It never returns a value.
+	// Accounts manages provider accounts for /v1/provider-accounts.
+	Accounts *providers.Service
+	Usage    *usage.Service
+	// Conversations manages conversation, message and run routes.
+	Conversations *conversations.Service
+	// Events fans domain changes out to /v1/events subscribers.
+	Events *events.Hub
+	// Routines manages /v1/routines.
+	Routines *routines.Service
+	// Tools manages connector routes and agent grants.
+	Tools *tools.Service
+	// Maestro manages the isolated official CLI. Nil disables its API routes.
+	Maestro *maestro.Manager
+	// Vault stores secrets and never returns a secret value.
 	Vault VaultStore
-	// Audit verifies the audit chain for GET /v1/audit/verify.
-	Audit AuditVerifier
-	// Token is the live local bearer token of the desktop that runs the node. It acts
-	// with full scope and is replaced through POST /v1/auth/rotate-token.
+	// Audit reads the audit chain and exports.
+	Audit AuditLedger
+	// Token is the live local bearer token; it acts with full scope.
 	Token *auth.LocalToken
-	// OwnerID scopes every read and write to one owner.
+	// OwnerID scopes all reads and writes to one owner.
 	OwnerID string
-	// DeviceID identifies the desktop when the local token is used; approval decisions
-	// record it.
+	// DeviceID identifies decisions made with the local token.
 	DeviceID string
+	// TrustedProxies lists peers whose forwarded-for header counts toward pairing limits.
+	TrustedProxies []netip.Prefix
+	// CORSOrigins lists browser origins allowed to call the API.
+	CORSOrigins []string
 }
 
 type handler struct {
-	agents     *agents.Service
-	memories   *memory.Service
-	approvals  *approvals.Service
-	devices    *devices.Service
-	usage      *usage.Service
-	audit      AuditVerifier
-	vault      VaultStore
-	localToken *auth.LocalToken
-	ownerID    string
-	deviceID   string
-	pairLimit  *attemptLimiter
+	agents        *agents.Service
+	memories      *memory.Service
+	accounts      *providers.Service
+	approvals     *approvals.Service
+	devices       *devices.Service
+	usage         *usage.Service
+	audit         AuditLedger
+	vault         VaultStore
+	conversations *conversations.Service
+	events        *events.Hub
+	routines      *routines.Service
+	tools         *tools.Service
+	maestro       *maestro.Manager
+	localToken    *auth.LocalToken
+	ownerID       string
+	deviceID      string
+	pairLimit     *attemptLimiter
+	trusted       []netip.Prefix
 }
 
 // NewHandler validates cfg and returns the node's HTTP handler.
 func NewHandler(cfg Config) (http.Handler, error) {
 	switch {
-	case cfg.Agents == nil, cfg.Memories == nil, cfg.Approvals == nil, cfg.Devices == nil, cfg.Usage == nil, cfg.Vault == nil, cfg.Audit == nil:
-		return nil, errors.New("api: agents, memories, approvals, devices, usage, vault and audit services are required")
+	case cfg.Agents == nil, cfg.Memories == nil, cfg.Approvals == nil, cfg.Devices == nil, cfg.Usage == nil, cfg.Vault == nil, cfg.Audit == nil, cfg.Conversations == nil, cfg.Events == nil, cfg.Accounts == nil, cfg.Routines == nil, cfg.Tools == nil:
+		return nil, errors.New("api: agents, memories, approvals, devices, usage, vault, audit, conversations, events, provider accounts, routines and tools services are required")
 	case cfg.Token == nil:
 		return nil, errors.New("api: bearer token is required")
 	case cfg.OwnerID == "", cfg.DeviceID == "":
@@ -73,17 +101,13 @@ func NewHandler(cfg Config) (http.Handler, error) {
 	}
 
 	h := &handler{
-		agents:     cfg.Agents,
-		memories:   cfg.Memories,
-		approvals:  cfg.Approvals,
-		devices:    cfg.Devices,
-		usage:      cfg.Usage,
-		vault:      cfg.Vault,
-		audit:      cfg.Audit,
-		localToken: cfg.Token,
-		ownerID:    cfg.OwnerID,
-		deviceID:   cfg.DeviceID,
-		pairLimit:  newAttemptLimiter(pairAttemptsPerWindow, pairWindow, time.Now),
+		agents: cfg.Agents, memories: cfg.Memories, accounts: cfg.Accounts,
+		approvals: cfg.Approvals, devices: cfg.Devices, usage: cfg.Usage,
+		vault: cfg.Vault, audit: cfg.Audit, conversations: cfg.Conversations,
+		events: cfg.Events, routines: cfg.Routines, tools: cfg.Tools,
+		maestro: cfg.Maestro, localToken: cfg.Token, ownerID: cfg.OwnerID,
+		deviceID: cfg.DeviceID, pairLimit: newAttemptLimiter(pairAttemptsPerWindow, pairWindow, time.Now),
+		trusted: cfg.TrustedProxies,
 	}
 	v1 := http.NewServeMux()
 	h.registerAgents(v1)
@@ -94,12 +118,20 @@ func NewHandler(cfg Config) (http.Handler, error) {
 	h.registerVault(v1)
 	h.registerAuth(v1)
 	h.registerAudit(v1)
+	h.registerConversations(v1)
+	h.registerEvents(v1)
+	h.registerProviderAccounts(v1)
+	h.registerRoutines(v1)
+	h.registerTools(v1)
+	if h.maestro != nil {
+		h.registerMaestro(v1)
+	}
 
 	root := http.NewServeMux()
 	root.HandleFunc("GET /healthz", healthz)
 	root.HandleFunc("POST /v1/pair", h.pair)
 	root.Handle("/", h.authenticate(v1))
-	return root, nil
+	return allowCORS(cfg.CORSOrigins, root), nil
 }
 
 func healthz(w http.ResponseWriter, _ *http.Request) {

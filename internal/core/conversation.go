@@ -44,19 +44,23 @@ const (
 
 // Step kinds recorded in run_steps.
 const (
-	StepThought    = "thought"
-	StepToolCall   = "tool_call"
-	StepToolResult = "tool_result"
-	StepText       = "text"
+	StepThought         = "thought"
+	StepToolCall        = "tool_call"
+	StepToolResult      = "tool_result"
+	StepText            = "text"
+	StepProviderAttempt = "provider_attempt"
 )
 
 // Error codes stored in runs.error_code.
 const (
-	ErrCodeInterrupted    = "interrupted"
-	ErrCodeAgentPaused    = "agent_paused"
-	ErrCodeBudgetExceeded = "budget_exceeded"
-	ErrCodeProviderError  = "provider_error"
-	ErrCodeStoreError     = "store_error"
+	ErrCodeInterrupted        = "interrupted"
+	ErrCodeAgentPaused        = "agent_paused"
+	ErrCodeBudgetExceeded     = "budget_exceeded"
+	ErrCodeProviderError      = "provider_error"
+	ErrCodeHarnessSignedOut   = "harness_signed_out"
+	ErrCodeStoreError         = "store_error"
+	ErrCodeNoProvider         = "no_provider"
+	ErrCodeMaestroUnavailable = "maestro_unavailable"
 )
 
 // MaxMessageBytes bounds one message body.
@@ -94,6 +98,7 @@ type Run struct {
 	Status          RunStatus
 	Instructions    string
 	RetryOf         string
+	SteerOf         string
 	TokensIn        int64
 	TokensOut       int64
 	StartedAt       *time.Time

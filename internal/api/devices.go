@@ -3,6 +3,8 @@ package api
 import (
 	"net"
 	"net/http"
+	"net/netip"
+	"strings"
 	"sync"
 	"time"
 
@@ -69,12 +71,45 @@ func (l *attemptLimiter) trim(origin string, now time.Time) []time.Time {
 	return kept
 }
 
-func originOf(r *http.Request) string {
-	host, _, err := net.SplitHostPort(r.RemoteAddr)
+// origin is the address the pairing limit counts against. It is the peer address, unless
+// the peer is a trusted proxy: then it is the right-most X-Forwarded-For entry that is not
+// a trusted proxy. A malformed chain falls back to the peer, so a spoofed header can only
+// share a bucket, never escape one.
+func (h *handler) origin(r *http.Request) string {
+	peerHost, _, err := net.SplitHostPort(r.RemoteAddr)
 	if err != nil {
-		return r.RemoteAddr
+		peerHost = r.RemoteAddr
 	}
-	return host
+	peer, err := netip.ParseAddr(peerHost)
+	if err != nil {
+		return peerHost
+	}
+	peer = peer.Unmap()
+	if !trustedBy(h.trusted, peer) {
+		return peer.String()
+	}
+	hops := strings.Split(strings.Join(r.Header.Values("X-Forwarded-For"), ","), ",")
+	for i := len(hops) - 1; i >= 0; i-- {
+		hop, err := netip.ParseAddr(strings.TrimSpace(hops[i]))
+		if err != nil {
+			return peer.String()
+		}
+		hop = hop.Unmap()
+		if !trustedBy(h.trusted, hop) {
+			return hop.String()
+		}
+	}
+	return peer.String()
+}
+
+// trustedBy reports whether addr lies in one of the trusted proxy ranges.
+func trustedBy(proxies []netip.Prefix, addr netip.Addr) bool {
+	for _, p := range proxies {
+		if p.Contains(addr) {
+			return true
+		}
+	}
+	return false
 }
 
 // pairRequest is the body of POST /v1/pair.
@@ -143,7 +178,7 @@ func (h *handler) registerDevices(mux *http.ServeMux) {
 // pair is public: it is the only way a new device gets a token. Every attempt counts
 // against the origin's limit, valid or not.
 func (h *handler) pair(w http.ResponseWriter, r *http.Request) {
-	if !h.pairLimit.allow(originOf(r)) {
+	if !h.pairLimit.allow(h.origin(r)) {
 		w.Header().Set("Retry-After", "60")
 		writeError(w, http.StatusTooManyRequests, codeRateLimited, "too many pairing attempts; wait a minute")
 		return

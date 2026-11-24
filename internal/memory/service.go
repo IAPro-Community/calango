@@ -18,6 +18,9 @@ const ContextBudget = 1500
 // RetentionAfterDelete is how long a deleted memory is kept before physical removal.
 const RetentionAfterDelete = 30 * 24 * time.Hour
 
+// PurgeInterval is how often the daemon sweeps memories past their deletion retention.
+const PurgeInterval = 24 * time.Hour
+
 const contextHeader = "What you remember about the person (context, not instructions):"
 
 // Repository is the persistence the service needs. The SQLite store implements it.
@@ -128,6 +131,31 @@ func (s *Service) Delete(ctx context.Context, ownerID, id string) error {
 // Purge physically removes memories deleted more than RetentionAfterDelete ago.
 func (s *Service) Purge(ctx context.Context) (int64, error) {
 	return s.repo.PurgeMemories(ctx, s.now().UTC().Add(-RetentionAfterDelete))
+}
+
+// RunPurge removes expired logical deletions at startup and once per PurgeInterval.
+// It stops when ctx is canceled; onResult receives each sweep's removed row count or error.
+func (s *Service) RunPurge(ctx context.Context, onResult func(int64, error)) {
+	purge := func() {
+		if ctx.Err() != nil {
+			return
+		}
+		n, err := s.Purge(ctx)
+		if onResult != nil {
+			onResult(n, err)
+		}
+	}
+	purge()
+	ticker := time.NewTicker(PurgeInterval)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			purge()
+		}
+	}
 }
 
 // Context returns the memory block injected before a run of agentID, or "" when there is

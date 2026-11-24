@@ -20,7 +20,7 @@ func TestLoadMasterKeysKeyFileTakesPrecedenceOverInlineKey(t *testing.T) {
 		t.Fatalf("write key file: %v", err)
 	}
 
-	keys, err := LoadMasterKeys(encodedKey(0x22), path, &fakeKeyring{entries: map[string]string{}})
+	keys, err := LoadMasterKeys(KeySources{Key: encodedKey(0x22), KeyFile: path}, &fakeKeyring{entries: map[string]string{}})
 	if err != nil {
 		t.Fatalf("load: %v", err)
 	}
@@ -46,7 +46,7 @@ func TestLoadMasterKeysMissingKeyFileDoesNotFallBack(t *testing.T) {
 	kr := &fakeKeyring{entries: map[string]string{}}
 	missing := filepath.Join(t.TempDir(), "absent.key")
 
-	_, err := LoadMasterKeys(encodedKey(0x22), missing, kr)
+	_, err := LoadMasterKeys(KeySources{Key: encodedKey(0x22), KeyFile: missing}, kr)
 	if err == nil || !strings.Contains(err.Error(), "master key file") {
 		t.Fatalf("err = %v, want an error about the master key file", err)
 	}
@@ -58,7 +58,7 @@ func TestLoadMasterKeysMissingKeyFileDoesNotFallBack(t *testing.T) {
 func TestLoadMasterKeysInlineKeyWhenNoFile(t *testing.T) {
 	kr := &fakeKeyring{entries: map[string]string{}}
 
-	keys, err := LoadMasterKeys(encodedKey(0x33), "", kr)
+	keys, err := LoadMasterKeys(KeySources{Key: encodedKey(0x33)}, kr)
 	if err != nil {
 		t.Fatalf("load: %v", err)
 	}
@@ -73,7 +73,7 @@ func TestLoadMasterKeysInlineKeyWhenNoFile(t *testing.T) {
 func TestLoadMasterKeysInvalidInlineKeyNeverEchoesInput(t *testing.T) {
 	secret := "not-base64-and-secret!"
 
-	_, err := LoadMasterKeys(secret, "", &fakeKeyring{entries: map[string]string{}})
+	_, err := LoadMasterKeys(KeySources{Key: secret}, &fakeKeyring{entries: map[string]string{}})
 	if err == nil {
 		t.Fatal("invalid key must be rejected")
 	}
@@ -85,7 +85,7 @@ func TestLoadMasterKeysInvalidInlineKeyNeverEchoesInput(t *testing.T) {
 func TestLoadMasterKeysUsesKeyringWhenNothingConfigured(t *testing.T) {
 	kr := &fakeKeyring{entries: map[string]string{}}
 
-	keys, err := LoadMasterKeys("", "", kr)
+	keys, err := LoadMasterKeys(KeySources{}, kr)
 	if err != nil {
 		t.Fatalf("load: %v", err)
 	}
@@ -97,8 +97,36 @@ func TestLoadMasterKeysUsesKeyringWhenNothingConfigured(t *testing.T) {
 func TestLoadMasterKeysKeyringUnavailableFailsClosed(t *testing.T) {
 	kr := &fakeKeyring{entries: map[string]string{}, err: errors.New("dbus: no secret service")}
 
-	_, err := LoadMasterKeys("", "", kr)
+	_, err := LoadMasterKeys(KeySources{}, kr)
 	if !errors.Is(err, ErrKeyringUnavailable) {
 		t.Fatalf("err = %v, want ErrKeyringUnavailable", err)
+	}
+}
+
+func TestLoadMasterKeysPreviousKeyOpensOldVersionDuringRotation(t *testing.T) {
+	kr := &fakeKeyring{entries: map[string]string{}}
+	keys, err := LoadMasterKeys(KeySources{Key: encodedKey(0x22), Version: 2, Previous: encodedKey(0x11)}, kr)
+	if err != nil {
+		t.Fatalf("load: %v", err)
+	}
+	if keys.Current() != 2 || !keys.Has(1) {
+		t.Fatalf("current=%d has1=%v, want current 2 with version 1 still loaded", keys.Current(), keys.Has(1))
+	}
+	if kr.sets != 0 {
+		t.Fatal("explicit keys must not touch the keyring")
+	}
+}
+
+func TestLoadMasterKeysPreviousNeedsVersionTwo(t *testing.T) {
+	_, err := LoadMasterKeys(KeySources{Key: encodedKey(0x22), Previous: encodedKey(0x11)}, &fakeKeyring{entries: map[string]string{}})
+	if err == nil || !strings.Contains(err.Error(), "at least 2") {
+		t.Fatalf("err = %v, want refusal for version 1", err)
+	}
+}
+
+func TestLoadMasterKeysVersionNeedsExplicitKey(t *testing.T) {
+	_, err := LoadMasterKeys(KeySources{Version: 2}, &fakeKeyring{entries: map[string]string{}})
+	if err == nil || !strings.Contains(err.Error(), "OS keyring") {
+		t.Fatalf("err = %v, want refusal to version a keyring key", err)
 	}
 }

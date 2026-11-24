@@ -15,18 +15,20 @@ type clock struct{ t time.Time }
 func (c *clock) now() time.Time { return c.t }
 
 type fakeExec struct {
-	calls   []core.Occurrence
-	errs    []error // errs[i] is returned by the i-th call; nil means success
-	hadNews bool
+	calls        []core.Occurrence
+	errs         []error // errs[i] is returned by the i-th call; nil means success
+	hadNews      bool
+	finish       bool   // Result.Finish on every call, failed ones included
+	conversation string // Result.ConversationID on every call
 }
 
 func (f *fakeExec) Execute(_ context.Context, _ core.Routine, o core.Occurrence) (Result, error) {
 	i := len(f.calls)
 	f.calls = append(f.calls, o)
 	if i < len(f.errs) && f.errs[i] != nil {
-		return Result{}, f.errs[i]
+		return Result{Finish: f.finish, ConversationID: f.conversation}, f.errs[i]
 	}
-	return Result{HadNews: f.hadNews}, nil
+	return Result{HadNews: f.hadNews, Finish: f.finish, ConversationID: f.conversation}, nil
 }
 
 type env struct {

@@ -46,7 +46,17 @@ func newEnv(t *testing.T) *env {
 	if err != nil {
 		t.Fatalf("agents service: %v", err)
 	}
-	view, err := ag.Create(ctx, owner, core.Agent{Name: "Calango", Model: "m", Harness: "fake", TokenLimitMonth: 1000})
+	accountID, err := core.NewID(clk.t)
+	if err != nil {
+		t.Fatalf("account id: %v", err)
+	}
+	if err := st.InsertProviderAccount(ctx, core.ProviderAccount{ID: accountID, OwnerID: owner, Kind: "codex", Label: "default", CreatedAt: clk.t, UpdatedAt: clk.t}); err != nil {
+		t.Fatalf("insert account: %v", err)
+	}
+	view, err := ag.Create(ctx, owner, core.Agent{
+		Name: "Calango", TokenLimitMonth: 1000,
+		Providers: []core.ProviderRef{{AccountID: accountID, Kind: "codex", Label: "default", Model: "m"}},
+	})
 	if err != nil {
 		t.Fatalf("create agent: %v", err)
 	}
@@ -300,5 +310,54 @@ func TestNonSensitiveActionIsRejected(t *testing.T) {
 	})
 	if !errors.Is(err, core.ErrInvalidInput) {
 		t.Fatalf("request read_file: err = %v, want ErrInvalidInput", err)
+	}
+}
+
+func TestRequestRejectsRunOfAnotherAgent(t *testing.T) {
+	e := newEnv(t)
+	ctx := context.Background()
+	first, err := e.st.GetAgent(ctx, owner, e.agentID)
+	if err != nil {
+		t.Fatalf("get agent: %v", err)
+	}
+	ag, err := agents.NewService(e.st, e.clk.now, core.NewID)
+	if err != nil {
+		t.Fatalf("agents service: %v", err)
+	}
+	other, err := ag.Create(ctx, owner, core.Agent{Name: "Outro", TokenLimitMonth: 1000, Providers: first.Providers})
+	if err != nil {
+		t.Fatalf("create other agent: %v", err)
+	}
+	_, err = e.svc.Request(ctx, owner, other.ID, e.runID, email())
+	if !errors.Is(err, core.ErrInvalidInput) {
+		t.Fatalf("run of another agent: err = %v, want ErrInvalidInput", err)
+	}
+}
+
+func TestReconcileClosesApprovedWithoutReceiptAndNeverRetries(t *testing.T) {
+	ctx := context.Background()
+	e := newEnv(t)
+	a := e.request(email())
+	if _, err := e.svc.Decide(ctx, owner, a.ID, "dev-1", true, false); err != nil {
+		t.Fatalf("approve: %v", err)
+	}
+	if n, err := e.svc.Reconcile(ctx); err != nil || n != 1 {
+		t.Fatalf("reconcile = %d, %v; want 1, nil", n, err)
+	}
+	got, err := e.svc.Get(ctx, owner, a.ID)
+	if err != nil {
+		t.Fatalf("get: %v", err)
+	}
+	if got.Status != core.ApprovalApproved || got.Outcome != core.OutcomeFailed || got.OutcomeReason == "" {
+		t.Fatalf("after reconcile: status %s outcome %s reason %q; want approved, failed, with reason", got.Status, got.Outcome, got.OutcomeReason)
+	}
+	if n, err := e.svc.Reconcile(ctx); err != nil || n != 0 {
+		t.Fatalf("second reconcile = %d, %v; want 0, nil", n, err)
+	}
+	if _, err := e.svc.Execute(ctx, owner, a.ID, email(), noRun(t)); !errors.Is(err, core.ErrConflict) {
+		t.Fatalf("execute after reconcile: err = %v, want ErrConflict", err)
+	}
+	if n := e.count("approval.reconciled"); n != 1 {
+		t.Fatalf("approval.reconciled audit entries = %d, want 1", n)
 	}
 }

@@ -60,13 +60,31 @@ func newFixture(t *testing.T) *fixture {
 	if err != nil {
 		t.Fatalf("agents service: %v", err)
 	}
+	seedAccounts(t, st, clk.t, "owner", ownerA, "owner-b")
 	return &fixture{t: t, clk: clk, svc: svc, agents: ag}
+}
+
+// accountIDFor is the id of the codex account seeded for owner.
+func accountIDFor(owner string) string {
+	return "acct" + strings.Repeat("0", 22-len(owner)) + owner
+}
+
+// seedAccounts gives each owner one codex account so agents can chain it.
+func seedAccounts(t *testing.T, st *store.Store, now time.Time, owners ...string) {
+	t.Helper()
+	for _, o := range owners {
+		acc := core.ProviderAccount{ID: accountIDFor(o), OwnerID: o, Kind: "codex", Label: "default", CreatedAt: now, UpdatedAt: now}
+		if err := st.InsertProviderAccount(context.Background(), acc); err != nil {
+			t.Fatalf("seed account for %s: %v", o, err)
+		}
+	}
 }
 
 func (f *fixture) agent(owner, name string) string {
 	f.t.Helper()
 	view, err := f.agents.Create(context.Background(), owner, core.Agent{
-		Name: name, Model: "fake-model", Harness: "fake", TokenLimitMonth: 1000,
+		Name: name, TokenLimitMonth: 1000,
+		Providers: []core.ProviderRef{{AccountID: accountIDFor(owner), Kind: "codex", Label: "default", Model: "fake-model"}},
 	})
 	if err != nil {
 		f.t.Fatalf("create agent %s: %v", name, err)
@@ -266,5 +284,46 @@ func TestPurgeRemovesOnlyDeletesPastRetention(t *testing.T) {
 	}
 	if n != 1 {
 		t.Fatalf("second purge removed %d rows, want 1", n)
+	}
+}
+
+func TestRunPurgeRunsAtStartupAndStops(t *testing.T) {
+	f := newFixture(t)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	old := f.create(ownerA, accountMemory("Apagada há mais de 30 dias"))
+	if err := f.svc.Delete(ctx, ownerA, old.ID); err != nil {
+		t.Fatalf("delete memory: %v", err)
+	}
+	f.clk.advance(memory.RetentionAfterDelete + time.Second)
+
+	type purgeResult struct {
+		removed int64
+		err     error
+	}
+	results := make(chan purgeResult, 1)
+	done := make(chan struct{})
+	go func() {
+		f.svc.RunPurge(ctx, func(removed int64, err error) {
+			results <- purgeResult{removed: removed, err: err}
+		})
+		close(done)
+	}()
+
+	select {
+	case result := <-results:
+		if result.err != nil || result.removed != 1 {
+			t.Fatalf("startup purge = %d, %v; want 1 row and no error", result.removed, result.err)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("startup purge did not run")
+	}
+
+	cancel()
+	select {
+	case <-done:
+	case <-time.After(time.Second):
+		t.Fatal("purge loop did not stop after cancellation")
 	}
 }

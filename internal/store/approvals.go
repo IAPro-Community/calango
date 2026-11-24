@@ -92,6 +92,17 @@ func (s *Store) ListDueApprovals(ctx context.Context, now time.Time) ([]core.App
 	return collectApprovals(rows)
 }
 
+// ListUnreceiptedApprovals returns approved approvals with no receipt, oldest
+// first. Call it only at startup, while no executor is running.
+func (s *Store) ListUnreceiptedApprovals(ctx context.Context) ([]core.Approval, error) {
+	rows, err := s.db.QueryContext(ctx, `SELECT `+approvalColumns+` FROM approvals
+		WHERE status = 'approved' AND outcome IS NULL ORDER BY created_at, id`)
+	if err != nil {
+		return nil, fmt.Errorf("list approvals without receipt: %w", err)
+	}
+	return collectApprovals(rows)
+}
+
 // NextApprovalSeq returns the sequence number for the next approval of a run.
 func (s *Store) NextApprovalSeq(ctx context.Context, runID string) (int64, error) {
 	var next int64

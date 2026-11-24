@@ -11,7 +11,7 @@ import (
 )
 
 const runColumns = `id, agent_id, conversation_id, source_message_id, idempotency_key, trigger,
-	status, instructions, retry_of, tokens_in, tokens_out, started_at, ended_at, error_code`
+	status, instructions, retry_of, steer_of, tokens_in, tokens_out, started_at, ended_at, error_code`
 
 // InsertConversation stores a conversation and its agent member in one transaction.
 func (s *Store) InsertConversation(ctx context.Context, c core.Conversation, agentID string) error {
@@ -37,6 +37,38 @@ func (s *Store) InsertConversation(ctx context.Context, c core.Conversation, age
 		return fmt.Errorf("commit conversation insert: %w", err)
 	}
 	return nil
+}
+
+// ListConversations returns the conversations whose agent partner belongs to ownerID,
+// newest first.
+func (s *Store) ListConversations(ctx context.Context, ownerID string) ([]core.Conversation, error) {
+	rows, err := s.db.QueryContext(ctx, `SELECT c.id, c.kind, c.title, c.created_at
+		FROM conversations c
+		JOIN conversation_members m ON m.conversation_id = c.id AND m.member_kind = 'agent'
+		JOIN agents a ON a.id = m.member_id
+		WHERE a.owner_id = ?
+		ORDER BY c.created_at DESC, c.id DESC`, ownerID)
+	if err != nil {
+		return nil, fmt.Errorf("list conversations: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+
+	var out []core.Conversation
+	for rows.Next() {
+		var c core.Conversation
+		var at string
+		if err := rows.Scan(&c.ID, &c.Kind, &c.Title, &at); err != nil {
+			return nil, fmt.Errorf("scan conversation: %w", err)
+		}
+		if c.CreatedAt, err = parseStoredTime(at); err != nil {
+			return nil, err
+		}
+		out = append(out, c)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate conversations: %w", err)
+	}
+	return out, nil
 }
 
 // ConversationAgent returns the agent partner of a DM.
@@ -65,6 +97,9 @@ func (s *Store) AgentByID(ctx context.Context, id string) (core.Agent, error) {
 	if err != nil {
 		return core.Agent{}, fmt.Errorf("read agent %s: %w", id, err)
 	}
+	if a.Providers, err = loadProviderChain(ctx, s.db, id); err != nil {
+		return core.Agent{}, err
+	}
 	return a, nil
 }
 
@@ -87,10 +122,10 @@ func (s *Store) AdmitRun(ctx context.Context, msg *core.Message, run core.Run) e
 		}
 	}
 	if _, err := tx.ExecContext(ctx, `INSERT INTO runs (`+runColumns+`)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		run.ID, run.AgentID, run.ConversationID, nullIfEmpty(run.SourceMessageID),
 		run.IdempotencyKey, run.Trigger, string(run.Status), run.Instructions,
-		nullIfEmpty(run.RetryOf), run.TokensIn, run.TokensOut,
+		nullIfEmpty(run.RetryOf), nullIfEmpty(run.SteerOf), run.TokensIn, run.TokensOut,
 		timeValue(run.StartedAt), timeValue(run.EndedAt), nullIfEmpty(run.ErrorCode)); err != nil {
 		return fmt.Errorf("insert run %s: %w", run.ID, err)
 	}
@@ -172,11 +207,13 @@ func (s *Store) GetRunByIdempotencyKey(ctx context.Context, key string) (core.Ru
 	return r, nil
 }
 
-// ClaimRun moves a queued run to running. It reports false when the run was
-// not queued, so two dispatchers cannot start the same run.
+// ClaimRun moves a queued run to running only when its agent has no active run.
+// The conditional update prevents overlapping claims across service instances.
 func (s *Store) ClaimRun(ctx context.Context, id string, at time.Time) (bool, error) {
-	res, err := s.db.ExecContext(ctx,
-		`UPDATE runs SET status = 'running', started_at = ? WHERE id = ? AND status = 'queued'`,
+	res, err := s.db.ExecContext(ctx, `UPDATE runs SET status = 'running', started_at = ?
+		WHERE id = ? AND status = 'queued'
+		AND NOT EXISTS (SELECT 1 FROM runs active
+			WHERE active.agent_id = runs.agent_id AND active.status IN ('running', 'waiting_approval'))`,
 		at.UTC().Format(usageTimeLayout), id)
 	if err != nil {
 		return false, fmt.Errorf("claim run %s: %w", id, err)
@@ -184,6 +221,26 @@ func (s *Store) ClaimRun(ctx context.Context, id string, at time.Time) (bool, er
 	n, err := res.RowsAffected()
 	if err != nil {
 		return false, fmt.Errorf("count claimed runs: %w", err)
+	}
+	return n == 1, nil
+}
+
+// SetRunStatus moves a run between running and waiting_approval and reports
+// whether it did. A run waiting on a person keeps its conversation slot. A run
+// that is no longer in the expected state reports false.
+func (s *Store) SetRunStatus(ctx context.Context, id string, from, to core.RunStatus) (bool, error) {
+	if !(from == core.RunRunning && to == core.RunWaitingApproval || from == core.RunWaitingApproval && to == core.RunRunning) {
+		return false, fmt.Errorf("run %s: status change %s to %s is not allowed", id, from, to)
+	}
+	res, err := s.db.ExecContext(ctx,
+		`UPDATE runs SET status = ? WHERE id = ? AND status = ?`,
+		string(to), id, string(from))
+	if err != nil {
+		return false, fmt.Errorf("set run %s status to %s: %w", id, to, err)
+	}
+	n, err := res.RowsAffected()
+	if err != nil {
+		return false, fmt.Errorf("count status changes for run %s: %w", id, err)
 	}
 	return n == 1, nil
 }
@@ -201,11 +258,46 @@ func (s *Store) FinishRun(ctx context.Context, id string, status core.RunStatus,
 	return requireOneRow(res, "run "+id)
 }
 
-// CountRunningRuns counts runs in running state for one conversation.
+// FinishRunWithMessage records the run result and its optional reply atomically.
+func (s *Store) FinishRunWithMessage(ctx context.Context, id string, status core.RunStatus, at time.Time,
+	errCode string, tokensIn, tokensOut int64, message *core.Message) error {
+	if message == nil {
+		return s.FinishRun(ctx, id, status, at, errCode, tokensIn, tokensOut)
+	}
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("begin run completion: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	res, err := tx.ExecContext(ctx, `UPDATE runs
+		SET status = ?, ended_at = ?, error_code = ?, tokens_in = ?, tokens_out = ?
+		WHERE id = ?`,
+		string(status), at.UTC().Format(usageTimeLayout), nullIfEmpty(errCode), tokensIn, tokensOut, id)
+	if err != nil {
+		return fmt.Errorf("finish run %s: %w", id, err)
+	}
+	if err := requireOneRow(res, "run "+id); err != nil {
+		return err
+	}
+	if _, err := tx.ExecContext(ctx, `INSERT INTO messages
+		(id, conversation_id, thread_id, author_kind, author_id, body, created_at)
+		VALUES (?, ?, NULL, ?, ?, ?, ?)`,
+		message.ID, message.ConversationID, message.AuthorKind, message.AuthorID, message.Body,
+		message.CreatedAt.UTC().Format(usageTimeLayout)); err != nil {
+		return fmt.Errorf("insert reply message %s: %w", message.ID, err)
+	}
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit run completion %s: %w", id, err)
+	}
+	return nil
+}
+
+// CountRunningRuns counts runs that hold a conversation slot: running or waiting_approval.
 func (s *Store) CountRunningRuns(ctx context.Context, conversationID string) (int, error) {
 	var n int
 	err := s.db.QueryRowContext(ctx,
-		`SELECT COUNT(*) FROM runs WHERE conversation_id = ? AND status = 'running'`,
+		`SELECT COUNT(*) FROM runs WHERE conversation_id = ? AND status IN ('running', 'waiting_approval')`,
 		conversationID).Scan(&n)
 	if err != nil {
 		return 0, fmt.Errorf("count running runs: %w", err)
@@ -213,11 +305,38 @@ func (s *Store) CountRunningRuns(ctx context.Context, conversationID string) (in
 	return n, nil
 }
 
-// OldestQueuedRun returns the earliest queued run of a conversation. Run ids
-// are time-ordered, so id order is admission order.
+// CountActiveAgentRuns counts runs holding an agent slot across conversations:
+// running or waiting_approval.
+func (s *Store) CountActiveAgentRuns(ctx context.Context, agentID string) (int, error) {
+	var n int
+	err := s.db.QueryRowContext(ctx,
+		`SELECT COUNT(*) FROM runs WHERE agent_id = ? AND status IN ('running', 'waiting_approval')`,
+		agentID).Scan(&n)
+	if err != nil {
+		return 0, fmt.Errorf("count active agent runs: %w", err)
+	}
+	return n, nil
+}
+
+// OldestQueuedAgentRun returns the earliest queued run admitted for an agent.
+// Rowid preserves insertion order even when ids share a timestamp.
+func (s *Store) OldestQueuedAgentRun(ctx context.Context, agentID string) (core.Run, error) {
+	r, err := scanRun(s.db.QueryRowContext(ctx, `SELECT `+runColumns+` FROM runs
+		WHERE agent_id = ? AND status = 'queued' ORDER BY rowid LIMIT 1`, agentID))
+	if errors.Is(err, sql.ErrNoRows) {
+		return core.Run{}, fmt.Errorf("%w: no queued run for agent", core.ErrNotFound)
+	}
+	if err != nil {
+		return core.Run{}, fmt.Errorf("read oldest queued agent run: %w", err)
+	}
+	return r, nil
+}
+
+// OldestQueuedRun returns the earliest queued run admitted to a conversation.
+// Rowid preserves insertion order even when ids share a timestamp.
 func (s *Store) OldestQueuedRun(ctx context.Context, conversationID string) (core.Run, error) {
 	r, err := scanRun(s.db.QueryRowContext(ctx, `SELECT `+runColumns+` FROM runs
-		WHERE conversation_id = ? AND status = 'queued' ORDER BY id LIMIT 1`, conversationID))
+		WHERE conversation_id = ? AND status = 'queued' ORDER BY rowid LIMIT 1`, conversationID))
 	if errors.Is(err, sql.ErrNoRows) {
 		return core.Run{}, fmt.Errorf("%w: no queued run", core.ErrNotFound)
 	}
@@ -250,12 +369,12 @@ func (s *Store) ConversationsWithQueuedRuns(ctx context.Context) ([]string, erro
 	return out, nil
 }
 
-// InterruptRunningRuns ends every run left in running state as failed with
-// error_code interrupted. It runs once at startup, before any dispatch.
+// InterruptRunningRuns ends every run left in running or waiting_approval state as
+// failed with error_code interrupted. It runs once at startup, before any dispatch.
 func (s *Store) InterruptRunningRuns(ctx context.Context, at time.Time) (int64, error) {
 	res, err := s.db.ExecContext(ctx, `UPDATE runs
 		SET status = 'failed', ended_at = ?, error_code = ?
-		WHERE status = 'running'`,
+		WHERE status IN ('running', 'waiting_approval')`,
 		at.UTC().Format(usageTimeLayout), core.ErrCodeInterrupted)
 	if err != nil {
 		return 0, fmt.Errorf("interrupt running runs: %w", err)
@@ -307,18 +426,19 @@ func (s *Store) ListSteps(ctx context.Context, runID string) ([]core.Step, error
 
 func scanRun(row rowScanner) (core.Run, error) {
 	var (
-		r                                     core.Run
-		sourceID, retryOf, started, ended, ec sql.NullString
-		status                                string
+		r                                              core.Run
+		sourceID, retryOf, steerOf, started, ended, ec sql.NullString
+		status                                         string
 	)
 	err := row.Scan(&r.ID, &r.AgentID, &r.ConversationID, &sourceID, &r.IdempotencyKey, &r.Trigger,
-		&status, &r.Instructions, &retryOf, &r.TokensIn, &r.TokensOut, &started, &ended, &ec)
+		&status, &r.Instructions, &retryOf, &steerOf, &r.TokensIn, &r.TokensOut, &started, &ended, &ec)
 	if err != nil {
 		return core.Run{}, err
 	}
 	r.Status = core.RunStatus(status)
 	r.SourceMessageID = sourceID.String
 	r.RetryOf = retryOf.String
+	r.SteerOf = steerOf.String
 	r.ErrorCode = ec.String
 	if r.StartedAt, err = optionalTime(started); err != nil {
 		return core.Run{}, err

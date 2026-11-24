@@ -2,6 +2,7 @@ package core
 
 import (
 	"fmt"
+	"strings"
 	"time"
 )
 
@@ -61,6 +62,11 @@ type Routine struct {
 	NextRunAt  time.Time
 	CreatedAt  time.Time
 	UpdatedAt  time.Time
+
+	// ConversationID is the conversation the routine's runs happen in. The first occurrence creates it.
+	ConversationID string
+	// EndedAt is set when the agent ends the routine with routine_finish. An ended routine never fires again.
+	EndedAt *time.Time
 }
 
 // Normalize fills defaults. It does not check values; Validate does.
@@ -78,8 +84,11 @@ func (r Routine) Validate(loc *time.Location) error {
 	if r.Name == "" {
 		return fmt.Errorf("%w: name is required", ErrInvalidInput)
 	}
-	if r.Prompt == "" {
+	if strings.TrimSpace(r.Prompt) == "" {
 		return fmt.Errorf("%w: prompt is required", ErrInvalidInput)
+	}
+	if err := ValidateMessageBody(RoutineMessage(r.Prompt)); err != nil {
+		return fmt.Errorf("prompt: %w", err)
 	}
 	if _, err := r.NextAfter(time.Time{}, loc); err != nil {
 		return err
