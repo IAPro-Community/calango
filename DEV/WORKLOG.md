@@ -301,3 +301,12 @@
 - Stopped at the phase boundary: Phase 1 exit not met; phases 2–6 gated; open items in `DEV/TODO_V1.md` "Status and resume point".
 - Stopped a leftover smoke Electron instance (CDP 9225, isolated `/tmp` profile) before launch. Desktop relaunched on display `:1` with the shell environment (`CALANGO_VAULT_KEY_FILE`, `CALANGO_ADDR=127.0.0.1:7399`), without CDP. Data directory not overridden in this session and not checked.
 - Verification and the unverified items are in `DEV/VERIFY.md`, entry "2026-11-23 — Desktop launch, checks and push".
+
+## 2026-11-23 — F1-T16 stable Codex home (ADR 0014)
+
+- `internal/maestro/manager.go`: the Codex home is now `<calango-home>/maestro/.codex` for every release. Each release is installed and verified in its staging home `versions/<v>/home`; only a verified release is activated into the stable home (`activate`). Install and rollback restore the currently selected release into the stable home when activation or audit fails (`restoreHome`). Removed `versionHome`; `env` takes the home argument.
+- Why: a per-version home signed the person out on every auto-update and rollback, and ADR 0014 decision 3 requires a stable home. Copying `auth.json` stays rejected (ADR 0013).
+- Migration: logins stored under earlier per-version homes are not moved or copied. The person signs in to Codex again once. Owner policy decision still open.
+- Tests: `TestCodexHomeRequiresActiveVerifiedRelease` now expects the stable home; new `TestCodexHomeIsStableAcrossReleases` and `TestFailedReleaseVerificationNeverWritesActiveCodexHome`.
+- Linked agents already receive the stable home: `cmd/calango/main.go` passes `maestroManager.CodexHome` to the conversation service.
+- F1-T16 stays partial: no real Codex session has run against the stable home.

@@ -17,7 +17,7 @@ The Orquestrador Maestro npm CLI (`@iapro/orquestrador-maestro-cli` 1.1.1) insta
 
 ## Consequences
 - The person signs in to Codex twice when both the personal CLI and Maestro-with-Codex are used. This is the cost of isolation.
-- ADR 0013 stays as written for the harness default (shared `~/.codex`). The Codex harness runs with `CODEX_HOME` only in runs that use Maestro agents. Wiring that switch belongs to F1-T16 and is not built yet.
+- ADR 0013 stays as written for the harness default (shared `~/.codex`). Runs of Maestro-linked agents use `CODEX_HOME` set to the stable Maestro home: `cmd/calango` passes `Manager.CodexHome` to the conversation service, which sets it for Codex runs.
 - Maestro's `rollback --to <stamp>` and `update` with `ORQUESTRADOR_MAESTRO_SKIP_CLI_UPDATE=1` operate on the Calango home only. Without that flag, `update` changes the global npm package, so it is never called (decision 4).
 - Telemetry stays off without relying on the user's environment.
 
@@ -27,5 +27,6 @@ The Orquestrador Maestro npm CLI (`@iapro/orquestrador-maestro-cli` 1.1.1) insta
 - **Copy `auth.json` into the Maestro `.codex`.** Copies a credential file; rejected in ADR 0013.
 
 ## Open
-- The implementation currently gives each release `<calango-home>/maestro/versions/<version>/home/.codex`, not the stable `<calango-home>/maestro/.codex` decided above. Automatic update can therefore switch to a signed-out profile. Resolve this implementation gap without copying the person's `~/.codex/auth.json`; no real Codex session has been tested.
-- Verify on a real install that the agreed stable `CODEX_HOME=<calango-home>/maestro/.codex` loads installed agents and prompts, including skills; not run because no real Codex session is authorized.
+- Resolved in code (2026-11-23): the Codex home is `<calango-home>/maestro/.codex`. Each release is installed and verified in its staging home `versions/<v>/home`, then activated into the stable home (`activate`, `restoreHome` in `internal/maestro/manager.go`). Tests: `TestCodexHomeIsStableAcrossReleases`, `TestFailedReleaseVerificationNeverWritesActiveCodexHome`. Throwaway CLI probe (`/tmp/mtest`, not in the repo): reinstall and 1.1.0 → 1.1.1 → 1.1.0 over one home keep `.codex/auth.json`; `verify` exit 0 each time.
+- Migration policy (owner decision pending): logins stored by earlier builds under `versions/<v>/home/.codex` are not moved and not copied. The person signs in to Codex again once.
+- Open: no real Codex session has run against the stable home, so installed agents and skills loading under it are unverified. No real Codex session is authorized.

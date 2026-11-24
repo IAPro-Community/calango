@@ -519,3 +519,11 @@ Limits:
 - Desktop relaunch: `DISPLAY=:1 npm run desktop:start`. Log: `calango listening on 127.0.0.1:7399 (api token in the vault)`; `curl 127.0.0.1:7399/healthz` returned `{"status":"ok"}` (HTTP 200). Electron started under Wayland and logged `'--ozone-platform=wayland' is not compatible with Vulkan` (GPU warning). Log also shows `maestro automatic update failed` at start; cause not investigated.
 - CDP was not enabled in this launch.
 - Not verified: window visibility on the owner's screen (no screenshot or window-list tool on this machine); real model call; Windows; real approval action; Maestro update failure cause.
+
+## 2026-11-23 — F1-T16 stable Codex home checks
+
+- `gofmt -l internal/maestro`: empty. `go vet ./internal/maestro/... ./internal/conversations/... ./cmd/calango/...`: exit 0. `go build ./...`: exit 0.
+- `go test ./internal/maestro/... ./internal/conversations/... ./cmd/calango/... -count=1`: `internal/maestro` ok, `internal/conversations` ok, `cmd/calango` has no test files.
+- Throwaway CLI probe in `/tmp/mtest` (not in the repo; `@iapro/orquestrador-maestro-cli` 1.1.0 and 1.1.1 installed in `/tmp`, no owner files touched): reinstall into the same home and version swaps 1.1.0 → 1.1.1 → 1.1.0 kept `.codex/auth.json`; `verify` exit 0 each time; 38 skills; `~/.codex/AGENTS.md` mtime unchanged.
+- Not exercised: a real Codex session on the stable home; installed agents and skills loading under it; the owner's `~/.codex`; the migration of earlier per-version logins.
+- Changes are uncommitted in `internal/maestro/manager.go`, `internal/maestro/manager_test.go`, and the docs above. Not committed or pushed: AGENTS.md requires an explicit owner request.

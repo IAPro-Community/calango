@@ -24,16 +24,17 @@ Done in this round (evidence in `DEV/VERIFY.md`, entry "2026-11-23 — Desktop l
 - Publication: `main` pushed to `origin` on the owner's request; the pushed head is the one shown by `git log origin/main -1`.
 
 Remaining, by type:
-- Owner-blocked: D1b legal review (CLA, COMMERCIAL, TRADEMARKS, legal name, contacts); Q03/D5 written Tailscale clearance or another transport; Q06 deletion of `/tmp/agenticos`; site prices, domain and Terms; memory capture/retention design; authorization for real Codex/provider runs and external approval actions.
+- Owner-blocked: D1b legal review (CLA, COMMERCIAL, TRADEMARKS, legal name, contacts); Q03/D5 written Tailscale clearance or another transport; Q06 deletion of `/tmp/agenticos`; site prices, domain and Terms; memory capture/retention design; authorization for real Codex/provider runs and external approval actions; F1-T16 migration policy for logins stored by earlier per-version homes (current behavior: sign in again once).
+- Publishing rule (owner, 2026-11-23): commits and pushes to `main` do not need a real Codex session or Codex login. This repo is public: commits must hold no personal data, credentials, local paths or private files. Check the diff before each push.
 - Platform-blocked: Windows and macOS keyring/login runtime; Windows NSIS installer and signing (F1-T25); Linux `.deb`; macOS notarization; OS-level global shortcut (F1-T24); Docker bridge test (Docker daemon access denied).
-- Engineering, not started: Codex JSONL event schema (F1-T05); F1-T16 per-version `CODEX_HOME` against ADR 0014; other V1 harnesses (Claude Code CLI, OpenCode, Antigravity); MCP connector credentials, built-ins and result durability; previous-binary and OS-keyring backup restore; personal-data export/deletion; user docs; accessibility review; reference-code review; site icon.
+- Engineering, not started: Codex JSONL event schema (F1-T05); F1-T16 real Codex check of the stable home (not authorized yet); other V1 harnesses (Claude Code CLI, OpenCode, Antigravity); MCP connector credentials, built-ins and result durability; previous-binary and OS-keyring backup restore; personal-data export/deletion; user docs; accessibility review; reference-code review; site icon.
 - Partial phase 1 tasks: F1-T08, F1-T11, F1-T15, F1-T16, F1-T17, F1-T24, F1-T25.
 
 Resume:
 1. In the repo: `git status` and `git log -1` to confirm the head.
 2. Checks: `go test ./... -count=1`, `npm run typecheck -w apps/desktop`, `npm run build -w apps/desktop`, `npm run test:main -w apps/desktop`.
 3. Launch: `DISPLAY=:1 npm run desktop:start`. It inherits the shell's `CALANGO_VAULT_KEY_FILE` and `CALANGO_ADDR`; check `curl 127.0.0.1:$PORT/healthz` with the port from `CALANGO_ADDR` (7317 when unset). Do not enable CDP on the owner's session.
-4. First engineering item: `DEV/HANDOFF.md`, "Next technical step", item 2 (F1-T16 `CODEX_HOME` against ADR 0014).
+4. First engineering item: `DEV/HANDOFF.md`, "Next technical step", item 2 (F1-T16: the stable home is in code; the Codex check and migration policy remain).
 
 Do not report V1 complete while the Phase 1 exit criteria are open.
 
@@ -84,7 +85,7 @@ Blocked by D3 (conversations and events):
 - [x] Q23 WebSocket `/v1/events`: `github.com/gorilla/websocket` v1.5.3 (BSD-2-Clause, Go 1.22 compatible; ADR 0015); bearer header auth; owner-filtered; no replay (F1-T13). Tests in `internal/api/events_test.go` and `internal/events`; race run and daemon smoke (401 without token) passed.
 
 Maestro:
-- [x] Q24 Maestro CLI behavior validated in a throwaway home; Calango manager/API/scheduler, agent linking, audit, update and rollback code now exist. F1-T16 remains partial: runtime `CODEX_HOME` is version-specific, contrary to ADR 0014's stable home; no real Codex session is authorized.
+- [x] Q24 Maestro CLI behavior validated in a throwaway home; Calango manager/API/scheduler, agent linking, audit, update and rollback code now exist. F1-T16 stable Codex home (ADR 0014) is in code and fake-tested; linked agents use it. Real Codex session and the migration policy for earlier per-version logins remain open.
 
 Verification and site:
 - [ ] Q25 Docker bridge networking test on a compatible machine (only `--network host` verified).
@@ -137,7 +138,7 @@ Verification and site:
 - [x] F1-T13 API v1 and WebSocket routes are served and tested; approval request/HTTP decision integration uses a fake executor. Reconnect reloads persisted state through REST; WebSocket replay is intentionally omitted by ADR 0015.
 - [x] F1-T14 Local desktop token, stored in the vault. Done: token is the vault item `api-token`, created on first start; a legacy `DataDir/api-token` file is imported and removed; every `/v1` route requires it. Rotation done (Q30); there is no revocation route without a replacement, by design.
 - [ ] F1-T15 Device pairing and authentication (local version, no phone yet). → `modules/pairing-auth.md`. Partial: pairing codes, device tokens, device list, revocation and scopes served and tested; QR code, mobile app and VPS administrator password pending.
-- [ ] F1-T16 Maestro integration: manager, isolated per-version install/verify, link/unlink, V1 update check, default auto-update, audit, rollback, and status UI are implemented and fake-tested. Partial: version-specific Codex profile conflicts with ADR 0014 stable-home decision; real Codex session not tested.
+- [ ] F1-T16 Maestro integration: manager, isolated install/verify, link/unlink, V1 update check, default auto-update, audit, rollback and status UI are implemented and fake-tested. The Codex home is the stable `<calango-home>/maestro/.codex` (ADR 0014): each release is verified in its staging home, then activated into the stable home, so sign-in survives updates and rollbacks. Partial: no real Codex session; earlier per-version logins are not migrated (owner policy pending).
 - [ ] F1-T17 Usage/cost panel per agent, routine, project, model and node; REST and desktop show known/estimated/unknown separately. Real provider pricing/cost remains unverified; project grouping has no projects table in V1.
 - [ ] F1-T18 Append-only audit: hash chain, verify/export API and desktop screen are implemented. Full remote-action and permission-event coverage remains unverified; no remote-node action is in Phase 1.
 

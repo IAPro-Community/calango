@@ -37,12 +37,12 @@ Updated: 2026-11-23.
 ## Next technical step
 
 1. Keep Phase 2–6 gated. Phase 1 exit requires Windows installation, a real approved action, a daily routine and an evidenced cost row.
-2. Resolve F1-T16 against ADR 0014: the manager currently uses per-version `CODEX_HOME`, which can switch auto-updated releases to a signed-out profile. Do not copy the user's personal Codex credentials.
+2. F1-T16: the stable Codex home (ADR 0014) is in code and fake-tested. Remaining: the owner's migration policy for earlier per-version logins (not moved; the person signs in again) and one real Codex session on the stable home. Do not copy the user's personal Codex credentials.
 3. Obtain owner authorization for a real Codex/MCP run and an external approval action; configure verified provider pricing only with authorization.
 4. Complete platform acceptance: Windows installer/signing and Windows/macOS keyring/login runtime. Linux startup toggle is verified; OS-level shortcut activation is not.
 - Owner blockers: D1b legal review, D5 written Tailscale clearance or alternate transport, site terms/prices/domain/copy, permission before deleting `/tmp/agenticos`, memory capture/retention design, and authorization for live provider/action checks.
 - Platform blockers: Windows/macOS keyring, login and signed installer/update; Docker bridge test; OS shortcut activation. GitHub run 45188079827 passed on `dee8efa`, but current uncommitted changes are not covered.
-- Remaining implementable engineering: Codex JSONL/other V1 harnesses, MCP connector credentials/built-ins/result durability, previous-binary and OS-keyring backup/restore acceptance, personal-data export/deletion, user docs, accessibility, reference-code review and site icon. The offline runbook and migration restore test exist. Maestro stable profile still needs a safe migration design.
+- Remaining implementable engineering: Codex JSONL/other V1 harnesses, MCP connector credentials/built-ins/result durability, previous-binary and OS-keyring backup/restore acceptance, personal-data export/deletion, user docs, accessibility, reference-code review and site icon. The offline runbook and migration restore test exist.
 - Phase 1 exit remains unmet; do not report V1 complete.
 - Resume steps, checks and launch commands: `DEV/TODO_V1.md`, section "Status and resume point (2026-11-23)".
 
@@ -53,6 +53,6 @@ Updated: 2026-11-23.
 - D2 Pro, D3 Codex CLI first, D4 keep `calango`, D6 Maestro auto-update on are answered. D5 research is complete: BSD-3-Clause source license; official plan limits and terms are in ADR 0005. The commercial embedding question is unresolved; owner must obtain written clearance or choose another transport.
 - Run the workflow on GitHub after an authorized push; local lint and cross builds already passed.
 - Site visual review is complete at desktop 1440 px and mobile 390 px in light/dark; no horizontal overflow at 390 px. Pricing, legal contacts/domain and future phone/cloud/team plan claims still need owner review. Docker bridge test remains blocked by daemon access.
-- Maestro CLI behavior was validated in a throwaway home, and Calango manager/routes/audit/update/rollback now exist. F1-T16 remains partial because version-specific `CODEX_HOME` diverges from ADR 0014's stable home; no real Codex session was run.
+- Maestro CLI behavior was validated in a throwaway home, and Calango manager/routes/audit/update/rollback now exist. F1-T16 linked agents run with the stable `CODEX_HOME` (ADR 0014); no real Codex session was run.
 - MCP (F1-T12) done in code (2026-11-23, ADR 0018): go-sdk v1.3.0 with Go minimum 1.23 (owner choice). Connectors, `read`/`write` grants, per-turn gateway at `/mcp`, writes through approvals, Codex wiring. Not verified live with Codex. Later go-sdk versions need Go 1.24/1.25: do not upgrade without a new owner decision.
 - Owner items for the site: CLA legal name, contact emails (`licenca@`, `seguranca@`, `conduta@` at calango.dev), Caddy domain placeholder, Terms of Service link.
