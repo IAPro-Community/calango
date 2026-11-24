@@ -6,7 +6,6 @@ import { fileURLToPath } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const sourcePath = path.join(root, 'packages/i18n/messages.json');
-const outputDir = path.join(root, 'packages/i18n/generated');
 const locales = [
   { source: 'pt-BR', arb: 'pt_BR' },
   { source: 'en', arb: 'en' },
@@ -86,6 +85,17 @@ function typescriptOutput(catalog) {
   ].join('\n');
 }
 
+function trayTypescriptOutput(catalog) {
+  const trayKeys = ['trayOpen', 'trayQuickConversation', 'trayQuit'];
+  const trayCatalog = Object.fromEntries(
+    Object.entries(catalog).map(([locale, messages]) => [
+      locale,
+      Object.fromEntries(trayKeys.map((key) => [key, messages[key]])),
+    ]),
+  );
+  return typescriptOutput(trayCatalog);
+}
+
 function arbOutput(locale, messages) {
   return `${JSON.stringify({ '@@locale': locale.arb, ...messages }, null, 2)}\n`;
 }
@@ -97,9 +107,12 @@ try {
   }
 
   const catalog = readCatalog();
-  const outputs = new Map([['messages.ts', typescriptOutput(catalog)]]);
+  const outputs = new Map([
+    ['packages/i18n/generated/messages.ts', typescriptOutput(catalog)],
+    ['apps/desktop/src/main/trayMessages.ts', trayTypescriptOutput(catalog)],
+  ]);
   for (const locale of locales) {
-    outputs.set(`arb/app_${locale.arb}.arb`, arbOutput(locale, catalog[locale.source]));
+    outputs.set(`packages/i18n/generated/arb/app_${locale.arb}.arb`, arbOutput(locale, catalog[locale.source]));
   }
 
   if (args.includes('--check')) {
@@ -107,7 +120,7 @@ try {
     for (const [relativePath, expected] of outputs) {
       let actual;
       try {
-        actual = readFileSync(path.join(outputDir, ...relativePath.split('/')), 'utf8');
+        actual = readFileSync(path.join(root, ...relativePath.split('/')), 'utf8');
       } catch {
         stale.push(relativePath);
         continue;
@@ -120,10 +133,10 @@ try {
     console.log('translation catalogs are valid and generated files are up to date');
   } else {
     for (const relativePath of outputs.keys()) {
-      mkdirSync(path.dirname(path.join(outputDir, ...relativePath.split('/'))), { recursive: true });
+      mkdirSync(path.dirname(path.join(root, ...relativePath.split('/'))), { recursive: true });
     }
     for (const [relativePath, contents] of outputs) {
-      writeFileSync(path.join(outputDir, ...relativePath.split('/')), contents);
+      writeFileSync(path.join(root, ...relativePath.split('/')), contents);
     }
     console.log(`generated ${outputs.size} translation files`);
   }

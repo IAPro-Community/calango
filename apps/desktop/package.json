@@ -1,0 +1,28 @@
+{
+  "name": "@calango/desktop",
+  "version": "0.1.0",
+  "private": true,
+  "main": "dist/main/index.js",
+  "scripts": {
+    "build:daemon": "go build -o ../../bin/calango ../../cmd/calango",
+    "build:main": "tsc -p tsconfig.main.json",
+    "test:main": "npm run build:main && node --test test/startup.test.cjs",
+    "build:renderer": "vite build",
+    "build": "npm run build:daemon && npm run build:main && npm run build:renderer",
+    "typecheck": "tsc -p tsconfig.renderer.json --noEmit",
+    "start": "electron ."
+  },
+  "dependencies": {
+    "@calango/sdk-ts": "0.1.0",
+    "react": "19.2.0",
+    "react-dom": "19.2.0"
+  },
+  "devDependencies": {
+    "@types/node": "24.10.1",
+    "@types/react": "19.2.2",
+    "@types/react-dom": "19.2.2",
+    "@vitejs/plugin-react": "5.1.0",
+    "electron": "45.4.1",
+    "vite": "7.2.2"
+  }
+}

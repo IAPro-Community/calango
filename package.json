@@ -1,0 +1,20 @@
+{
+  "name": "calango-workspace",
+  "private": true,
+  "workspaces": [
+    "packages/sdk-ts",
+    "apps/desktop"
+  ],
+  "scripts": {
+    "sdk:generate": "openapi-typescript api/openapi.yaml -o packages/sdk-ts/src/schema.ts",
+    "desktop:build": "npm run build -w apps/desktop",
+    "desktop:start": "npm run start -w apps/desktop"
+  },
+  "devDependencies": {
+    "openapi-typescript": "7.13.0",
+    "typescript": "5.9.3"
+  },
+  "engines": {
+    "node": ">=22.12.0"
+  }
+}
