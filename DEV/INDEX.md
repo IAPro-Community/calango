@@ -95,3 +95,5 @@
 - [GitHub Issues](https://github.com/IAPro-Community/calango/issues) — operational work; legacy TODO/roadmap pending reconciliation.
 
 - [Auditoria retroativa da main](AUDITORIA_RETROATIVA.md) — mapeamento de entregas históricas e validações pendentes.
+
+- [Planejamento operacional](PLANEJAMENTO_PRODUTO.md) — mapa inicial de épicos, issues e dependências.
