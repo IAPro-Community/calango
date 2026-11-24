@@ -1,0 +1,27 @@
+name: Investigação
+description: Investigar incerteza técnica
+body:
+  - type: textarea
+    id: section_1
+    attributes:
+      label: Hipótese ou pergunta
+    validations:
+      required: true
+  - type: textarea
+    id: section_2
+    attributes:
+      label: Escopo e limite da investigação
+    validations:
+      required: true
+  - type: textarea
+    id: section_3
+    attributes:
+      label: Evidência ou entrega esperada
+    validations:
+      required: true
+  - type: textarea
+    id: section_4
+    attributes:
+      label: Dependências e riscos
+    validations:
+      required: false

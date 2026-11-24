@@ -1,14 +1,14 @@
 # Documentation index — Calango
 
-## Control (always read, in this order)
+## Planejamento e histórico
 
 | File | Purpose |
 |---|---|
-| [HANDOFF.md](HANDOFF.md) | where the work stopped, next step |
+| [HANDOFF.md](HANDOFF.md) | registro histórico, não fila operacional |
 | [CONTEXT.md](CONTEXT.md) | current project state |
-| [SPECS/ACTIVE.md](SPECS/ACTIVE.md) | contract of the task in progress |
+| [SPECS/ACTIVE.md](SPECS/ACTIVE.md) | registro histórico; contrato de trabalho na issue |
 | [SPECS/ROADMAP.md](SPECS/ROADMAP.md) | phases and numbered tasks |
-| [TODO_V1.md](TODO_V1.md) | everything still needed for a working V1, by phase |
+| [TODO_V1.md](TODO_V1.md) | snapshot histórico; backlog operacional no GitHub |
 | [../CONTRIBUTING.md](../CONTRIBUTING.md) | how to contribute (public) |
 | [../LICENSE](../LICENSE), [../COMMERCIAL.md](../COMMERCIAL.md), [../CLA.md](../CLA.md), [../TRADEMARKS.md](../TRADEMARKS.md) | license, commercial license, contributor agreement and trademarks |
 | [WORKLOG.md](WORKLOG.md) | short history of what was done |
@@ -92,3 +92,12 @@
 ## Site
 
 `site/index.html`: static product presentation page. Interface in English (default), Brazilian Portuguese and Spanish.
+
+## Governança e qualidade
+
+- [GOVERNANCE](../GOVERNANCE.md)
+- [Implantação da governança](GOVERNANCE_BOOTSTRAP.md)
+- [Auditoria retroativa](AUDITORIA_RETROATIVA.md)
+- [Planejamento de produto](PLANEJAMENTO_PRODUTO.md)
+- [GitHub Issues](https://github.com/IAPro-Community/calango/issues) — fonte operacional.
+- Qualidade e revisão técnica: PR #114 / issue #51.

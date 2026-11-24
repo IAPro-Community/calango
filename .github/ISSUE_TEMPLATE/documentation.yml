@@ -1,0 +1,27 @@
+name: Documentação
+description: Melhorar documentação
+body:
+  - type: textarea
+    id: section_1
+    attributes:
+      label: Público e problema
+    validations:
+      required: true
+  - type: textarea
+    id: section_2
+    attributes:
+      label: Escopo e documentos
+    validations:
+      required: true
+  - type: textarea
+    id: section_3
+    attributes:
+      label: Critérios de aceite
+    validations:
+      required: true
+  - type: textarea
+    id: section_4
+    attributes:
+      label: Dependências
+    validations:
+      required: false

@@ -1,49 +1,42 @@
 # AGENTS.md — Calango
 
-Entry point for any coding agent (Claude Code, Codex, Cursor, etc.) working in this repository.
+Assistente pessoal com core Go, desktop Electron, mobile Flutter e execução em PC/VPS.
 
-## What it is
+## Antes de codificar
 
-Calango is a personal agent that runs on the person's computer (PC node, free), extends to their VPS (VPS node, paid), and is controlled from anywhere by phone (iOS/Android) and desktop. Core in Go, desktop in Electron, mobile in Flutter.
+1. Leia GOVERNANCE.md e CONTRIBUTING.md.
+2. Leia issue atribuída, critérios, dependências e PRs.
+3. Consulte DEV/INDEX.md, arquitetura, ADRs e especificações do módulo relevante.
+4. Confirme Ready e responsável humano. Use branch da issue a partir da develop e worktree isolada por sessão; PR para develop. Promoção develop → main por PR humano. Não carregue todo DEV/ nem assuma trabalho alheio.
 
-## Reading order (required before coding)
+## Regras obrigatórias
 
-1. `DEV/INDEX.md` — map of all documentation.
-2. `DEV/HANDOFF.md` — where the work stopped and the next step.
-3. `DEV/CONTEXT.md` — current project state.
-4. `DEV/SPECS/ACTIVE.md` — contract of the task in progress.
-5. `DEV/SPECS/ROADMAP.md` — phases and numbered tasks (e.g., `F1-T03`).
-6. Only then, the spec of the module you are going to touch, in `DEV/SPECS/modules/`.
+- Código original: agentes.chat é referência somente de leitura; não copiar código, textos, testes ou assets. ADR 0006.
+- Maestro: consumir pacote npm oficial (ADR 0009), sem copiar repositório; manter NOTICE.
+- AgenticOS: somente módulos autorizados no ADR 0011, reescritos em Go/TS/Dart com atribuição; preservar NOTICE e third_party/agenticos/.
+- Binário calango em cmd/calango; clientes não executam agentes, acessam a API.
+- Chamadas de modelo passam pelo gateway com orçamento e registro de custo.
+- Ações sensíveis exigem aprovação; segredos nunca vão ao cliente ou logs.
+- Migrações imutáveis; novas decisões arquiteturais exigem ADR.
+- Commit/push/PR somente com autorização delegada na branch da issue. Nunca push direto na main ou develop, autoaprovação, bypass, merge ou publicação autônoma.
+- AGPL-3.0, CLA, verificação de licenças antes de adicionar dependências.
+- Português brasileiro em issues, PRs, revisões, commits e documentação operacional; preservar identificadores e contratos técnicos. Interface por packages/i18n.
 
-Do not load the whole `DEV/` folder. Read what the task needs.
-
-## Non-negotiable rules
-
-- **Original code.** agentes.chat (`agentes-chat/agentes-chat`) was read only as a product reference. Do not copy code, text, tests or assets from it. agentes.chat is AGPL; any copied fragment would contaminate the license.
-- **Exception: Orquestrador Maestro** (`IAPro-Community/Orquestrador-Maestro`, Apache-2.0). Do not copy the repository: consume it from the official npm package (ADR 0009). Keep `NOTICE` up to date.
-- **Exception: AgenticOS** (`vstorm-co/agenticos`, Apache-2.0): only the modules listed in ADR 0011, rewritten in Go, TypeScript and Dart with attribution. Keep `NOTICE` and `third_party/agenticos/` up to date.
-- **The binary is called `calango`** (not `calangod`). Entry point in `cmd/calango`.
-- **Clients do not run agents.** Desktop, mobile and web only talk to the `calango` API.
-- **Every model call goes through the gateway** (`internal/gateway`): budget checked before, cost recorded after.
-- **Sensitive actions require approval** (send, delete, publish, pay, deploy, destructive command).
-- **Secrets never go to the client** nor to logs.
-- **Migrations are immutable** once committed: a change means a new migration.
-- **New architecture decision = new ADR** in `DEV/ADR/`.
-- Do not commit or push without an explicit request from the project owner.
-- License: AGPL-3.0 (`LICENSE`). Contributions require accepting `CLA.md`. Do not add third-party code without checking its license.
-- **Language: English.** Code, comments, commit messages, issues, pull requests and documentation are written in English (see [DEV/CONVENTIONS.md](DEV/CONVENTIONS.md)). Translations of user-facing text go through the catalog in `packages/i18n`.
-
-## Commands
+## Comandos
 
 ```bash
 go vet ./...
 go test ./...
-go run ./cmd/calango          # listens on 127.0.0.1:7317
-curl 127.0.0.1:7317/healthz
+go run ./cmd/calango
+npm run typecheck -w apps/desktop
+npm run build -w apps/desktop
+npm run test:main -w apps/desktop
 ```
 
-Desktop, mobile and cloud do not exist yet; their commands will be added here when they are created.
+## Qualidade obrigatória
 
-## After working
+Após integração do PR #114 (issue #51), executar na raiz `npm ci`, `npm run format`, `npm run lint` e `npm run quality` antes de solicitar revisão; CI não corrige fontes. `npm run lint:fix` apenas para correções seguras, com revisão do diff. Não editar arquivos gerados nem suprimir regras globalmente. Consulte DEV/QUALIDADE.md; enquanto PR #114 estiver aberto, execute os checks existentes e relate limitações.
 
-Update `DEV/WORKLOG.md` (what changed and why), `DEV/VERIFY.md` (what was verified and how) and `DEV/HANDOFF.md` (next step). Mark the task in `DEV/SPECS/ROADMAP.md`.
+## Após trabalhar
+
+Registre escopo, comandos, resultados reais, limitações e próximos passos na issue/PR. Atualize ADR/especificações quando afetados. Não atualize rotineiramente ACTIVE/HANDOFF/WORKLOG/VERIFY globais ou checkboxes do roadmap; preservar legados durante transição. Solicite revisão humana. Não encerre issue antes do aceite.
