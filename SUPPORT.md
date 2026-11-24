@@ -1,5 +1,5 @@
-# Support
+# Suporte
 
-Use GitHub Issues for reproducible bugs and actionable proposals, and Discussions for questions when enabled. Search existing threads first. Provide version, platform, expected and actual behavior; redact credentials and personal data.
+Use GitHub Issues para bugs reproduzíveis e propostas; Discussions para dúvidas quando habilitado. Pesquise duplicatas. Informe versão, plataforma, comportamento esperado e observado; remova dados pessoais e credenciais.
 
-Do not report vulnerabilities publicly; follow [SECURITY.md](SECURITY.md). See [CONTRIBUTING.md](CONTRIBUTING.md) for contributing and [GOVERNANCE.md](GOVERNANCE.md) for decisions.
+Vulnerabilidades não devem ser reportadas publicamente: siga [SECURITY.md](SECURITY.md). Para contribuir, consulte [CONTRIBUTING.md](CONTRIBUTING.md) e [GOVERNANCE.md](GOVERNANCE.md).
