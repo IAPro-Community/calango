@@ -33,13 +33,13 @@ Base auditada: [1e8868b](https://github.com/IAPro-Community/calango/commit/1e886
 | [#29](https://github.com/IAPro-Community/calango/issues/29) | Transversal | Segredos/telemetria | Histórico |
 | [#30](https://github.com/IAPro-Community/calango/issues/30) | D1/D1a/D2/D3/D4/D6/Q01/Q02/Q11 | Decisões | Histórico |
 
-26 registros canônicos; 15 históricos encerrados e 11 parciais abertos. #15 e #16 encerradas como duplicatas de #13 e #14 respectivamente; excluir de métricas de entrega. O encerramento histórico não implica aceite da V1, CI atual verde ou aprovação humana retroativa. Issues parciais incluem gaps que devem ser refinados sem reimplementar o entregue.
+26 registros canônicos encerrados e atribuídos a @FernandoBolzan, por confirmação do PO. Os 11 recortes parciais foram encerrados após transferência dos critérios restantes para #53–#63; ver DEV/PLANEJAMENTO_PRODUTO.md. #15 e #16 encerradas como duplicatas de #13 e #14 respectivamente; excluir de métricas de entrega. O encerramento histórico não implica aceite da V1, CI atual verde ou aprovação humana retroativa. As continuações #53–#63 preservam os gaps para refinamento sem reimplementar o entregue.
 
 ## Próximos passos
 
 - Confirmar CI do commit atual, execução real de modelos, ações externas, Windows/macOS, instalação assinada e critérios de saída da fase 1.
 - Resolver divergência CODEX_HOME e falha de atualização Maestro.
-- Pendências sem implementação (fases 2–6, empacotamento, decisões legais e transporte, entre outras) não foram importadas nesta rodada.
+- Pendências sem implementação foram importadas nas issues #39–#112 e organizadas nos épicos #31–#38; ver PLANEJAMENTO_PRODUTO.md.
 - Refinar cada pendência por unidade de trabalho e mapear cobertura de todos os IDs antes de arquivar TODO/roadmap legados.
-- Não alterar autoria Git. Revisar atribuições com equipe; responsáveis futuros não equivalem a autores históricos.
+- Não alterar autoria Git. Fernando reconhecido como implementador histórico por confirmação do PO; responsáveis futuros serão definidos pela equipe.
 - Nenhum merge da governança autorizado; sincronizar branch e verificar CI antes de revisão humana.
