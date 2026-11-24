@@ -1,27 +1,27 @@
-name: Technical task
-description: Propose a technical delivery
+name: Tarefa técnica
+description: Propor uma entrega técnica
 body:
   - type: textarea
     id: section_1
     attributes:
-      label: Technical context
+      label: Contexto técnico
     validations:
       required: true
   - type: textarea
     id: section_2
     attributes:
-      label: Scope and deliverable
+      label: Escopo e entrega
     validations:
       required: true
   - type: textarea
     id: section_3
     attributes:
-      label: Acceptance criteria and validation
+      label: Critérios de aceite e validação
     validations:
       required: true
   - type: textarea
     id: section_4
     attributes:
-      label: Dependencies and risks
+      label: Dependências e riscos
     validations:
       required: false
