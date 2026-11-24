@@ -15,7 +15,7 @@
 <p align="center">
   <a href="LICENSE"><img alt="License: AGPL-3.0" src="https://img.shields.io/badge/license-AGPL--3.0-E8A600" /></a>
   <img alt="Status: under construction" src="https://img.shields.io/badge/status-under%20construction-2D7A22" />
-  <img alt="Go 1.22+" src="https://img.shields.io/badge/go-1.22%2B-00ADD8" />
+  <img alt="Go 1.23+" src="https://img.shields.io/badge/go-1.23%2B-00ADD8" />
 </p>
 
 <p align="center">
@@ -45,7 +45,7 @@ docker run --rm -p 8080:8080 calango-site
 
 Then open <http://localhost:8080>.
 
-### Run the core (Go 1.22+)
+### Run the core (Go 1.23+)
 
 ```bash
 go vet ./...
@@ -95,7 +95,7 @@ node scripts/generate-i18n.mjs --check
 
 ## Language policy
 
-The repository is in **English**. Issues, pull requests, commit messages, code comments and documentation must be written in English. Read [CONTRIBUTING.md](CONTRIBUTING.md#language) for details. The README is also available in [Español](README.es.md) and [Português (BR)](README.pt-BR.md).
+The team's working language is **Brazilian Portuguese** for issues, PRs, reviews, commit descriptions and operational documentation. Technical identifiers and contracts remain stable; public documentation remains multilingual. See [CONTRIBUTING.md](CONTRIBUTING.md#idioma).
 
 ## License
 
