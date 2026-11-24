@@ -7,7 +7,7 @@ Assistente pessoal com core Go, desktop Electron, mobile Flutter e execução em
 1. Leia GOVERNANCE.md e CONTRIBUTING.md.
 2. Leia issue atribuída, critérios, dependências e PRs.
 3. Consulte DEV/INDEX.md, arquitetura, ADRs e especificações do módulo relevante.
-4. Confirme Ready e responsável humano. Use branch da issue e worktree isolada por sessão. Não carregue todo DEV/ nem assuma trabalho alheio.
+4. Confirme Ready e responsável humano. Use branch da issue a partir da develop e worktree isolada por sessão; PR para develop. Promoção develop → main por PR humano. Não carregue todo DEV/ nem assuma trabalho alheio.
 
 ## Regras obrigatórias
 
@@ -18,7 +18,7 @@ Assistente pessoal com core Go, desktop Electron, mobile Flutter e execução em
 - Chamadas de modelo passam pelo gateway com orçamento e registro de custo.
 - Ações sensíveis exigem aprovação; segredos nunca vão ao cliente ou logs.
 - Migrações imutáveis; novas decisões arquiteturais exigem ADR.
-- Commit/push/PR somente com autorização delegada na branch da issue. Nunca push direto na main, autoaprovação, bypass, merge ou publicação autônoma.
+- Commit/push/PR somente com autorização delegada na branch da issue. Nunca push direto na main ou develop, autoaprovação, bypass, merge ou publicação autônoma.
 - AGPL-3.0, CLA, verificação de licenças antes de adicionar dependências.
 - Português brasileiro em issues, PRs, revisões, commits e documentação operacional; preservar identificadores e contratos técnicos. Interface por packages/i18n.
 
