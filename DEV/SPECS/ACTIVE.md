@@ -1,6 +1,6 @@
 # Calango — active spec
 
-Status: phase 0 (foundation). Code written from scratch. The agentes.chat repository is a read-only reference: no code, text or assets were copied.
+Status: phase 1 (local desktop MVP) in progress; phase 0 complete. Code written from scratch. The agentes.chat repository is a read-only reference: no code, text or assets were copied.
 
 ## Persistent scope requested by the owner
 

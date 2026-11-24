@@ -11,67 +11,97 @@ Execution order: each block starts only when the previous one meets the exit cri
 ---
 
 
+## Status and resume point (2026-11-23)
+
+Stopped here: phases 2–6 not started; Phase 1 exit not met; V1 not complete.
+
+Done in this round (evidence in `DEV/VERIFY.md`, entry "2026-11-23 — Desktop launch, checks and push"):
+- ADR 0019 (desktop shell and token handoff) with the CORS addendum: `app://calango` only.
+- `gofmt` fix in `internal/api/server.go`; `.gitignore` ignores `/bin/` and `apps/desktop/dist/`.
+- Checks passed: `gofmt -l cmd internal` empty, `go vet ./...`, `go test ./... -count=1` (21 packages with tests), desktop `typecheck` and `build`, `node --test apps/desktop/test/startup.test.cjs` (2/2).
+- Daemon kill recovery: SIGKILL on the daemon; the supervisor started a new process and `/healthz` returned 200.
+- Desktop started on display `:1` with `npm run desktop:start`. Daemon `127.0.0.1:7399` answers 200; Electron process alive. Window visibility is not confirmed: no screenshot or window-list tool on this machine.
+- Publication: `main` pushed to `origin` on the owner's request; the pushed head is the one shown by `git log origin/main -1`.
+
+Remaining, by type:
+- Owner-blocked: D1b legal review (CLA, COMMERCIAL, TRADEMARKS, legal name, contacts); Q03/D5 written Tailscale clearance or another transport; Q06 deletion of `/tmp/agenticos`; site prices, domain and Terms; memory capture/retention design; authorization for real Codex/provider runs and external approval actions; F1-T16 migration policy for logins stored by earlier per-version homes (current behavior: sign in again once).
+- Publishing rule (owner, 2026-11-23): commits and pushes to `main` do not need a real Codex session or Codex login. This repo is public: commits must hold no personal data, credentials, local paths or private files. Check the diff before each push.
+- Platform-blocked: Windows and macOS keyring/login runtime; Windows NSIS installer and signing (F1-T25); Linux `.deb`; macOS notarization; OS-level global shortcut (F1-T24); Docker bridge test (Docker daemon access denied).
+- Engineering, not started: Codex JSONL event schema (F1-T05); F1-T16 real Codex check of the stable home (not authorized yet); other V1 harnesses (Claude Code CLI, OpenCode, Antigravity); MCP connector credentials, built-ins and result durability; previous-binary and OS-keyring backup restore; personal-data export/deletion; user docs; accessibility review; reference-code review; site icon.
+- Partial phase 1 tasks: F1-T08, F1-T11, F1-T15, F1-T16, F1-T17, F1-T24, F1-T25.
+
+Resume:
+1. In the repo: `git status` and `git log -1` to confirm the head.
+2. Checks: `go test ./... -count=1`, `npm run typecheck -w apps/desktop`, `npm run build -w apps/desktop`, `npm run test:main -w apps/desktop`.
+3. Launch: `DISPLAY=:1 npm run desktop:start`. It inherits the shell's `CALANGO_VAULT_KEY_FILE` and `CALANGO_ADDR`; check `curl 127.0.0.1:$PORT/healthz` with the port from `CALANGO_ADDR` (7317 when unset). Do not enable CDP on the owner's session.
+4. First engineering item: `DEV/HANDOFF.md`, "Next technical step", item 2 (F1-T16: the stable home is in code; the Codex check and migration policy remain).
+
+Do not report V1 complete while the Phase 1 exit criteria are open.
+
 ## Queue: everything still to do (ordered)
 
 Blocked by owner decision; do not start before the answer:
-- [ ] Q01 Owner confirms ADR 0011 status (recorded as "accepted"; legal review D1b open) or sets it to "proposed".
-- [ ] Q02 Owner answers D3 (first harness). Unblocks F1-T04/05, F1-T07 guide/steer, F1-T09 executor, F1-T11 `memory_save`, `/v1/conversations*`, `/v1/runs/*`, `/v1/routines*`.
-- [ ] Q03 Owner answers D2, D4, D5 and D6 (section 0).
+- [x] Q01 Owner accepted ADR 0011 (status "accepted"). Legal review (D1b) is still open.
+- [x] Q02 Owner answers D3 (first harness): **Codex CLI first** (2026-11-23). Then Claude Code CLI, OpenCode, Antigravity (Google, CLI) and direct API in V1. Unblocks F1-T04/05, F1-T07 guide/steer, F1-T09 executor, F1-T11 `memory_save`, `/v1/conversations*`, `/v1/runs/*`, `/v1/routines*`.
+- [ ] Q03 Owner decision after research: `tsnet` is BSD-3-Clause, but Tailscale's terms do not clearly authorize embedding/reselling Tailscale services in a commercial product. Personal plan is $0, unlimited user devices, up to 6 users, 3 ACL groups, 50 tagged resources and 1,000 ephemeral-resource minutes/month. Get written vendor/legal clearance or choose another transport; see ADR 0005.
 
 Git (only on explicit owner request):
-- [ ] Q04 Commit and push the uncommitted batch (ADR 0011, audit chain, docs, NOTICE, `third_party/agenticos/`). Nothing committed since `6c62ceb`.
-- [ ] Q05 Run GitHub CI on the pushed commit; it has never run.
+- [x] Q04 Commit and push the batch. Done: `6c62ceb..dee8efa` pushed to `origin` on the owner's request.
+- [x] Q05 Run GitHub CI on the pushed commit. Done: run 45188079827 on `dee8efa` succeeded.
 - [ ] Q06 Delete `/tmp/agenticos` after the P1–P3 ports (ask first; it is a temporary clone).
 
 P1, audit (F1-T18):
 - [x] Q07 HTTP route to verify the audit chain. Done: `GET /v1/audit/verify` (`internal/api/audit.go`, read scope); `verifyAudit` and `AuditVerification` in `api/openapi.yaml`; Redocly lint passes.
-- [ ] Q08 Audit export; format in `DEV/SPECS/modules/approvals.md`.
-- [ ] Q09 Audit view in the desktop (with F1-T23).
+- [x] Q08 Audit export: `GET /v1/audit/export` (read scope), JSONL (default, checkpoint first) or CSV; buffered and `Cache-Control: no-store`. Done and tested; desktop audit screen Q09 is now complete.
+- [x] Q09 Desktop audit screen: verify-chain status plus JSONL/CSV downloads. Isolated Electron smoke verified 23 entries and downloaded both formats; see `DEV/VERIFY.md`.
 - [x] Q10 Test concurrent appends under load. Done: `_txlock=immediate` in the store DSN; `internal/store/audit_concurrency_test.go` (8 writers × 25 appends) passes. Before the change, `SQLITE_BUSY` reached callers.
-- [ ] Q11 Decide the path for databases with audit rows from before migration 0008 (today: break reported from the first row). Accept for pre-release or reset.
+- [x] Q11 Decided: pre-0008 audit rows stay unhashed and verify as breaks from the first row. Accepted by the owner for pre-release; no reset.
 
 P1, vault (F1-T10):
 - [x] Q12 Check the licence of OS keychain library candidates (e.g. `github.com/zalando/go-keyring`) before adding; update `NOTICE`. Done: `go-keyring` v0.2.8 (MIT) and its dependencies are listed in `NOTICE`.
 - [ ] Q13 Port `core/vault.py` (343 lines) to `internal/vault`: Windows Credential Manager, macOS Keychain, Linux Secret Service; refuses plain text; ADR 0011 header. Partial: envelope, service, store, bootstrap, audit (Q28) and HTTP (Q29) done (ADR 0012); the keyring backends compile for Windows and macOS but have not run there.
 - [x] Q14 Move the API token into the vault. Done: stored as `api-token`, legacy file imported and removed; rotation replaces it (Q30).
 - [x] Q28 Vault audit events for set, reveal and delete, in the audit chain (F1-T18); record names and actors only, never values. Done: `Service.Set`, `Reveal` and `Delete` append an event before acting (`vault.set`, `vault.reveal`, `vault.delete`; facts hold the name only); a refused audit write refuses the action (`internal/vault/service_audit_test.go`).
-- [x] Q29 Vault HTTP routes: list names and dates, set, delete; scopes in `api/openapi.yaml`; no route returns a value; Redocly lint. Done: `GET /v1/vault`, `PUT /v1/vault/{name}` and `DELETE /v1/vault/{name}` (`internal/api/vault.go`; full scope only; 404 for unknown names). Responses carry name and dates, never the value. The reserved name `api-token` returns 409 until Q30. Tests: `internal/api/vault_test.go`; Redocly lint valid.
+- [x] Q29 Vault HTTP routes: list names/dates, set, delete; full scope; no route returns a value. `api-token` stays reserved for `POST /v1/auth/rotate-token`; tests and OpenAPI lint pass.
 - [x] Q30 Rotation of the local `api-token`: a rotate action replaces the vault item and the live token; the old token fails on the next call. Done: `POST /v1/auth/rotate-token` (full scope; `api/openapi.yaml` operationId `rotateToken`), `auth.LocalToken` (`internal/auth/token.go`), `internal/api/auth.go`. The new token is returned once and is never stored in plain text. No separate revocation route: the rotate action revokes the old token, and revoking without a replacement would leave no local client. Tests: `internal/api/auth_test.go`, `internal/auth/token_test.go`; binary smoke (old 401, new 200, both after restart).
-- [ ] Q31 Master-key rotation at startup: `LoadMasterKeys` supplies only version 1; wire `Service.Rotate` when a second key version is configured.
+- [x] Q31 Master-key rotation at startup: `CALANGO_VAULT_KEY_VERSION`, `CALANGO_VAULT_KEY_PREVIOUS[_FILE]`; `Service.Rotate` re-wraps and audits `vault.rewrap` before serving; startup refuses rows whose version has no key (ADR 0012 amendment). Done; binary smoke in `DEV/VERIFY.md`.
 
 P2:
-- [ ] Q15 Approvals: card, `waiting_approval` on runs, reconciliation of approved actions without receipt (F1-T08). Reference: `services/approvals.py` (883 lines) and `agent` (143).
-- [ ] Q16 Routines: HTTP routes, client events, manual run, `routine_finish`, event triggers (F1-T09). Reference: `routine_actions.py` (505), `routine_delivery.py` (241), `routine_authority.py` (674), `routine_sources.py` (1106); port only what V1 uses.
-- [ ] Q17 Memory: `memory_save` tool (needs D3), purge schedule, project scope decision (F1-T11). Reference: `repositories/memory.py` (291), `agents/memory_scope.py` (125).
-- [ ] Q18 Usage: desktop panel (F1-T17). Known/estimated split done in `GET /v1/usage` and the store query (`cost_known_micros`, `cost_estimated_micros`). Reference: `services/usage_report.py` (365).
-- [ ] Q19 Pairing: make `/v1/pair` rate limit proxy-aware (keys on `RemoteAddr` today) before any VPS deployment (F1-T15).
+- [x] Q15 Approvals API validation: `TestApprovalDecisionAPIExecutesApprovedSnapshot` creates a request through the real service, calls the HTTP decision route, and verifies the approved snapshot reaches an injected fake executor. Live Codex/MCP and external connector action remain unverified.
+- [x] Q16 Routines: HTTP routes, manual run, `routine_finish`, execution and `routine.fired`/`routine.failed` events are implemented and tested (F1-T09/Q33). Event-based triggers are deferred to phase 3; see `modules/routines.md`.
+- [ ] Q17 Memory: `memory_save`, CRUD, budgeted injection and startup/daily purge are implemented. Project scope is out of V1; owner addendum for channel/agent actions as memory context remains a design blocker.
+  - Owner addendum (2026-11-23): the intelligence layer is Orquestrador Maestro, and channel and agent actions are also saved and used as the memory context base. Capture rules, storage, retention and deletion design remain open (`DEV/SPECS/modules/memory.md`).
+- [ ] Q18 Usage: desktop panel (F1-T17). The panel exists and the fake-run desktop smoke shows an unknown-cost row; known/estimated pricing and a real provider cost remain unverified. Known/estimated split is in `GET /v1/usage`.
+- [x] Q19 Pairing: `/v1/pair` rate limit is proxy-aware via `CALANGO_TRUSTED_PROXIES` (F1-T15). Done 2026-11-23; the VPS must set the list (`DEV/DEPLOYMENT.md`).
 
 P3:
-- [ ] Q20 MCP (F1-T12): check go-sdk licence (moving MIT to Apache-2.0) before adding; connect server, gateway per turn, scopes none/read/write. Reference: `agents/mcp.py` (1040), `services/mcp_connection.py` (3655), `services/mcp_audit.py` (517), `agents/mcp_oauth.py` (676); port in slices.
-- [ ] Q21 Screens (F1-T23): routines widget reference `dashboard/widgets/routines.tsx` (225).
+- [x] Q20 MCP (F1-T12): go-sdk v1.3.0 (MIT; NOTICE, 2026-11-23). Done: connectors and grants (migration 0013), gateway per turn at `/mcp` with per-turn token in `CALANGO_MCP_TOKEN` (ADR 0018), `read` and `write` scopes, writes through approvals, Codex wiring, `/v1/connectors*` and `/v1/agents/{id}/tools*`. Open: connector credentials; Calango's own tools (Q17 and the rest); restart durability of results; live Codex check with `workspace-write` (owner authorisation for a model call). Reference: `agents/mcp.py` (1040), `services/mcp_connection.py` (3655), `services/mcp_audit.py` (517), `agents/mcp_oauth.py` (676).
+- [x] Q21 Screens (F1-T23): agents, conversations, approvals, routines, usage, settings and audit screens are implemented. Fake-provider flows, mocked approval-card dispatch and real HTTP decision integration with a fake executor pass; isolated Settings/Audit smoke and responsive site review pass. Live external action and Phase 1 exit remain separate.
 
 Blocked by D3 (conversations and events):
-- [ ] Q22 Conversations and runs HTTP routes, guide/steer, one reply at a time per agent (F1-T07, F1-T13). Depends on Q02.
-- [ ] Q23 WebSocket `/v1/events`: choose the dependency; check its licence and Go 1.22 support; no SSE substitute (F1-T13).
+- [x] Q22 Conversations/runs (F1-T07/T13): routes, steer, persisted replies, idempotency, per-agent one-active-run FIFO and REST state restoration are implemented and tested. WebSocket event replay is intentionally not part of the contract (ADR 0015).
+- [x] Q32 Provider chain per agent with fallback and named accounts (ADR 0016). Done 2026-11-23: migration 0010 (`provider_accounts`, `agent_providers`; drops `agents.harness`/`agents.model`), agent `providers`, fallback loop with `provider_attempt` steps, provider accounts CRUD, `codex` and `anthropic` adapters only. Verified by unit, API and migration tests (`DEV/VERIFY.md`); no real model call. Owner decided 2026-11-23.
+- [x] Q33 Routines fire an agent run (owner decided 2026-11-23, not a DM message): routes (`/v1/routines*`, including run now and the runs listing), `notify_on`, quiet window, `routine_finish` as the reply's control line (ADR 0017), executor wiring (one DM per routine, one agent run per attempt), `routine.fired` and `routine.failed` events. Done 2026-11-23; verified by unit and API tests and a daemon smoke (`DEV/VERIFY.md`). This is Q16's executor decision. Known limits in `modules/routines.md`.
+- [x] Q23 WebSocket `/v1/events`: `github.com/gorilla/websocket` v1.5.3 (BSD-2-Clause, Go 1.22 compatible; ADR 0015); bearer header auth; owner-filtered; no replay (F1-T13). Tests in `internal/api/events_test.go` and `internal/events`; race run and daemon smoke (401 without token) passed.
 
 Maestro:
-- [ ] Q24 Maestro (F1-T16): validate install destination, JSON format and non-interactive `update`; D6 default.
+- [x] Q24 Maestro CLI behavior validated in a throwaway home; Calango manager/API/scheduler, agent linking, audit, update and rollback code now exist. F1-T16 stable Codex home (ADR 0014) is in code and fake-tested; linked agents use it. Real Codex session and the migration policy for earlier per-version logins remain open.
 
 Verification and site:
 - [ ] Q25 Docker bridge networking test on a compatible machine (only `--network host` verified).
-- [ ] Q26 Site review on phone and in dark mode.
-- [ ] Q27 Owner site items: CLA legal name, contacts (`licenca@`, `seguranca@`, `conduta@`), Caddy domain, Terms of Service link.
+- [x] Q26 Site reviewed at desktop 1440 px and phone 390 px, in light and dark themes; no horizontal overflow at 390 px. Review found future phone/cloud/team features presented in plan cards; reconcile copy before launch (Q27).
+- [ ] Q27 Owner site items: CLA legal name, contacts (`licenca@`, `seguranca@`, `conduta@`), Caddy domain, Terms link and real prices. Also decide how to label phone/cloud/team plan features that are still roadmap items.
 
 ## 0. Owner decisions (block parts of V1)
 
 - [x] D1 Calango code will be **open** (decided by the owner on 2026-11-23).
 - [x] D1a License: **AGPL-3.0** + commercial license + CLA + trademark policy (ADR 0010). Files created.
 - [ ] D1b Legal review of `CLA.md`, `COMMERCIAL.md` and `TRADEMARKS.md`; fill in the maintainer's legal name and the contacts (`licenca@`, `seguranca@`, `conduta@`).
-- [ ] ⛔ D2 Remote screen control: Pro or only Team. → PLANO §14, PRODUCT_HYBRID
-- [ ] ⛔ D3 First MVP harness: Claude Code, Codex or direct API. → `SPECS/modules/harness.md`
-- [ ] ⛔ D4 Domain and Go module name (`calango` is a placeholder). → HANDOFF
-- [ ] ⛔ D5 Check the `tsnet` license and Tailscale free-plan limits. → ADR 0005
-- [ ] ⛔ D6 Maestro automatic update: confirm the default (suggested: off). → ADR 0009
+- [x] D2 Remote screen control: **Pro** (owner, 2026-11-23). Update PLANO §14 and PRODUCT_HYBRID to match.
+- [x] D3 First MVP harness: **Codex CLI** (owner, 2026-11-23). Sandbox: `workspace-write` chosen by the owner after the risk was shown: Codex runs commands and writes files without Calango approval until the MCP gateway (F1-T12) serves its tools. Other harnesses in V1: Claude Code CLI, OpenCode, Antigravity (Google, CLI `agy`; add to the harness spec), direct API. → `SPECS/modules/harness.md`
+- [x] D4 Domain and Go module name: **keep `calango`** (owner, 2026-11-23). Domain still to confirm with Q27.
+- [ ] ⛔ D5 Research completed (2026-11-23): `tsnet` is BSD-3-Clause; official Tailscale Terms §2.3 restrict commercial exploitation/resale and do not expressly resolve embedding in Calango; Personal plan limits are recorded above and in ADR 0005. Owner must choose written legal/vendor clearance or another transport before F2-T02.
+- [x] D6 Maestro automatic update: **on by default** (owner, 2026-11-23). ADR 0009 amendment written; Q24 unblocked.
 
 ---
 
@@ -79,12 +109,12 @@ Verification and site:
 
 - [x] Go 1.27.4 installed in `~/.local/opt/go` (SHA-256 verified against go.dev).
 - [x] `go vet ./...` clean.
-- [x] `go test ./...` passes (4 tests in `internal/core`).
+- [x] `go test ./...` passes.
 - [x] `gofmt -l` with no output.
 - [x] `calango` starts and `GET /healthz` returns 200; POST returns 405.
-- [x] F0-T04 CI on GitHub Actions: vet, test, build linux/windows/darwin on amd64 and arm64. Workflow written; six local builds passed. Confirm the GitHub run after the first authorized push.
+- [x] F0-T04 CI on GitHub Actions: vet, test, build linux/windows/darwin on amd64 and arm64. Six local builds passed; GitHub run 45188079827 on `dee8efa` succeeded. Current uncommitted changes are not covered by that run.
 - [x] F0-T05 `internal/config`: reads `CALANGO_*` in one place and validates at startup. `CALANGO_ADDR` keeps the loopback default and validates host/port before the scheduler.
-- [x] F0-T06 Semantic validation of OpenAPI in CI with Redocly CLI 2.81.0 pinned; local lint passed with no problems or warnings.
+- [x] F0-T06 Semantic validation of OpenAPI in CI with Redocly CLI 2.81.0 pinned; current local lint is valid with one non-blocking warning.
 - [x] F0-T07 Deterministic generator from `tokens.json` to CSS and TypeScript/Dart constants; CI fails if the generated files are missing or drift. The i18n catalog generator comes with F1-T26.
 - [x] Token contract validation: `node scripts/generate-tokens.mjs --check` confirms the three generated artifacts. Flutter composes `ThemeData` from the Dart tokens in F2-T03.
 
@@ -96,36 +126,42 @@ Verification and site:
 - [x] F1-T01 `internal/store`: SQLite (`modernc.org/sqlite`), WAL, immutable migration runner, in-memory tests. → DATA_MODEL, ADR 0002
 - [x] F1-T02 Initial migrations: agents, conversations, messages, runs, run_steps, usage, audit_log.
 - [x] F1-T03 `internal/gateway`: `Provider` interface, budget check before the call, usage after, fake provider. → `modules/gateway.md`, ADR 0007
-- [ ] F1-T04 First provider: direct Anthropic API (HTTP with streaming); key comes from the vault.
-- [ ] F1-T05 `internal/harness` with the adapter for the harness chosen in D3. → `modules/harness.md`
+- [x] F1-T04 First provider: direct Anthropic API (HTTP with streaming); key comes from the vault. Done in `internal/anthropic`; agents reach it through the provider chain (Q32, ADR 0016). Only fake-provider runs were exercised here; no real model call was authorized.
+- [ ] F1-T05 `internal/harness`: Codex CLI adapter, per-account `CODEX_HOME`, daemon wiring and fake-CLI E2E are implemented. No authorized real model call; Codex `--json` usage schema and other V1 harnesses remain open.
 - [x] F1-T06 Agents: CRUD, global pause, monthly limit (service and store; HTTP wiring in F1-T13/T15, pause enforcement on runs in F1-T07). → `modules/agents.md`
-- [ ] F1-T07 Conversations and runs: DM, persisted/streamed steps, stop, guide, retry with instructions; reconnection restores state and resending does not duplicate the run. → `modules/conversations.md`. Partial: guide and reconnection pending.
-- [ ] F1-T08 Approvals: card with an immutable canonical payload, digest checked before execution, decision, separate receipt, "always approve", 24 h expiry. → `modules/approvals.md`; source ADR 0011 (P2). Partial: domain, store, service and tests done; card, HTTP and `waiting_approval` pending (F1-T13).
-- [ ] F1-T09 Routines: cron and interval, ID per occurrence, idempotent retries with backoff, notify_on, quiet window, missed execution without repetition. → `modules/routines.md`; source ADR 0011 (P2). Partial: domain, store, service and tests done; HTTP, client events, real executor and `routine_finish` pending (F1-T13 / D3).
-- [ ] F1-T10 Vault: Windows Credential Manager, macOS Keychain, Linux Secret Service; refuses plain text. → `modules/vault.md`; source ADR 0011 (P1, `core/vault.py`). Partial: envelope, store, service and master-key bootstrap done (ADR 0012); the keyring backend compiles for Windows, macOS and Linux but has not run on Windows or macOS; audit (Q28) and HTTP (Q29) done; master-key rotation (Q31) pending.
-- [ ] F1-T11 Memory: save, list, edit, delete; injection under a token budget. → `modules/memory.md`; source ADR 0011 (P2). Partial: service, store and budgeted injection done; `memory_save` tool (D3), HTTP and project scope pending.
-- [ ] F1-T12 MCP: connect a server, local MCP gateway per turn, scopes none/read/write. → `modules/tools-mcp.md`; source ADR 0011 (P3).
-- [ ] F1-T13 API v1 per `api/openapi.yaml` and WebSocket `/v1/events`. Partial: REST for agents, memories, approvals, devices and usage (`GET /v1/usage`) served behind bearer auth and tested; conversations, runs, routines and `/v1/events` not implemented (D3).
-- [ ] F1-T14 Local desktop token, stored in the vault. Partial: token is the vault item `api-token`, created on first start; a legacy `DataDir/api-token` file is imported and removed; every `/v1` route requires it. Rotation and revocation pending (Q30).
+- [x] F1-T07 Conversations/runs: persisted/streamed steps, stop, steer, retry, crash recovery, idempotency, provider fallback, per-agent one-active-run FIFO and REST state restoration are implemented and tested. WebSocket event replay is intentionally omitted by ADR 0015.
+- [ ] F1-T08 Approvals: canonical snapshot/digest, decide/receipt, always-allow, expiry, `waiting_approval` and reconciliation are tested. API integration exercises service request + HTTP decision with a fake executor; mocked renderer dispatch passes. Live MCP/provider action remains unverified.
+- [x] F1-T09 Persisted routines: cron + interval, occurrence ID, idempotent retries, notify_on and quiet window. → `modules/routines.md`; executor, HTTP, events, manual run and `routine_finish` done (Q33). Event triggers are phase 3. Desktop fake-provider E2E verifies routine create and pause/resume.
+- [ ] F1-T10 Vault: envelope, store, service, bootstrap, audit, HTTP, token/master-key rotation done. OS keyring backend compiles for Windows/macOS/Linux but has not run on Windows or macOS.
+- [ ] F1-T11 Memory: save/list/edit/delete, budgeted injection, `memory_save` and startup/daily purge implemented. Project scope removed from V1; owner addendum remains open.
+- [x] F1-T12 MCP: connect a server, local MCP gateway per turn, scopes none/read/write. → `modules/tools-mcp.md`; connectors, per-turn gateway, grants and approval-gated writes are implemented (ADR 0018). Connector credentials, other built-in tools, result restart durability and live Codex validation remain open.
+- [x] F1-T13 API v1 and WebSocket routes are served and tested; approval request/HTTP decision integration uses a fake executor. Reconnect reloads persisted state through REST; WebSocket replay is intentionally omitted by ADR 0015.
+- [x] F1-T14 Local desktop token, stored in the vault. Done: token is the vault item `api-token`, created on first start; a legacy `DataDir/api-token` file is imported and removed; every `/v1` route requires it. Rotation done (Q30); there is no revocation route without a replacement, by design.
 - [ ] F1-T15 Device pairing and authentication (local version, no phone yet). → `modules/pairing-auth.md`. Partial: pairing codes, device tokens, device list, revocation and scopes served and tested; QR code, mobile app and VPS administrator password pending.
-- [ ] F1-T16 Maestro integration: install the V1 line, `verify`, link to agents, update card. → `modules/maestro.md`, ADR 0009
-- [ ] F1-T17 Usage/cost panel per agent, routine, project, model and node; real, estimated or unknown cost is never shown as zero without evidence. → ADR 0007, DATA_MODEL `usage`; source ADR 0011 (P2, `services/usage_report.py`). Partial: `GET /v1/usage` with the five groupings, unknown-cost counting and the known/estimated split (`cost_known_micros`, `cost_estimated_micros`) served and tested; panel pending (desktop screens).
-- [ ] F1-T18 Append-only audit of approvals, receipts, remote actions, permission changes and devices; no secrets or unnecessary content. → SECURITY. Partial: hash chain, checkpoint and `VerifyAudit` in the store (ADR 0011, `core/audit.py`); HTTP verify route, export and UI pending.
+- [ ] F1-T16 Maestro integration: manager, isolated install/verify, link/unlink, V1 update check, default auto-update, audit, rollback and status UI are implemented and fake-tested. The Codex home is the stable `<calango-home>/maestro/.codex` (ADR 0014): each release is verified in its staging home, then activated into the stable home, so sign-in survives updates and rollbacks. Partial: no real Codex session; earlier per-version logins are not migrated (owner policy pending).
+- [ ] F1-T17 Usage/cost panel per agent, routine, project, model and node; REST and desktop show known/estimated/unknown separately. Real provider pricing/cost remains unverified; project grouping has no projects table in V1.
+- [ ] F1-T18 Append-only audit: hash chain, verify/export API and desktop screen are implemented. Full remote-action and permission-event coverage remains unverified; no remote-node action is in Phase 1.
 
 ### Desktop (Electron)
-- [ ] F1-T20 `apps/desktop`: Electron + Vite + React + TS strict; `contextIsolation`, `sandbox`, strict CSP. → `modules/desktop-electron.md`
-- [ ] F1-T21 Main process starts and watches `calango`; restarts with backoff; state in the tray.
-- [ ] F1-T22 `packages/sdk-ts` generated from OpenAPI; `packages/tokens` generating CSS.
-- [ ] F1-T23 Screens: sidebar, conversations, approval card, routines, agents, usage, settings (you, agents, models, connections, vault), "About" with credit to Maestro. Source: ADR 0011 (P3, screen reference only).
-- [ ] F1-T24 Tray, start with the system, global shortcut for quick conversation.
-- [ ] F1-T25 **Signed** Windows NSIS installer + signed auto-update; Linux `.deb`; notarized macOS DMG.
-- [ ] F1-T26 i18n: pt-BR, en and es from the first screen; single catalog in `packages/i18n`, with deterministic generation and drift checking in CI.
-- [ ] Ship the `NOTICE` file inside the installer.
+- [x] F1-T20 `apps/desktop`: Electron + Vite + React + TS strict; `contextIsolation`, `sandbox`, strict CSP. Built and launched on Linux; Windows remains unverified.
+- [x] F1-T21 Main process starts and watches `calango`; restarts with backoff and reports state. Desktop E2E passed; child PATH filtering prevents npm's `node_modules/.bin` from shadowing Codex.
+- [x] F1-T22 `packages/sdk-ts` generated from OpenAPI; `packages/tokens` generating CSS; typed client used by the renderer.
+- [x] F1-T23 Screens: conversations, steps, approval card, routines, agents, usage, settings. Screens are implemented; fake-provider flows and mocked approval-card dispatch pass. Isolated Electron smoke exercised Settings and Audit; live approval action and full Phase 1 acceptance are separate gates.
+- [ ] F1-T24 Tray, start with the system, global shortcut for quick conversation. Code is wired; Linux startup entry create/remove passed an isolated UI smoke. Tray creation and shortcut registration ran without warnings, but OS-level hotkey activation and Windows/macOS behavior remain unverified.
+- [ ] F1-T25 Signed Windows NSIS installer + signed auto-update; Linux `.deb`; notarized macOS DMG; package `NOTICE`. Requires signing credentials and platform packaging/verification.
+- [x] F1-T26 i18n pt-BR, en and es; single catalog with deterministic generation and CI drift check. `node scripts/generate-i18n.mjs --check` passes.
 
 ### Phase 1 exit criterion
-- [ ] Install on Windows, talk to an agent, create a daily routine, approve an action, see the cost in the panel.
+- [ ] Phase 1 exit: install on Windows, talk to an agent, create a daily routine, approve an action, and see cost in the panel. Not met: Windows install/signing, authorized live approval/action, real provider cost and cross-platform acceptance remain unverified.
 
 ---
+
+## Remaining unchecked work — triage (2026-11-23)
+
+- **Owner-blocked:** Q03/D5 transport/legal clearance; Q06 permission to delete `/tmp/agenticos`; D1b/Q27 legal identity, terms, prices, domain and plan copy; Q17 memory capture/retention; Q18/F1-T17 verified pricing; live model/MCP and external approval authorization (F1-T04/T05/T08/T12); F1-T16 profile-migration policy; personal-data export/deletion scope; authorization for the next push.
+- **Platform-blocked:** Q13/F1-T10 Windows/macOS keyring; F1-T24 OS shortcut/tray and cross-platform login; F1-T25 signing/install/update credentials and platform verification; Q25 Docker bridge test; Q27 site hosting; F2-T07 store review.
+- **Implementable engineering:** F1-T05 JSONL usage parsing and other V1 harnesses; F1-T12 connector credentials, remaining built-ins and result durability; F1-T15 local QR; F1-T18 applicable audit coverage; database backup/restore; first-use/privacy/Maestro docs; desktop/site accessibility; reference-code/license review; site icon. These remain unchecked until implemented and verified.
+- **Implementable but phase-gated:** F1-T15 mobile/VPS parts and F1-T17 project grouping; all F2–F6 tasks remain behind their preceding phase exit. F7 is post-V1. WebSocket replay is intentionally omitted; REST reload meets the reconnect contract (ADR 0015).
 
 ## Phase 2 — Phone
 
@@ -152,7 +188,7 @@ Verification and site:
 - [ ] F3-T05 Billing: Stripe (web and desktop), store purchases (RevenueCat or direct), single plan source in the Cloud.
 - [ ] F3-T06 `Entitlements` in the core: VPS, routines, projects, screen control, push.
 - [ ] F3-T07 Interface shows an offline node: which one, since when, what is waiting for it.
-- [ ] F3-T08 Automatic Maestro update (optional, off by default) with rollback and `verify`. → `modules/maestro.md`
+- [ ] F3-T08 Automatic Maestro update (on by default, D6; the owner can turn it off) with rollback and `verify`. → `modules/maestro.md`
 - [ ] Terms of use and privacy policy published before billing starts.
 
 ### Phase 3 exit criterion
@@ -206,19 +242,19 @@ Verification and site:
 
 ## Cross-cutting (apply to all phases)
 
-- [ ] Secret audit: a canary test guarantees that no secret appears in `run_steps`, logs or the API. → SECURITY
-- [ ] API limits: bounded request bodies, rate limit on `/v1/pair`.
-- [ ] Database backup and restore documented and tested, including restore before migration and application rollback compatibility.
+- [x] Secret audit: canary tests cover run_steps, logs and API responses (`internal/conversations`, `internal/api`).
+- [x] API limits: bounded request bodies and proxy-aware `/v1/pair` rate limiting are tested.
+- [ ] Database backup and restore: offline runbook in `BACKUP_RESTORE.md` and pre-migration snapshot recovery test are implemented; previous-binary compatibility and OS-keyring restoration remain unverified.
 - [ ] Export and deletion of personal data exercised; first run detects node state, model, harness, vault and connector without leaking content.
-- [ ] Telemetry only with opt-in, without content.
+- [x] Telemetry only with opt-in, without content: Calango ships no external telemetry/analytics client; Maestro CLI subprocesses force `ORQUESTRADOR_MAESTRO_TELEMETRY=0` and an app-private `XDG_CONFIG_HOME` (ADR 0014). Code search and Go tests show no Calango telemetry sender.
 - [ ] User documentation: first use, pairing, VPS, Maestro, privacy.
 - [ ] Accessibility review (keyboard, screen reader, contrast) on desktop, mobile and the site.
 - [x] Site: "Contribute to V1" section and footer with AGPL-3.0 (done 2026-11-23).
 - [ ] Site: replace "coming soon" with real prices once defined; host it; simplified icon for small sizes (`DEV/BRAND/BRAND.md`).
-- [ ] Publish the repository at `IAPro-Community/calango` (the local repository exists, without a commit; push only on explicit request).
+- [x] Publish the repository at `IAPro-Community/calango`. Owner-authorized push and GitHub CI run 45188079827 on `dee8efa` are recorded in Q04/Q05; current uncommitted changes are not published.
 - [ ] Validate `docker build` and `docker run` of the site `Dockerfile` and `deploy/Dockerfile.node` (blocked: Docker daemon unavailable in this environment; the user needs to grant daemon access).
-- [ ] Validate the `.github/workflows/ci.yml` workflow after the first push.
-- [ ] Full visual review of the site in light and dark with the browser pane visible (pending from the previous session).
+- [x] Validate the `.github/workflows/ci.yml` workflow after the first push. GitHub run 45188079827 on `dee8efa` succeeded; current uncommitted changes are not covered.
+- [x] Full site visual review at desktop 1440 px and mobile 390 px, light/dark. No mobile horizontal overflow; future-feature claims in plan cards are recorded under Q27.
 - [ ] Remove any trace of reference code: review PRs against copies of agentes.chat (ADR 0006).
 
 ---

@@ -21,6 +21,14 @@ var (
 	ErrUnknownAgent = errors.New("gateway: unknown agent")
 	// ErrUnknownProvider means Request.Provider is not configured.
 	ErrUnknownProvider = errors.New("gateway: unknown provider")
+	// ErrLedger means the call ran (or was refused) but its usage could not be
+	// recorded. Callers must not retry such a call on another provider: the first
+	// attempt may already have spent tokens.
+	ErrLedger = errors.New("gateway: usage ledger failed")
+	// ErrUnavailable marks a provider failure that another provider may avoid:
+	// transport failure, HTTP 429 or 5xx, or a stream that broke. Adapters wrap
+	// it; the caller decides whether output had already reached the client.
+	ErrUnavailable = errors.New("gateway: provider unavailable")
 )
 
 // maxOutputTokensPerCall bounds MaxOutputTokens so budget arithmetic cannot overflow.
@@ -36,12 +44,24 @@ type Provider interface {
 }
 
 // Request is one model call. MaxOutputTokens must be positive: it is part of
-// the pre-call budget estimate.
+// the pre-call budget estimate. Tools, when set, is the MCP endpoint the model
+// may call for this turn; providers that cannot use it ignore it.
 type Request struct {
 	Provider        string
 	Model           string
 	Prompt          string
 	MaxOutputTokens int64
+	Tools           *ToolEndpoint
+	// CodexHome overrides the account home for an explicitly linked Maestro agent.
+	// Only the daemon sets this local execution option; it is not an API field.
+	CodexHome string
+}
+
+// ToolEndpoint is the MCP endpoint of one turn. Token is the bearer token that
+// authorizes this turn only; it is a secret and never goes into argv or logs.
+type ToolEndpoint struct {
+	URL   string
+	Token string
 }
 
 // Chunk is one piece of streamed output.
@@ -112,9 +132,12 @@ type ThresholdEvent struct {
 type Config struct {
 	Ledger    Ledger
 	Providers []Provider
-	Prices    PriceTable
-	Now       func() time.Time
-	NewID     func(time.Time) (string, error)
+	// Resolve builds a provider for a name that is not in Providers, such as a
+	// per-account key. It may be nil.
+	Resolve func(ctx context.Context, name string) (Provider, error)
+	Prices  PriceTable
+	Now     func() time.Time
+	NewID   func(time.Time) (string, error)
 	// OnThreshold is called synchronously after the record that crosses 80% or 100%.
 	OnThreshold func(ThresholdEvent)
 }
@@ -123,6 +146,7 @@ type Config struct {
 type Gateway struct {
 	ledger      Ledger
 	providers   map[string]Provider
+	resolve     func(ctx context.Context, name string) (Provider, error)
 	prices      PriceTable
 	now         func() time.Time
 	newID       func(time.Time) (string, error)
@@ -160,6 +184,7 @@ func New(cfg Config) (*Gateway, error) {
 	return &Gateway{
 		ledger:      cfg.Ledger,
 		providers:   providers,
+		resolve:     cfg.Resolve,
 		prices:      cfg.Prices,
 		now:         cfg.Now,
 		newID:       cfg.NewID,
@@ -183,6 +208,13 @@ func (g *Gateway) Call(ctx context.Context, who Caller, req Request, stream func
 		return Usage{}, fmt.Errorf("gateway: max output tokens %d outside (0, %d]", req.MaxOutputTokens, int64(maxOutputTokensPerCall))
 	}
 	provider, ok := g.providers[req.Provider]
+	if !ok && g.resolve != nil {
+		resolved, err := g.resolve(ctx, req.Provider)
+		if err != nil {
+			return Usage{}, fmt.Errorf("%w: %q: %w", ErrUnknownProvider, req.Provider, err)
+		}
+		provider, ok = resolved, true
+	}
 	if !ok {
 		return Usage{}, fmt.Errorf("%w: %q", ErrUnknownProvider, req.Provider)
 	}
@@ -217,6 +249,9 @@ func (g *Gateway) Call(ctx context.Context, who Caller, req Request, stream func
 	}
 
 	recordErr := g.record(context.WithoutCancel(ctx), who.AgentID, limit, rec, now)
+	if recordErr != nil {
+		recordErr = fmt.Errorf("%w: %w", ErrLedger, recordErr)
+	}
 
 	err = errors.Join(callErr, costErr, recordErr)
 	if err != nil {

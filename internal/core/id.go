@@ -10,8 +10,8 @@ import (
 const crockfordAlphabet = "0123456789ABCDEFGHJKMNPQRSTVWXYZ"
 
 // NewID returns a 26-character ULID-style identifier: a 48-bit millisecond
-// timestamp followed by 80 random bits, encoded in Crockford base32. Identifiers
-// created later sort later as strings, so they are safe as index keys.
+// timestamp followed by 80 random bits, encoded in Crockford base32. IDs from
+// distinct milliseconds sort chronologically; IDs in the same millisecond are random.
 func NewID(now time.Time) (string, error) {
 	ms := now.UnixMilli()
 	if ms < 0 || ms >= 1<<48 {

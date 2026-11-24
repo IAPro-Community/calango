@@ -60,6 +60,13 @@ type Verification struct {
 	FirstBreak     *Break
 }
 
+// Export is the chain as stored: every entry in order and the checkpoint. The checkpoint
+// is nil only for an empty chain.
+type Export struct {
+	Records    []Record
+	Checkpoint *Checkpoint
+}
+
 // Hash returns the chain hash of an entry linked to prev ("" for the first entry).
 func Hash(prev string, f Fields) (string, error) {
 	facts, err := canonicalFacts(f.FactsJSON)

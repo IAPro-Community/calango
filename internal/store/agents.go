@@ -13,20 +13,85 @@ import (
 	"calango/internal/core"
 )
 
-const agentColumns = `id, owner_id, name, role, instructions, harness, model,
-	reasoning_effort, run_on, token_limit_month, approval_level, created_at, updated_at`
+const agentColumns = `id, owner_id, name, role, instructions,
+	reasoning_effort, run_on, token_limit_month, approval_level, maestro_enabled, created_at, updated_at`
 
-// InsertAgent stores a new agent. The caller validates it first.
+// InsertAgent stores a new agent and its provider chain in one transaction. The
+// caller validates the agent first.
 func (s *Store) InsertAgent(ctx context.Context, a core.Agent) error {
-	_, err := s.db.ExecContext(ctx, `INSERT INTO agents (`+agentColumns+`)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-		a.ID, a.OwnerID, a.Name, a.Role, a.Instructions, a.Harness, a.Model,
-		effortValue(a.ReasoningEffort), string(a.RunOn), a.TokenLimitMonth, string(a.ApprovalLevel),
-		a.CreatedAt.UTC().Format(usageTimeLayout), a.UpdatedAt.UTC().Format(usageTimeLayout))
+	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
+		return fmt.Errorf("begin agent insert: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	if _, err := tx.ExecContext(ctx, `INSERT INTO agents (`+agentColumns+`)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		a.ID, a.OwnerID, a.Name, a.Role, a.Instructions,
+		effortValue(a.ReasoningEffort), string(a.RunOn), a.TokenLimitMonth, string(a.ApprovalLevel), a.MaestroEnabled,
+		a.CreatedAt.UTC().Format(usageTimeLayout), a.UpdatedAt.UTC().Format(usageTimeLayout)); err != nil {
 		return fmt.Errorf("insert agent %s: %w", a.ID, err)
 	}
+	if err := writeProviderChain(ctx, tx, a); err != nil {
+		return err
+	}
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit agent insert %s: %w", a.ID, err)
+	}
 	return nil
+}
+
+// queryer is satisfied by *sql.DB and *sql.Tx.
+type queryer interface {
+	QueryContext(ctx context.Context, query string, args ...any) (*sql.Rows, error)
+}
+
+// writeProviderChain replaces the provider chain of a. Every account must belong
+// to a's owner; the database foreign keys alone would not check ownership.
+func writeProviderChain(ctx context.Context, tx *sql.Tx, a core.Agent) error {
+	if _, err := tx.ExecContext(ctx, `DELETE FROM agent_providers WHERE agent_id = ?`, a.ID); err != nil {
+		return fmt.Errorf("clear provider chain of agent %s: %w", a.ID, err)
+	}
+	for i, p := range a.Providers {
+		var owner string
+		err := tx.QueryRowContext(ctx, `SELECT owner_id FROM provider_accounts WHERE id = ?`, p.AccountID).Scan(&owner)
+		if errors.Is(err, sql.ErrNoRows) || (err == nil && owner != a.OwnerID) {
+			return fmt.Errorf("%w: providers[%d] account is not one of yours", core.ErrInvalidInput, i)
+		}
+		if err != nil {
+			return fmt.Errorf("read provider account %s: %w", p.AccountID, err)
+		}
+		if _, err := tx.ExecContext(ctx,
+			`INSERT INTO agent_providers (agent_id, position, account_id, model) VALUES (?, ?, ?, ?)`,
+			a.ID, i, p.AccountID, p.Model); err != nil {
+			return fmt.Errorf("insert provider %d of agent %s: %w", i, a.ID, err)
+		}
+	}
+	return nil
+}
+
+// loadProviderChain returns the agent's provider chain in position order.
+func loadProviderChain(ctx context.Context, q queryer, agentID string) ([]core.ProviderRef, error) {
+	rows, err := q.QueryContext(ctx, `SELECT p.account_id, a.kind, a.label, p.model
+		FROM agent_providers p JOIN provider_accounts a ON a.id = p.account_id
+		WHERE p.agent_id = ? ORDER BY p.position`, agentID)
+	if err != nil {
+		return nil, fmt.Errorf("read provider chain of agent %s: %w", agentID, err)
+	}
+	defer rows.Close()
+
+	var chain []core.ProviderRef
+	for rows.Next() {
+		var ref core.ProviderRef
+		if err := rows.Scan(&ref.AccountID, &ref.Kind, &ref.Label, &ref.Model); err != nil {
+			return nil, fmt.Errorf("scan provider of agent %s: %w", agentID, err)
+		}
+		chain = append(chain, ref)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("read provider chain of agent %s: %w", agentID, err)
+	}
+	return chain, nil
 }
 
 // GetAgent returns the agent only when it belongs to ownerID.
@@ -39,6 +104,9 @@ func (s *Store) GetAgent(ctx context.Context, ownerID, id string) (core.Agent, e
 	}
 	if err != nil {
 		return core.Agent{}, fmt.Errorf("read agent %s: %w", id, err)
+	}
+	if a.Providers, err = loadProviderChain(ctx, s.db, id); err != nil {
+		return core.Agent{}, err
 	}
 	return a, nil
 }
@@ -63,22 +131,45 @@ func (s *Store) ListAgents(ctx context.Context, ownerID string) ([]core.Agent, e
 	if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("list agents: %w", err)
 	}
+	// The rows are closed here; loading each chain needs a second query, and the
+	// pool may hold a single connection.
+	for i := range agents {
+		if agents[i].Providers, err = loadProviderChain(ctx, s.db, agents[i].ID); err != nil {
+			return nil, err
+		}
+	}
 	return agents, nil
 }
 
-// ReplaceAgent overwrites the editable fields of an existing agent. created_at is kept.
+// ReplaceAgent overwrites the editable fields of an existing agent and its
+// provider chain in one transaction. created_at is kept.
 func (s *Store) ReplaceAgent(ctx context.Context, a core.Agent) error {
-	res, err := s.db.ExecContext(ctx, `UPDATE agents SET
-		name = ?, role = ?, instructions = ?, harness = ?, model = ?, reasoning_effort = ?,
-		run_on = ?, token_limit_month = ?, approval_level = ?, updated_at = ?
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("begin agent replace: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	res, err := tx.ExecContext(ctx, `UPDATE agents SET
+		name = ?, role = ?, instructions = ?, reasoning_effort = ?,
+		run_on = ?, token_limit_month = ?, approval_level = ?, maestro_enabled = ?, updated_at = ?
 		WHERE id = ? AND owner_id = ?`,
-		a.Name, a.Role, a.Instructions, a.Harness, a.Model, effortValue(a.ReasoningEffort),
-		string(a.RunOn), a.TokenLimitMonth, string(a.ApprovalLevel), a.UpdatedAt.UTC().Format(usageTimeLayout),
+		a.Name, a.Role, a.Instructions, effortValue(a.ReasoningEffort),
+		string(a.RunOn), a.TokenLimitMonth, string(a.ApprovalLevel), a.MaestroEnabled, a.UpdatedAt.UTC().Format(usageTimeLayout),
 		a.ID, a.OwnerID)
 	if err != nil {
 		return fmt.Errorf("replace agent %s: %w", a.ID, err)
 	}
-	return requireOneRow(res, "agent "+a.ID)
+	if err := requireOneRow(res, "agent "+a.ID); err != nil {
+		return err
+	}
+	if err := writeProviderChain(ctx, tx, a); err != nil {
+		return err
+	}
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit agent replace %s: %w", a.ID, err)
+	}
+	return nil
 }
 
 // DeleteAgent removes an agent. It returns core.ErrConflict when the agent has runs or
@@ -128,8 +219,8 @@ func scanAgent(row rowScanner) (core.Agent, error) {
 		runOn, approval      string
 		createdAt, updatedAt string
 	)
-	if err := row.Scan(&a.ID, &a.OwnerID, &a.Name, &a.Role, &a.Instructions, &a.Harness, &a.Model,
-		&effort, &runOn, &a.TokenLimitMonth, &approval, &createdAt, &updatedAt); err != nil {
+	if err := row.Scan(&a.ID, &a.OwnerID, &a.Name, &a.Role, &a.Instructions,
+		&effort, &runOn, &a.TokenLimitMonth, &approval, &a.MaestroEnabled, &createdAt, &updatedAt); err != nil {
 		return core.Agent{}, err
 	}
 	a.ReasoningEffort = core.ReasoningEffort(effort.String)

@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"sync"
 	"time"
 
@@ -20,10 +21,12 @@ const DefaultTTL = 24 * time.Hour
 // Repository is the persistence the service needs. *store.Store implements it.
 type Repository interface {
 	GetAgent(ctx context.Context, ownerID, id string) (core.Agent, error)
+	GetRun(ctx context.Context, id string) (core.Run, error)
 	InsertApproval(ctx context.Context, a core.Approval, ev core.AuditEvent) error
 	GetApproval(ctx context.Context, ownerID, id string) (core.Approval, error)
 	ListApprovals(ctx context.Context, ownerID string, status core.ApprovalStatus) ([]core.Approval, error)
 	ListDueApprovals(ctx context.Context, now time.Time) ([]core.Approval, error)
+	ListUnreceiptedApprovals(ctx context.Context) ([]core.Approval, error)
 	NextApprovalSeq(ctx context.Context, runID string) (int64, error)
 	DecideApproval(ctx context.Context, d store.ApprovalDecision) error
 	CompleteApproval(ctx context.Context, id string, outcome core.ApprovalOutcome, reason string, ev core.AuditEvent) error
@@ -41,6 +44,7 @@ type Service struct {
 
 	mu        sync.Mutex
 	executing map[string]struct{}
+	executors map[core.ActionKind]Executor
 }
 
 // NewService builds the service. ttl <= 0 uses DefaultTTL.
@@ -51,7 +55,8 @@ func NewService(repo Repository, ttl time.Duration, now func() time.Time, newID 
 	if ttl <= 0 {
 		ttl = DefaultTTL
 	}
-	return &Service{repo: repo, ttl: ttl, now: now, newID: newID, executing: make(map[string]struct{})}, nil
+	return &Service{repo: repo, ttl: ttl, now: now, newID: newID,
+		executing: make(map[string]struct{}), executors: make(map[core.ActionKind]Executor)}, nil
 }
 
 // Request opens an approval for a sensitive action of a run. If the agent has an
@@ -65,9 +70,52 @@ func (s *Service) Request(ctx context.Context, ownerID, agentID, runID string, a
 	if _, err := s.repo.GetAgent(ctx, ownerID, agentID); err != nil {
 		return core.Approval{}, fmt.Errorf("approval agent: %w", err)
 	}
+	run, err := s.repo.GetRun(ctx, runID)
+	if err != nil {
+		return core.Approval{}, fmt.Errorf("approval run: %w", err)
+	}
+	if run.AgentID != agentID {
+		return core.Approval{}, fmt.Errorf("%w: run belongs to another agent", core.ErrInvalidInput)
+	}
+	s.mu.Lock()
+	a, err := s.requestLocked(ctx, agentID, runID, n)
+	s.mu.Unlock()
+	if err == nil && a.Status == core.ApprovalApproved {
+		s.dispatch(ownerID, a)
+	}
+	return a, err
+}
+
+// Executor runs one approved snapshot. It records its own result; a returned error
+// becomes the receipt's failed outcome. It runs in its own goroutine.
+type Executor func(ctx context.Context, ownerID, approvalID string, action core.Action) error
+
+// SetExecutor registers the executor for one kind of action. Approved actions of
+// that kind run through it, both when a person approves and when a rule approves.
+func (s *Service) SetExecutor(kind core.ActionKind, fn Executor) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	return s.requestLocked(ctx, agentID, runID, n)
+	s.executors[kind] = fn
+}
+
+// dispatch starts the executor of an approved action in the background. The caller
+// must not hold s.mu: Execute takes it.
+func (s *Service) dispatch(ownerID string, a core.Approval) {
+	s.mu.Lock()
+	fn := s.executors[a.Action.Kind]
+	s.mu.Unlock()
+	if fn == nil {
+		return
+	}
+	go func() {
+		_, err := s.Execute(context.Background(), ownerID, a.ID, a.Action,
+			func(ctx context.Context, act core.Action) error {
+				return fn(ctx, ownerID, a.ID, act)
+			})
+		if err != nil {
+			slog.Warn("approved action did not run", "approval", a.ID, "err", err)
+		}
+	}()
 }
 
 func (s *Service) requestLocked(ctx context.Context, agentID, runID string, n core.Action) (core.Approval, error) {
@@ -115,7 +163,17 @@ func (s *Service) requestLocked(ctx context.Context, agentID, runID string, n co
 // Decide records a person's decision on a pending approval. deviceID is the paired
 // device that decides; it is required, so the agent cannot approve its own action.
 // remember stores an "always allow" rule for the agent and kind; it applies only to approve.
+// An approved action is handed to its executor at once.
 func (s *Service) Decide(ctx context.Context, ownerID, id, deviceID string, approve, remember bool) (core.Approval, error) {
+	a, err := s.decide(ctx, ownerID, id, deviceID, approve, remember)
+	if err == nil && a.Status == core.ApprovalApproved {
+		s.dispatch(ownerID, a)
+	}
+	return a, err
+}
+
+// decide validates and records the decision under the lock.
+func (s *Service) decide(ctx context.Context, ownerID, id, deviceID string, approve, remember bool) (core.Approval, error) {
 	if deviceID == "" {
 		return core.Approval{}, fmt.Errorf("%w: a paired device must decide", core.ErrInvalidInput)
 	}
@@ -276,6 +334,33 @@ func (s *Service) Sweep(ctx context.Context) (int, error) {
 		}
 	}
 	return len(due), nil
+}
+
+// reconcileReason is recorded on approved actions that have no receipt at startup.
+const reconcileReason = "no receipt was recorded before the process stopped; the outcome is unknown and the action was not retried"
+
+// Reconcile closes approved actions that have no receipt. They were approved before
+// the process stopped, so whether they ran is unknown: each is recorded as failed
+// and audited, and never retried. Call it once at startup, before any executor
+// runs. It returns how many were closed.
+func (s *Service) Reconcile(ctx context.Context) (int, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	open, err := s.repo.ListUnreceiptedApprovals(ctx)
+	if err != nil {
+		return 0, err
+	}
+	now := s.now()
+	for _, a := range open {
+		ev, err := s.event(a.ID, now, "approval.reconciled", map[string]any{"digest": a.Digest})
+		if err != nil {
+			return 0, err
+		}
+		if err := s.repo.CompleteApproval(ctx, a.ID, core.OutcomeFailed, reconcileReason, ev); err != nil {
+			return 0, fmt.Errorf("reconcile approval %s: %w", a.ID, err)
+		}
+	}
+	return len(open), nil
 }
 
 // List returns the owner's approvals filtered by status; empty status returns all.

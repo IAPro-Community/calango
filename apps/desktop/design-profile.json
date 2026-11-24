@@ -1,0 +1,38 @@
+{
+  "version": 1,
+  "product": {
+    "name": "Calango Desktop",
+    "kind": "tooling",
+    "description": "Local control panel for Calango; agent execution remains in the Go daemon."
+  },
+  "designSystem": {
+    "provider": "Calango local CSS and design tokens",
+    "packages": ["packages/tokens/tokens.json"],
+    "themeDefault": "night",
+    "metadataSource": "DEV/BRAND/BRAND.md and packages/tokens/tokens.json"
+  },
+  "design": {
+    "creativity": "low",
+    "personality": ["productive", "clear", "welcoming", "trustworthy"],
+    "avoid": ["generic-saas", "low-contrast-gray-text", "unnecessary-sidebar", "excessive-gradients"]
+  },
+  "layout": {
+    "density": "comfortable",
+    "mobileFirst": false
+  },
+  "accessibility": {
+    "standard": "WCAG-AA"
+  },
+  "responsive": {
+    "viewports": [390, 768, 1280, 1440]
+  },
+  "implementation": {
+    "componentLibrary": "Local React components; no component library",
+    "styling": "css",
+    "importStyle": "namespace"
+  },
+  "policy": {
+    "defaultPosture": "preserve",
+    "unsolicitedRedesign": "ask"
+  }
+}

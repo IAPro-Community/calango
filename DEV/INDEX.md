@@ -1,14 +1,14 @@
 # Documentation index — Calango
 
-## Control (always read, in this order)
+## Planejamento e histórico
 
 | File | Purpose |
 |---|---|
-| [HANDOFF.md](HANDOFF.md) | where the work stopped, next step |
+| [HANDOFF.md](HANDOFF.md) | registro histórico, não fila operacional |
 | [CONTEXT.md](CONTEXT.md) | current project state |
-| [SPECS/ACTIVE.md](SPECS/ACTIVE.md) | contract of the task in progress |
+| [SPECS/ACTIVE.md](SPECS/ACTIVE.md) | registro histórico; contrato de trabalho na issue |
 | [SPECS/ROADMAP.md](SPECS/ROADMAP.md) | phases and numbered tasks |
-| [TODO_V1.md](TODO_V1.md) | everything still needed for a working V1, by phase |
+| [TODO_V1.md](TODO_V1.md) | snapshot histórico; backlog operacional no GitHub |
 | [../CONTRIBUTING.md](../CONTRIBUTING.md) | how to contribute (public) |
 | [../LICENSE](../LICENSE), [../COMMERCIAL.md](../COMMERCIAL.md), [../CLA.md](../CLA.md), [../TRADEMARKS.md](../TRADEMARKS.md) | license, commercial license, contributor agreement and trademarks |
 | [WORKLOG.md](WORKLOG.md) | short history of what was done |
@@ -35,6 +35,7 @@
 | [CONVENTIONS.md](CONVENTIONS.md) | code standards for Go, TS, Dart, tests |
 | [DEPLOYMENT.md](DEPLOYMENT.md) | Docker, VPS, TLS, Tailscale |
 | [TECHNICAL_DELIVERY.md](TECHNICAL_DELIVERY.md) | technical flow, CI, release, migrations and rollback |
+| [BACKUP_RESTORE.md](BACKUP_RESTORE.md) | offline local data backup, vault-key requirements and restore-before-rollback procedure |
 | [../api/openapi.yaml](../api/openapi.yaml) | API contract (source of the TS and Dart SDKs) |
 | [../packages/tokens/tokens.json](../packages/tokens/tokens.json) | design tokens (source of CSS and ThemeData) |
 | [../packages/i18n/messages.json](../packages/i18n/messages.json) | interface catalog in en/pt-BR/es, source of the TypeScript and ARB files |
@@ -55,6 +56,11 @@
 | [0010](ADR/0010-licenca-agpl-dupla.md) | Open source under AGPL-3.0, with commercial license, CLA and trademark policy |
 | [0011](ADR/0011-reuso-agenticos.md) | Port Apache-2.0 code from AgenticOS into Go, TypeScript and Dart; amends ADR 0006 for that source |
 | [0012](ADR/0012-vault-envelope.md) | Vault stores envelope-encrypted values in SQLite; master key from the OS keyring or a deployment secret |
+| [0013](ADR/0013-harness-cli-como-provedor.md) | Agent CLI harnesses run as gateway providers (Codex first); refines the harness spec's interface for V1 |
+| [0014](ADR/0014-maestro-isolamento.md) | Maestro installs into `<calango-home>/maestro/` with telemetry off; its Codex target uses its own `CODEX_HOME` (owner choice) |
+| [0015](ADR/0015-websocket-gorilla.md) | WebSocket `/v1/events` uses `github.com/gorilla/websocket` v1.5.3 (BSD-2-Clause); header auth only; in-memory fan-out with no replay |
+| [0016](ADR/0016-cadeia-de-provedores.md) | Agent has an ordered provider chain with fallback before first output; provider accounts are named rows, secrets stay in the vault or isolated CLI homes |
+| [0017](ADR/0017-rotina-dispara-execucao.md) | A routine fires one agent run per attempt in one DM per routine; the agent's reply ends with a `ROUTINE:` control line for news and finish |
 
 ## Module specs (`SPECS/modules/`)
 
@@ -87,13 +93,11 @@
 
 `site/index.html`: static product presentation page. Interface in English (default), Brazilian Portuguese and Spanish.
 
-## Governance
+## Governança e qualidade
 
-- [Governance policy](../GOVERNANCE.md)
-- [Contribution workflow](../CONTRIBUTING.md)
-- [Governance bootstrap and administrative verification](GOVERNANCE_BOOTSTRAP.md)
-- [GitHub Issues](https://github.com/IAPro-Community/calango/issues) — operational work; legacy TODO/roadmap pending reconciliation.
-
-- [Auditoria retroativa da main](AUDITORIA_RETROATIVA.md) — mapeamento de entregas históricas e validações pendentes.
-
-- [Planejamento operacional](PLANEJAMENTO_PRODUTO.md) — mapa inicial de épicos, issues e dependências.
+- [GOVERNANCE](../GOVERNANCE.md)
+- [Implantação da governança](GOVERNANCE_BOOTSTRAP.md)
+- [Auditoria retroativa](AUDITORIA_RETROATIVA.md)
+- [Planejamento de produto](PLANEJAMENTO_PRODUTO.md)
+- [GitHub Issues](https://github.com/IAPro-Community/calango/issues) — fonte operacional.
+- Qualidade e revisão técnica: PR #114 / issue #51.

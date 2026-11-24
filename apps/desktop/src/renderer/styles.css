@@ -1,0 +1,340 @@
+:root {
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  min-width: 320px;
+  margin: 0;
+  background: var(--calango-color-night);
+  color: var(--calango-color-paper);
+  font-family: var(--calango-font-body), system-ui, sans-serif;
+}
+
+h1,
+h2 {
+  font-family: var(--calango-font-display), system-ui, sans-serif;
+  font-weight: 600;
+  margin: 0 0 12px;
+}
+
+h1 {
+  font-size: 22px;
+}
+
+h2 {
+  font-size: 16px;
+}
+
+code,
+pre {
+  font-family: var(--calango-font-mono), ui-monospace, monospace;
+}
+
+button,
+input,
+select,
+textarea {
+  min-height: 44px;
+  font: inherit;
+  color: inherit;
+  background: var(--calango-color-night-card);
+  border: 1px solid var(--calango-color-ink-soft);
+  border-radius: var(--calango-radius-sm);
+  padding: 6px 10px;
+}
+input[type='checkbox'] {
+  width: 18px;
+  min-height: 18px;
+  height: 18px;
+  accent-color: var(--calango-color-postit-deep);
+}
+
+button {
+  cursor: pointer;
+  background: var(--calango-color-postit);
+  color: var(--calango-color-ink);
+  border-color: var(--calango-color-postit-deep);
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+:focus-visible {
+  outline: 3px solid var(--calango-color-sand);
+  outline-offset: 2px;
+}
+
+button.danger {
+  background: var(--calango-color-clay-deep);
+  border-color: var(--calango-color-clay-deep);
+  color: var(--calango-color-paper);
+}
+
+.shell {
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  min-height: 100vh;
+}
+
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 16px;
+  border-right: 1px solid var(--calango-color-ink-soft);
+}
+
+.brand {
+  font-family: var(--calango-font-display);
+  font-weight: 700;
+  margin-bottom: 12px;
+}
+
+.nav-item {
+  text-align: left;
+  background: transparent;
+  color: inherit;
+  border-color: transparent;
+}
+
+.nav-item.active {
+  background: var(--calango-color-night-card);
+  border-color: var(--calango-color-ink-soft);
+}
+
+.content {
+  min-width: 0;
+  padding: 24px;
+  overflow: auto;
+}
+
+.screen {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.screen.split {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  align-items: start;
+}
+
+.screen-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.card {
+  background: var(--calango-color-night-card);
+  border: 1px solid var(--calango-color-ink-soft);
+  border-radius: var(--calango-radius-md);
+  padding: 16px;
+  box-shadow: var(--calango-shadow-paper);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 16px;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.form label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+}
+
+.form label.check-label,
+label.check-label {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+
+.list {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.approval {
+  align-items: flex-start !important;
+}
+
+.muted {
+  color: var(--calango-color-sand);
+  font-size: 13px;
+}
+
+.error {
+  color: var(--calango-color-tangerine);
+  font-size: 13px;
+}
+
+.status {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 48px;
+  max-width: 480px;
+}
+
+.conversation {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 480px;
+}
+
+.messages {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+  overflow: auto;
+}
+
+.message {
+  padding: 8px 12px;
+  border-radius: var(--calango-radius-md);
+  background: var(--calango-color-night);
+  white-space: pre-wrap;
+}
+
+.message.person {
+  align-self: flex-end;
+  background: var(--calango-color-postit-light);
+  color: var(--calango-color-ink);
+}
+
+.composer {
+  display: flex;
+  gap: 8px;
+  align-items: flex-end;
+}
+
+.composer textarea {
+  flex: 1;
+}
+
+.run {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 13px;
+}
+
+.empty {
+  margin: auto;
+  text-align: center;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table th,
+.table td {
+  padding: 8px 10px;
+  text-align: left;
+  border-bottom: 1px solid var(--calango-color-ink-soft);
+}
+
+@media (max-width: 760px) {
+  .shell {
+    grid-template-columns: minmax(0, 1fr);
+    min-height: 100vh;
+  }
+
+  .sidebar {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    flex-direction: row;
+    align-items: center;
+    overflow-x: auto;
+    border-right: 0;
+    border-bottom: 1px solid var(--calango-color-ink-soft);
+    background: var(--calango-color-night);
+    padding: 8px 12px;
+  }
+
+  .brand {
+    flex: 0 0 auto;
+    margin: 0 8px 0 0;
+  }
+
+  .nav-item {
+    flex: 0 0 auto;
+    white-space: nowrap;
+    padding: 8px 10px;
+  }
+
+  .content {
+    overflow: visible;
+    padding: 16px 12px;
+  }
+
+  .screen.split,
+  .grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .screen-header {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .list li,
+  .run {
+    flex-wrap: wrap;
+  }
+
+  .conversation {
+    min-height: calc(100dvh - 160px);
+  }
+
+  .composer {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .composer textarea {
+    width: 100%;
+    min-height: 100px;
+  }
+
+}

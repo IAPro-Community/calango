@@ -19,3 +19,10 @@ Agent tools via MCP, scoped per agent, with approval for anything that writes.
 ## Acceptance
 - An agent without access to a tool does not see it in the list.
 - A `write` tool without approval does not run.
+
+## Status (F1-T12 / Q20, 2026-11-23)
+- Built: `connectors` and `agent_tools` (migration 0013); `internal/tools` (register, list, delete, grants, catalog, remote calls; stdio with `PATH` and `HOME` only); `internal/mcpgw` (per-turn token, gateway at `/mcp`, read and write scopes, writes through approvals); built-in `memory_save` (agent-scoped, no approval; ADR 0018 amendment); Codex harness wiring (`internal/harness`); conversations open and release one endpoint per run; HTTP routes `/v1/connectors*` and `/v1/agents/{id}/tools*` (OpenAPI updated).
+- Decision: the per-turn token goes in the environment variable `CALANGO_MCP_TOKEN`, not in the URL. See `DEV/ADR/0018-mcp-gateway-por-turno.md`.
+- Not built: connector credentials; Calango's own tools other than `memory_save` (`next_steps`, `ask_person`, `routine_finish`, `task_update`); the MCP server for external clients (phase 4); the MCP server's `instructions`; a custom refusal for hidden tools; a cached tool list; restart durability for approved results.
+- Anthropic direct and other non-Codex providers ignore the gateway in V1.
+- Live check still open: Codex 0.171 with `sandbox: workspace-write` reaching the loopback gateway and the `mcp_servers` keys. Needs owner authorisation for a model call.

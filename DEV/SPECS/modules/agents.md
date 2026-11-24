@@ -3,7 +3,7 @@
 Phase 1 · Package `internal/core` (domain) + `internal/agents` (service) · Tables `agents`, `agent_tools`
 
 ## Goal
-Create and configure agents: role, instructions, harness/model, tools, budget, where they run, approval level.
+Create and configure agents: role, instructions, provider chain (ordered `{account, model}` entries, ADR 0016), tools, budget, where they run, approval level.
 
 ## Rules
 - `token_limit_month > 0` is required. Without a limit, there is no call. Enforced by `core.Agent.Validate` on save and by `internal/gateway` before each call.
@@ -29,3 +29,4 @@ Create and configure agents: role, instructions, harness/model, tools, budget, w
 - Done: create, list, get, replace (PUT, full replacement), delete (409 `conflict` when runs or usage exist), node-wide pause and resume, monthly token usage per agent (UTC month). Domain `core.Agent`, service `internal/agents`, store `internal/store/agents.go`, table `node_state` (migration 0002).
 - Decision: `PATCH` replaced by `PUT`. The contract already requires `name` and `token_limit_month`, so a partial update adds nothing.
 - Not in F1-T06: pause enforcement on new runs and stopping runs in progress (F1-T07); `agent.updated` and `agents.paused` events (WebSocket, F1-T13); per-agent pause (`agents.paused` column stays 0); `run_on=vps` plan check (F3); `agent_tools` table (not yet in a migration). HTTP handlers were added in F1-T13 behind the bearer token; device pairing is F1-T15.
+- Q32 (ADR 0016): `harness` and `model` are replaced by `providers`, an ordered chain of `{account_id, model}` (1–8 entries, required on create). Responses carry `account` (`<kind>/<label>`). Accounts are managed at `/v1/provider-accounts` (`internal/providers`). Migration 0010 moves each agent's old harness and model into the owner's `default` account; agents without a model get no chain and must be saved again.

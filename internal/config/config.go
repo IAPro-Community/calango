@@ -20,6 +20,14 @@ type Config struct {
 	// They are secrets: never log or print a Config.
 	VaultKey     string
 	VaultKeyFile string
+	// VaultKeyVersion is the version of VaultKey or VaultKeyFile; zero means 1.
+	VaultKeyVersion int
+	// VaultKeyPrevious and VaultKeyPreviousFile hold the key of version VaultKeyVersion-1
+	// while secrets are re-wrapped during a rotation. Remove them afterwards.
+	VaultKeyPrevious     string
+	VaultKeyPreviousFile string
+	// TrustedProxies are the peers whose X-Forwarded-For header counts toward the pairing limit.
+	TrustedProxies []netip.Prefix
 }
 
 // Load reads supported CALANGO_* environment variables and validates them.
@@ -47,11 +55,53 @@ func Load() (Config, error) {
 
 	vaultKey := os.Getenv("CALANGO_VAULT_KEY")
 	vaultKeyFile := os.Getenv("CALANGO_VAULT_KEY_FILE")
-	cfg := Config{Addr: addr, DataDir: dataDir, VaultKey: vaultKey, VaultKeyFile: vaultKeyFile}
+	vaultKeyVersion := 1
+	if raw := os.Getenv("CALANGO_VAULT_KEY_VERSION"); raw != "" {
+		v, err := strconv.Atoi(raw)
+		if err != nil || v < 1 {
+			return Config{}, fmt.Errorf("CALANGO_VAULT_KEY_VERSION: must be an integer of at least 1")
+		}
+		vaultKeyVersion = v
+	}
+	trustedProxies, err := parseTrustedProxies(os.Getenv("CALANGO_TRUSTED_PROXIES"))
+	if err != nil {
+		return Config{}, err
+	}
+	cfg := Config{
+		Addr: addr, DataDir: dataDir,
+		VaultKey: vaultKey, VaultKeyFile: vaultKeyFile, VaultKeyVersion: vaultKeyVersion,
+		VaultKeyPrevious: os.Getenv("CALANGO_VAULT_KEY_PREVIOUS"), VaultKeyPreviousFile: os.Getenv("CALANGO_VAULT_KEY_PREVIOUS_FILE"),
+		TrustedProxies: trustedProxies,
+	}
 	if err := cfg.Validate(); err != nil {
 		return Config{}, err
 	}
 	return cfg, nil
+}
+
+// parseTrustedProxies reads CALANGO_TRUSTED_PROXIES: comma-separated IP addresses or CIDR ranges.
+func parseTrustedProxies(raw string) ([]netip.Prefix, error) {
+	var out []netip.Prefix
+	for _, item := range strings.Split(raw, ",") {
+		item = strings.TrimSpace(item)
+		if item == "" {
+			continue
+		}
+		if strings.Contains(item, "/") {
+			p, err := netip.ParsePrefix(item)
+			if err != nil {
+				return nil, fmt.Errorf("CALANGO_TRUSTED_PROXIES: %q is not a CIDR range", item)
+			}
+			out = append(out, p.Masked())
+			continue
+		}
+		a, err := netip.ParseAddr(item)
+		if err != nil {
+			return nil, fmt.Errorf("CALANGO_TRUSTED_PROXIES: %q is not an IP address or CIDR range", item)
+		}
+		out = append(out, netip.PrefixFrom(a, a.BitLen()))
+	}
+	return out, nil
 }
 
 // Validate checks process configuration before the server or background workers start.
@@ -67,6 +117,37 @@ func (c Config) Validate() error {
 	}
 	if c.VaultKey != "" && c.VaultKeyFile != "" {
 		return fmt.Errorf("CALANGO_VAULT_KEY and CALANGO_VAULT_KEY_FILE are mutually exclusive; set one")
+	}
+	if err := c.validateVaultKeys(); err != nil {
+		return err
+	}
+	return nil
+}
+
+// validateVaultKeys checks the key versions and the rotation pair. Errors name variables, never values.
+func (c Config) validateVaultKeys() error {
+	version := c.VaultKeyVersion
+	if version == 0 {
+		version = 1
+	}
+	if version < 1 {
+		return fmt.Errorf("CALANGO_VAULT_KEY_VERSION: must be an integer of at least 1")
+	}
+	hasCurrent := c.VaultKey != "" || c.VaultKeyFile != ""
+	if version > 1 && !hasCurrent {
+		return fmt.Errorf("CALANGO_VAULT_KEY_VERSION: needs CALANGO_VAULT_KEY or CALANGO_VAULT_KEY_FILE; the OS keyring holds version 1 only")
+	}
+	if c.VaultKeyPrevious != "" && c.VaultKeyPreviousFile != "" {
+		return fmt.Errorf("CALANGO_VAULT_KEY_PREVIOUS and CALANGO_VAULT_KEY_PREVIOUS_FILE are mutually exclusive; set one")
+	}
+	if c.VaultKeyPrevious == "" && c.VaultKeyPreviousFile == "" {
+		return nil
+	}
+	if !hasCurrent {
+		return fmt.Errorf("CALANGO_VAULT_KEY_PREVIOUS: needs CALANGO_VAULT_KEY or CALANGO_VAULT_KEY_FILE for the current key")
+	}
+	if version < 2 {
+		return fmt.Errorf("CALANGO_VAULT_KEY_PREVIOUS: needs CALANGO_VAULT_KEY_VERSION of at least 2")
 	}
 	return nil
 }

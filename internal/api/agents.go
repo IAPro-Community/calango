@@ -9,15 +9,23 @@ import (
 
 // agentBody is the request shape shared by create and replace (AgentInput in the contract).
 type agentBody struct {
-	Name            string `json:"name"`
-	Role            string `json:"role"`
-	Instructions    string `json:"instructions"`
-	Harness         string `json:"harness"`
-	Model           string `json:"model"`
-	ReasoningEffort string `json:"reasoning_effort"`
-	RunOn           string `json:"run_on"`
-	TokenLimitMonth int64  `json:"token_limit_month"`
-	ApprovalLevel   string `json:"approval_level"`
+	Name            string         `json:"name"`
+	Role            string         `json:"role"`
+	Instructions    string         `json:"instructions"`
+	ReasoningEffort string         `json:"reasoning_effort"`
+	RunOn           string         `json:"run_on"`
+	TokenLimitMonth int64          `json:"token_limit_month"`
+	ApprovalLevel   string         `json:"approval_level"`
+	MaestroEnabled  bool           `json:"maestro_enabled"`
+	Providers       []providerBody `json:"providers"`
+}
+
+// providerBody is one step of an agent's provider chain. Account is set on
+// responses only; the server derives it from account_id.
+type providerBody struct {
+	AccountID string `json:"account_id"`
+	Model     string `json:"model"`
+	Account   string `json:"account,omitempty"`
 }
 
 // agentResponse is the Agent schema: the input fields plus live state.
@@ -33,12 +41,12 @@ func (b agentBody) toCore() core.Agent {
 		Name:            b.Name,
 		Role:            b.Role,
 		Instructions:    b.Instructions,
-		Harness:         b.Harness,
-		Model:           b.Model,
+		Providers:       providerRefsOf(b.Providers),
 		ReasoningEffort: core.ReasoningEffort(b.ReasoningEffort),
 		RunOn:           core.RunOn(b.RunOn),
 		TokenLimitMonth: b.TokenLimitMonth,
 		ApprovalLevel:   core.ApprovalLevel(b.ApprovalLevel),
+		MaestroEnabled:  b.MaestroEnabled,
 	}
 }
 
@@ -49,16 +57,34 @@ func agentResponseOf(v agents.View) agentResponse {
 			Name:            v.Name,
 			Role:            v.Role,
 			Instructions:    v.Instructions,
-			Harness:         v.Harness,
-			Model:           v.Model,
+			Providers:       providerBodiesOf(v.Providers),
 			ReasoningEffort: string(v.ReasoningEffort),
 			RunOn:           string(v.RunOn),
 			TokenLimitMonth: v.TokenLimitMonth,
 			ApprovalLevel:   string(v.ApprovalLevel),
+			MaestroEnabled:  v.MaestroEnabled,
 		},
 		Paused:          v.Paused,
 		TokensUsedMonth: v.TokensUsedMonth,
 	}
+}
+
+// providerRefsOf converts the request chain. Kind and label are not part of the
+// input: the store reads them from the account when the agent is saved.
+func providerRefsOf(in []providerBody) []core.ProviderRef {
+	refs := make([]core.ProviderRef, 0, len(in))
+	for _, p := range in {
+		refs = append(refs, core.ProviderRef{AccountID: p.AccountID, Model: p.Model})
+	}
+	return refs
+}
+
+func providerBodiesOf(in []core.ProviderRef) []providerBody {
+	out := make([]providerBody, 0, len(in))
+	for _, r := range in {
+		out = append(out, providerBody{AccountID: r.AccountID, Model: r.Model, Account: r.Key()})
+	}
+	return out
 }
 
 func (h *handler) registerAgents(mux *http.ServeMux) {

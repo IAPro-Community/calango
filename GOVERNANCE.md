@@ -27,6 +27,10 @@ Ready: objetivo, escopo, critérios, dependências, prioridade e ausência de bl
 
 Trabalho anterior à governança recebe título [Retroativa], IDs legados, SHA da main auditada, commits originais, módulos, evidências registradas e limitações. Não recriar branches/PRs históricos nem inventar autoria, aprovação ou testes. Encerrar somente o recorte comprovado; entregas parciais permanecem abertas. Preservar autoria Git; validação de release é independente. Não reescrever a história.
 
+## Congelamento da main
+
+Após a integração inicial expressamente autorizada pelo PO, a main é congelada como referência de versão. Nenhuma alteração cotidiana ou promoção automática; apenas liberação explicitamente autorizada, mediante PR da develop e gates verificados. A develop permanece aberta à integração por PR. A configuração de proteção do GitHub deve ser comprovada separadamente; esta política não substitui ruleset.
+
 ## Releases e cadência
 
 SemVer, tags v imutáveis, alpha/beta/rc quando necessário, commit rastreável da main, changelog, compatibilidade, limitações, instalação/atualização, artefatos e validação. Publicação autorizada por mantenedor. Triagem contínua, refinamento semanal quando útil, revisão de bloqueios, milestones e releases. Medir fluxo da equipe, não linhas de código individuais.

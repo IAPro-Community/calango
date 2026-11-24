@@ -36,7 +36,7 @@ Rollback: `current` goes back to the previous version kept aside. Old versions a
 ## Rules
 
 - The owner decides whether Maestro is on, per agent.
-- Automatic update is **off** by default.
+- Automatic update inside the V1 line is **on** by default (D6, ADR 0009 amendment). The owner can turn it off.
 - Never update during a run in progress; wait for the run to finish.
 - Changes to Maestro's rules do not alter the conversation history or the agent's memory.
 - Calango does not edit Maestro's files by hand. It only installs, verifies and switches versions.

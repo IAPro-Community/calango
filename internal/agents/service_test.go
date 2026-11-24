@@ -26,11 +26,34 @@ func newService(t *testing.T) (*agents.Service, *store.Store) {
 	if err != nil {
 		t.Fatalf("new service: %v", err)
 	}
+	seedAccounts(t, database, "owner", "owner-a", "owner-b")
 	return svc, database
 }
 
-func validInput() core.Agent {
-	return core.Agent{Name: "Assistant", Instructions: "Be brief", TokenLimitMonth: 1000}
+// accountIDFor is the id of the codex account seeded for owner.
+func accountIDFor(owner string) string {
+	return "acct" + strings.Repeat("0", 22-len(owner)) + owner
+}
+
+// seedAccounts gives each owner one codex account so agents can chain it.
+func seedAccounts(t *testing.T, database *store.Store, owners ...string) {
+	t.Helper()
+	for _, o := range owners {
+		acc := core.ProviderAccount{ID: accountIDFor(o), OwnerID: o, Kind: "codex", Label: "default", CreatedAt: fixedNow, UpdatedAt: fixedNow}
+		if err := database.InsertProviderAccount(context.Background(), acc); err != nil {
+			t.Fatalf("seed account for %s: %v", o, err)
+		}
+	}
+}
+
+func validInput() core.Agent { return inputFor("owner") }
+
+// inputFor is a valid agent owned by owner, chained to that owner's account.
+func inputFor(owner string) core.Agent {
+	return core.Agent{
+		Name: "Assistant", Instructions: "Be brief", TokenLimitMonth: 1000,
+		Providers: []core.ProviderRef{{AccountID: accountIDFor(owner), Kind: "codex", Label: "default", Model: "m-1"}},
+	}
 }
 
 func TestCreateRefusesAgentWithoutUsableConfiguration(t *testing.T) {
@@ -41,8 +64,10 @@ func TestCreateRefusesAgentWithoutUsableConfiguration(t *testing.T) {
 	noLimit.TokenLimitMonth = 0
 	blankName := validInput()
 	blankName.Name = "   "
+	noProvider := validInput()
+	noProvider.Providers = nil
 
-	for name, in := range map[string]core.Agent{"no limit": noLimit, "blank name": blankName} {
+	for name, in := range map[string]core.Agent{"no limit": noLimit, "blank name": blankName, "no provider": noProvider} {
 		if _, err := svc.Create(ctx, "owner", in); !errors.Is(err, core.ErrInvalidInput) {
 			t.Errorf("%s: error = %v, want ErrInvalidInput", name, err)
 		}
@@ -58,7 +83,7 @@ func TestCreateStoresEveryFieldAndDefaults(t *testing.T) {
 
 	created, err := svc.Create(ctx, "owner", core.Agent{
 		Name: "  Researcher  ", Role: "reads papers", Instructions: "cite sources",
-		Harness: "claude-code", Model: "m-1", ReasoningEffort: core.EffortHigh,
+		Providers: []core.ProviderRef{{AccountID: accountIDFor("owner"), Kind: "codex", Label: "default", Model: "m-1"}}, ReasoningEffort: core.EffortHigh,
 		RunOn: core.RunOnVPS, TokenLimitMonth: 5000, ApprovalLevel: core.ApprovalTrusted,
 	})
 	if err != nil {
@@ -69,7 +94,8 @@ func TestCreateStoresEveryFieldAndDefaults(t *testing.T) {
 		t.Fatalf("get: %v", err)
 	}
 	if got.Name != "Researcher" || got.Role != "reads papers" || got.Instructions != "cite sources" ||
-		got.Harness != "claude-code" || got.Model != "m-1" || got.ReasoningEffort != core.EffortHigh ||
+		len(got.Providers) != 1 || got.Providers[0].AccountID != accountIDFor("owner") || got.Providers[0].Kind != "codex" ||
+		got.Providers[0].Model != "m-1" || got.ReasoningEffort != core.EffortHigh ||
 		got.RunOn != core.RunOnVPS || got.TokenLimitMonth != 5000 || got.ApprovalLevel != core.ApprovalTrusted {
 		t.Fatalf("stored configuration differs from input: %+v", got.Agent)
 	}
@@ -131,7 +157,7 @@ func TestAgentsAreVisibleOnlyToTheirOwner(t *testing.T) {
 	ctx := context.Background()
 	svc, _ := newService(t)
 
-	created, err := svc.Create(ctx, "owner-a", validInput())
+	created, err := svc.Create(ctx, "owner-a", inputFor("owner-a"))
 	if err != nil {
 		t.Fatalf("create: %v", err)
 	}

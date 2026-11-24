@@ -4,8 +4,11 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"net/netip"
 	"strings"
 	"testing"
 	"time"
@@ -13,10 +16,16 @@ import (
 	"calango/internal/agents"
 	"calango/internal/approvals"
 	"calango/internal/auth"
+	"calango/internal/conversations"
 	"calango/internal/core"
 	"calango/internal/devices"
+	"calango/internal/events"
+	"calango/internal/gateway"
 	"calango/internal/memory"
+	"calango/internal/providers"
+	"calango/internal/routines"
 	"calango/internal/store"
+	"calango/internal/tools"
 	"calango/internal/usage"
 	"calango/internal/vault"
 )
@@ -27,6 +36,12 @@ const (
 	testDeviceID = "desk-1"
 )
 
+// testAccountID is the default Anthropic account seeded for testOwner.
+var testAccountID = "acct" + strings.Repeat("0", 22)
+
+// testChain is the agent JSON fragment that chains the seeded account.
+var testChain = fmt.Sprintf(`"providers":[{"account_id":%q,"model":"claude-test"}]`, testAccountID)
+
 func newTestHandler(t *testing.T) http.Handler {
 	t.Helper()
 	h, _ := newTestEnv(t)
@@ -35,6 +50,24 @@ func newTestHandler(t *testing.T) http.Handler {
 
 // newTestEnv returns the handler and the store behind it, so a test can read the audit trail.
 func newTestEnv(t *testing.T) (http.Handler, *store.Store) {
+	t.Helper()
+	return newTestEnvWith(t, nil)
+}
+
+// newTestEnvWith is newTestEnv with trusted proxy ranges for the pairing limit.
+func newTestEnvWith(t *testing.T, trusted []netip.Prefix) (http.Handler, *store.Store) {
+	h, database, _ := newTestEnvWithApproval(t, trusted)
+	return h, database
+}
+
+// newTestEnvWithApproval returns the handler, store and approvals service.
+func newTestEnvWithApproval(t *testing.T, trusted []netip.Prefix) (http.Handler, *store.Store, *approvals.Service) {
+	t.Helper()
+	gw := &blockingGateway{done: make(chan struct{})}
+	return newTestEnvWithGateway(t, trusted, gw, func() { close(gw.done) })
+}
+
+func newTestEnvWithGateway(t *testing.T, trusted []netip.Prefix, gw conversations.Gateway, releaseGateway func()) (http.Handler, *store.Store, *approvals.Service) {
 	t.Helper()
 	database, err := store.OpenMemory(context.Background())
 	if err != nil {
@@ -71,26 +104,73 @@ func newTestEnv(t *testing.T) (http.Handler, *store.Store) {
 	if err != nil {
 		t.Fatalf("vault service: %v", err)
 	}
+	providerSvc, err := providers.NewService(providers.Config{
+		Repo: database, Secrets: vaultSvc, CodexBin: "codex", CodexWorkDir: t.TempDir(),
+		AccountsDir: t.TempDir(), Now: now, NewID: core.NewID,
+	})
+	if err != nil {
+		t.Fatalf("providers service: %v", err)
+	}
+	if err := database.InsertProviderAccount(context.Background(), core.ProviderAccount{
+		ID: testAccountID, OwnerID: testOwner, Kind: "anthropic", Label: "default", CreatedAt: now(), UpdatedAt: now(),
+	}); err != nil {
+		t.Fatalf("seed provider account: %v", err)
+	}
 	localToken, err := auth.NewLocalToken(testToken, vaultSvc)
 	if err != nil {
 		t.Fatalf("local token: %v", err)
 	}
+	hub := events.NewHub()
+	convSvc, err := conversations.NewService(conversations.Config{
+		Repo: database, Gateway: gw, Now: now, NewID: core.NewID, Events: hub,
+	})
+	if err != nil {
+		t.Fatalf("conversations service: %v", err)
+	}
+	routinesSvc, err := routines.NewService(database, core.RunOnPC, time.UTC, noRunExecutor{}, nil, now, core.NewID)
+	if err != nil {
+		t.Fatalf("routines service: %v", err)
+	}
+	toolsSvc, err := tools.NewService(database, now, core.NewID)
+	if err != nil {
+		t.Fatalf("tools service: %v", err)
+	}
+	t.Cleanup(toolsSvc.Close)
+	// Cleanups run last-in first-out: release blocked runs, then wait for them to end.
+	t.Cleanup(convSvc.Wait)
+	if releaseGateway != nil {
+		t.Cleanup(releaseGateway)
+	}
 	h, err := NewHandler(Config{
-		Agents:    agentSvc,
-		Memories:  memorySvc,
-		Approvals: approvalSvc,
-		Devices:   devicesSvc,
-		Usage:     usageSvc,
-		Vault:     vaultSvc,
-		Audit:     database,
-		Token:     localToken,
-		OwnerID:   testOwner,
-		DeviceID:  testDeviceID,
+		Agents:         agentSvc,
+		Accounts:       providerSvc,
+		Memories:       memorySvc,
+		Approvals:      approvalSvc,
+		Devices:        devicesSvc,
+		Usage:          usageSvc,
+		Vault:          vaultSvc,
+		Audit:          database,
+		Conversations:  convSvc,
+		Events:         hub,
+		Routines:       routinesSvc,
+		Tools:          toolsSvc,
+		Token:          localToken,
+		OwnerID:        testOwner,
+		DeviceID:       testDeviceID,
+		TrustedProxies: trusted,
+		CORSOrigins:    []string{testDesktopOrigin},
 	})
 	if err != nil {
 		t.Fatalf("new handler: %v", err)
 	}
-	return h, database
+	return h, database, approvalSvc
+}
+
+// noRunExecutor backs the routines service in API tests, which only queue occurrences.
+type noRunExecutor struct{}
+
+func (noRunExecutor) Execute(context.Context, core.Routine, core.Occurrence) (routines.Result, error) {
+	return routines.Result{}, errors.New("routines: execution is not wired in api tests")
 }
 
 // call sends one request. An empty token sends no Authorization header.
@@ -153,7 +233,7 @@ func TestAgentLifecycleThroughHTTP(t *testing.T) {
 	h := newTestHandler(t)
 
 	created := call(t, h, http.MethodPost, "/v1/agents", testToken,
-		`{"name":"  Calango  ","token_limit_month":100000}`)
+		fmt.Sprintf(`{"name":"  Calango  ","token_limit_month":100000,%s}`, testChain))
 	expectStatus(t, created, http.StatusCreated)
 	var agent struct {
 		ID        string `json:"id"`
@@ -177,7 +257,7 @@ func TestAgentLifecycleThroughHTTP(t *testing.T) {
 	expectStatus(t, call(t, h, http.MethodGet, path, testToken, ""), http.StatusOK)
 
 	replaced := call(t, h, http.MethodPut, path, testToken,
-		`{"name":"Calango 2","token_limit_month":200000,"run_on":"vps"}`)
+		fmt.Sprintf(`{"name":"Calango 2","token_limit_month":200000,"run_on":"vps",%s}`, testChain))
 	expectStatus(t, replaced, http.StatusOK)
 	if !strings.Contains(replaced.Body.String(), `"name":"Calango 2"`) {
 		t.Fatalf("replace did not change name: %s", replaced.Body.String())
@@ -273,4 +353,119 @@ func TestApprovalsListAndDecisionErrors(t *testing.T) {
 
 	badDecision := call(t, h, http.MethodPost, "/v1/approvals/none/decide", testToken, `{"decision":"maybe"}`)
 	expectStatus(t, badDecision, http.StatusBadRequest)
+}
+
+func TestApprovalDecisionAPIExecutesApprovedSnapshot(t *testing.T) {
+	h, database, approvalSvc := newTestEnvWithApproval(t, nil)
+	created := call(t, h, http.MethodPost, "/v1/agents", testToken,
+		fmt.Sprintf(`{"name":"Approvals","token_limit_month":100000,%s}`, testChain))
+	expectStatus(t, created, http.StatusCreated)
+	var agent struct {
+		ID string `json:"id"`
+	}
+	if err := json.Unmarshal(created.Body.Bytes(), &agent); err != nil {
+		t.Fatalf("decode agent: %v", err)
+	}
+
+	ctx := context.Background()
+	now := time.Date(2026, 5, 10, 12, 0, 0, 0, time.UTC)
+	conversationID, err := core.NewID(now)
+	if err != nil {
+		t.Fatalf("conversation id: %v", err)
+	}
+	if err := database.InsertConversation(ctx, core.Conversation{
+		ID: conversationID, Kind: "dm", CreatedAt: now,
+	}, agent.ID); err != nil {
+		t.Fatalf("insert conversation: %v", err)
+	}
+	runID, err := core.NewID(now)
+	if err != nil {
+		t.Fatalf("run id: %v", err)
+	}
+	started := now
+	if err := database.AdmitRun(ctx, nil, core.Run{
+		ID: runID, AgentID: agent.ID, ConversationID: conversationID,
+		IdempotencyKey: runID, Trigger: "message", Status: core.RunStatus("running"),
+		StartedAt: &started,
+	}); err != nil {
+		t.Fatalf("insert run: %v", err)
+	}
+
+	action := core.Action{
+		Kind: core.ActionConnectorWrite, Target: "notes/create",
+		Args: json.RawMessage(`{"title":"groceries"}`),
+	}
+	executed := make(chan core.Action, 1)
+	approvalSvc.SetExecutor(core.ActionConnectorWrite, func(_ context.Context, _, _ string, action core.Action) error {
+		executed <- action
+		return nil
+	})
+	pending, err := approvalSvc.Request(ctx, testOwner, agent.ID, runID, action)
+	if err != nil {
+		t.Fatalf("request approval: %v", err)
+	}
+	if pending.Status != core.ApprovalPending {
+		t.Fatalf("request status = %s, want pending", pending.Status)
+	}
+
+	decided := call(t, h, http.MethodPost, "/v1/approvals/"+pending.ID+"/decide",
+		testToken, `{"decision":"approve"}`)
+	expectStatus(t, decided, http.StatusOK)
+	var response approvalResponse
+	if err := json.Unmarshal(decided.Body.Bytes(), &response); err != nil {
+		t.Fatalf("decode decision: %v", err)
+	}
+	if response.ID != pending.ID || response.Status != string(core.ApprovalApproved) {
+		t.Fatalf("decision response = %+v, want approved %s", response, pending.ID)
+	}
+
+	select {
+	case got := <-executed:
+		if got.Kind != action.Kind || got.Target != action.Target || string(got.Args) != string(action.Args) {
+			t.Fatalf("executor received %+v, want the approved snapshot %+v", got, action)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("approved action did not reach the executor")
+	}
+
+	deadline := time.Now().Add(2 * time.Second)
+	for {
+		receipt, err := database.GetApproval(ctx, testOwner, pending.ID)
+		if err != nil {
+			t.Fatalf("get approval receipt: %v", err)
+		}
+		if receipt.Outcome == core.OutcomeCompleted {
+			if receipt.DecidedByDeviceID != testDeviceID {
+				t.Fatalf("decided by %q, want %q", receipt.DecidedByDeviceID, testDeviceID)
+			}
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("approval outcome = %q, want completed", receipt.Outcome)
+		}
+		time.Sleep(time.Millisecond)
+	}
+}
+
+// blockingGateway stands in for the model gateway. A call waits until its run is
+// stopped or the test ends, so run states stay known without a real provider.
+type blockingGateway struct {
+	done chan struct{}
+}
+
+func (g *blockingGateway) Call(ctx context.Context, _ gateway.Caller, _ gateway.Request, _ func(gateway.Chunk)) (gateway.Usage, error) {
+	select {
+	case <-ctx.Done():
+		return gateway.Usage{}, ctx.Err()
+	case <-g.done:
+		return gateway.Usage{}, errors.New("gateway released by test")
+	}
+}
+
+type failingGateway struct {
+	err error
+}
+
+func (g *failingGateway) Call(context.Context, gateway.Caller, gateway.Request, func(gateway.Chunk)) (gateway.Usage, error) {
+	return gateway.Usage{}, g.err
 }

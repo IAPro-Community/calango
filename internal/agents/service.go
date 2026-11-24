@@ -105,12 +105,12 @@ func (s *Service) Replace(ctx context.Context, ownerID, id string, in core.Agent
 	updated.Name = in.Name
 	updated.Role = in.Role
 	updated.Instructions = in.Instructions
-	updated.Harness = in.Harness
-	updated.Model = in.Model
+	updated.Providers = in.Providers
 	updated.ReasoningEffort = in.ReasoningEffort
 	updated.RunOn = in.RunOn
 	updated.TokenLimitMonth = in.TokenLimitMonth
 	updated.ApprovalLevel = in.ApprovalLevel
+	updated.MaestroEnabled = in.MaestroEnabled
 	updated.Normalize()
 	if err := updated.Validate(); err != nil {
 		return View{}, err

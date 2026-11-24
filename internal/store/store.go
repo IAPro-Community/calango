@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"sync/atomic"
 
 	_ "modernc.org/sqlite"
 )
@@ -19,6 +20,8 @@ const (
 	maxOpenConnections = 4
 	sqliteBusyTimeout  = "5000"
 )
+
+var memoryDatabaseID atomic.Uint64
 
 // Store is the persistent database for one Calango node.
 type Store struct {
@@ -62,7 +65,9 @@ func Open(ctx context.Context, path string) (*Store, error) {
 
 // OpenMemory opens an isolated in-memory SQLite database for tests.
 func OpenMemory(ctx context.Context) (*Store, error) {
-	return open(ctx, "file::memory:?cache=shared", true)
+	name := memoryDatabaseID.Add(1)
+	dsn := fmt.Sprintf("file:calango-memory-%d?mode=memory&cache=shared", name)
+	return open(ctx, dsn, true)
 }
 
 func open(ctx context.Context, dsn string, memory bool) (*Store, error) {

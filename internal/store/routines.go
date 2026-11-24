@@ -11,7 +11,8 @@ import (
 )
 
 const routineColumns = `id, owner_id, agent_id, name, prompt, trigger_kind, schedule, run_on,
-	quiet_start, quiet_end, max_retries, notify_on, paused, next_run_at, created_at, updated_at`
+	quiet_start, quiet_end, max_retries, notify_on, paused, next_run_at, created_at, updated_at,
+	conversation_id, ended_at`
 
 const occurrenceColumns = `id, routine_id, occurrence_id, scheduled_for, run_id, attempt, status,
 	had_news, last_error, next_attempt_at, created_at, updated_at`
@@ -19,11 +20,11 @@ const occurrenceColumns = `id, routine_id, occurrence_id, scheduled_for, run_id,
 // InsertRoutine stores a new routine. The caller validates it first.
 func (s *Store) InsertRoutine(ctx context.Context, r core.Routine) error {
 	_, err := s.db.ExecContext(ctx, `INSERT INTO routines (`+routineColumns+`)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		r.ID, r.OwnerID, r.AgentID, r.Name, r.Prompt, string(r.TriggerKind), r.Schedule, string(r.RunOn),
 		intPtrValue(r.QuietStart), intPtrValue(r.QuietEnd), r.MaxRetries, string(r.NotifyOn), boolInt(r.Paused),
 		r.NextRunAt.UTC().Format(usageTimeLayout), r.CreatedAt.UTC().Format(usageTimeLayout),
-		r.UpdatedAt.UTC().Format(usageTimeLayout))
+		r.UpdatedAt.UTC().Format(usageTimeLayout), nullIfEmpty(r.ConversationID), timeValue(r.EndedAt))
 	if err != nil {
 		return fmt.Errorf("insert routine %s: %w", r.ID, err)
 	}
@@ -69,7 +70,7 @@ func (s *Store) ListRoutines(ctx context.Context, ownerID string) ([]core.Routin
 // ListDueRoutines returns active routines whose next scheduled time is at or before now.
 func (s *Store) ListDueRoutines(ctx context.Context, now time.Time) ([]core.Routine, error) {
 	rows, err := s.db.QueryContext(ctx,
-		`SELECT `+routineColumns+` FROM routines WHERE paused = 0 AND next_run_at <= ? ORDER BY next_run_at, id`,
+		`SELECT `+routineColumns+` FROM routines WHERE paused = 0 AND ended_at IS NULL AND next_run_at <= ? ORDER BY next_run_at, id`,
 		now.UTC().Format(usageTimeLayout))
 	if err != nil {
 		return nil, fmt.Errorf("list due routines: %w", err)
@@ -95,11 +96,12 @@ func (s *Store) ListDueRoutines(ctx context.Context, now time.Time) ([]core.Rout
 func (s *Store) UpdateRoutine(ctx context.Context, r core.Routine) error {
 	res, err := s.db.ExecContext(ctx, `UPDATE routines SET
 		name = ?, prompt = ?, trigger_kind = ?, schedule = ?, run_on = ?, quiet_start = ?, quiet_end = ?,
-		max_retries = ?, notify_on = ?, paused = ?, next_run_at = ?, updated_at = ?
+		max_retries = ?, notify_on = ?, paused = ?, next_run_at = ?, updated_at = ?, conversation_id = ?, ended_at = ?
 		WHERE id = ? AND owner_id = ?`,
 		r.Name, r.Prompt, string(r.TriggerKind), r.Schedule, string(r.RunOn), intPtrValue(r.QuietStart),
 		intPtrValue(r.QuietEnd), r.MaxRetries, string(r.NotifyOn), boolInt(r.Paused),
 		r.NextRunAt.UTC().Format(usageTimeLayout), r.UpdatedAt.UTC().Format(usageTimeLayout),
+		nullIfEmpty(r.ConversationID), timeValue(r.EndedAt),
 		r.ID, r.OwnerID)
 	if err != nil {
 		return fmt.Errorf("update routine %s: %w", r.ID, err)
@@ -282,9 +284,11 @@ func scanRoutine(row rowScanner) (core.Routine, error) {
 		quietStart, quietEnd            sql.NullInt64
 		paused                          int
 		nextRunAt, createdAt, updatedAt string
+		conversationID, endedAt         sql.NullString
 	)
 	if err := row.Scan(&r.ID, &r.OwnerID, &r.AgentID, &r.Name, &r.Prompt, &trigger, &r.Schedule, &runOn,
-		&quietStart, &quietEnd, &r.MaxRetries, &notify, &paused, &nextRunAt, &createdAt, &updatedAt); err != nil {
+		&quietStart, &quietEnd, &r.MaxRetries, &notify, &paused, &nextRunAt, &createdAt, &updatedAt,
+		&conversationID, &endedAt); err != nil {
 		return core.Routine{}, err
 	}
 	r.TriggerKind = core.TriggerKind(trigger)
@@ -302,6 +306,10 @@ func scanRoutine(row rowScanner) (core.Routine, error) {
 	}
 	if r.UpdatedAt, err = time.Parse(usageTimeLayout, updatedAt); err != nil {
 		return core.Routine{}, fmt.Errorf("parse updated_at: %w", err)
+	}
+	r.ConversationID = conversationID.String
+	if r.EndedAt, err = optionalTime(endedAt); err != nil {
+		return core.Routine{}, fmt.Errorf("parse ended_at: %w", err)
 	}
 	return r, nil
 }

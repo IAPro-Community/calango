@@ -88,14 +88,15 @@ node scripts/generate-i18n.mjs --check
 
 ## Documentation
 
-- [GOVERNANCE.md](GOVERNANCE.md): development governance and decision authority.
+- [GOVERNANCE.md](GOVERNANCE.md): branch policy and decision authority.
+
 - [AGENTS.md](AGENTS.md): entry point for anyone writing code here, human or AI agent.
 - [DEV/INDEX.md](DEV/INDEX.md): map of all documentation.
 - [DEV/PLANO.md](DEV/PLANO.md): full product overview.
 
 ## Language policy
 
-The team's working language is **Brazilian Portuguese** for issues, PRs, reviews, commit descriptions and operational documentation. Technical identifiers and contracts remain stable; public documentation remains multilingual. See [CONTRIBUTING.md](CONTRIBUTING.md#idioma).
+Brazilian Portuguese is the team's operational language. Technical identifiers and contracts remain stable. See [CONTRIBUTING.md](CONTRIBUTING.md#idioma).
 
 ## License
 

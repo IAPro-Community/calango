@@ -14,6 +14,8 @@ type fakeAudit struct{ v audit.Verification }
 
 func (f fakeAudit) VerifyAudit(context.Context) (audit.Verification, error) { return f.v, nil }
 
+func (fakeAudit) ExportAudit(context.Context) (audit.Export, error) { return audit.Export{}, nil }
+
 func TestAuditVerifyReportsTheFirstBreak(t *testing.T) {
 	h := &handler{
 		audit: fakeAudit{v: audit.Verification{

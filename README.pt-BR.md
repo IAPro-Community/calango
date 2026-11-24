@@ -15,7 +15,7 @@
 <p align="center">
   <a href="LICENSE"><img alt="Licença: AGPL-3.0" src="https://img.shields.io/badge/licen%C3%A7a-AGPL--3.0-E8A600" /></a>
   <img alt="Status: em construção" src="https://img.shields.io/badge/status-em%20constru%C3%A7%C3%A3o-2D7A22" />
-  <img alt="Go 1.22+" src="https://img.shields.io/badge/go-1.22%2B-00ADD8" />
+  <img alt="Go 1.23+" src="https://img.shields.io/badge/go-1.23%2B-00ADD8" />
 </p>
 
 <p align="center">
@@ -45,7 +45,7 @@ docker run --rm -p 8080:8080 calango-site
 
 Depois abra <http://localhost:8080>.
 
-### Rodar o núcleo (Go 1.22+)
+### Rodar o núcleo (Go 1.23+)
 
 ```bash
 go vet ./...

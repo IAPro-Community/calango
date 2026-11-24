@@ -54,12 +54,12 @@ type Agent struct {
 	Name            string
 	Role            string
 	Instructions    string
-	Harness         string
-	Model           string
+	Providers       []ProviderRef   // ordered fallback chain; the first entry is tried first
 	ReasoningEffort ReasoningEffort // empty means the provider default
 	RunOn           RunOn
 	TokenLimitMonth int64
 	ApprovalLevel   ApprovalLevel
+	MaestroEnabled  bool
 	CreatedAt       time.Time
 	UpdatedAt       time.Time
 }
@@ -98,6 +98,17 @@ func (a Agent) Validate() error {
 	case "", EffortLow, EffortMedium, EffortHigh, EffortMax:
 	default:
 		return fmt.Errorf("%w: reasoning_effort must be low, medium, high or max", ErrInvalidInput)
+	}
+	if n := len(a.Providers); n == 0 || n > MaxProvidersPerAgent {
+		return fmt.Errorf("%w: providers must list 1 to %d accounts", ErrInvalidInput, MaxProvidersPerAgent)
+	}
+	for i, p := range a.Providers {
+		if p.AccountID == "" {
+			return fmt.Errorf("%w: providers[%d].account_id is required", ErrInvalidInput, i)
+		}
+		if strings.TrimSpace(p.Model) == "" {
+			return fmt.Errorf("%w: providers[%d].model is required", ErrInvalidInput, i)
+		}
 	}
 	return nil
 }

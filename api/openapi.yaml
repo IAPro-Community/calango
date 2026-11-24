@@ -143,6 +143,81 @@ paths:
                 properties:
                   token: { type: string }
         "403": { $ref: "#/components/responses/Error" }
+  /v1/maestro:
+    get:
+      operationId: getMaestro
+      tags: [maestro]
+      summary: Read installed Maestro version and update status
+      responses:
+        "200":
+          description: Current status
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MaestroStatus" }
+        "500": { $ref: "#/components/responses/Error" }
+  /v1/maestro/install:
+    post:
+      operationId: installMaestro
+      tags: [maestro]
+      summary: Install and verify one explicit V1 release
+      description: Requires a full-scope device. Versions outside the stable V1 line are refused.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/MaestroInstallInput" }
+      responses:
+        "200":
+          description: Installed and verified
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MaestroStatus" }
+        "400": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+  /v1/maestro/update:
+    post:
+      operationId: updateMaestro
+      tags: [maestro]
+      summary: Check npm and install the latest stable V1 release
+      description: Requires a full-scope device. Never invokes Maestro's global self-updater.
+      responses:
+        "200":
+          description: Update result
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MaestroUpdateResult" }
+        "409": { $ref: "#/components/responses/Error" }
+  /v1/maestro/rollback:
+    post:
+      operationId: rollbackMaestro
+      tags: [maestro]
+      summary: Verify and activate the previously active V1 release
+      description: Requires a full-scope device.
+      responses:
+        "200":
+          description: Rolled back
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MaestroStatus" }
+        "409": { $ref: "#/components/responses/Error" }
+  /v1/maestro/settings:
+    patch:
+      operationId: updateMaestroSettings
+      tags: [maestro]
+      summary: Change the automatic update preference
+      description: Requires a full-scope device. Updates are still checked when automatic installation is disabled.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/MaestroSettings" }
+      responses:
+        "200":
+          description: Updated setting
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MaestroStatus" }
+        "400": { $ref: "#/components/responses/Error" }
   /v1/agents:
     get:
       operationId: listAgents
@@ -227,6 +302,147 @@ paths:
       summary: Resume all agents
       responses:
         "204": { description: Resumed }
+  /v1/provider-accounts:
+    get:
+      operationId: listProviderAccounts
+      tags: [provider-accounts]
+      summary: List provider accounts
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/ProviderAccount" }
+    post:
+      operationId: createProviderAccount
+      tags: [provider-accounts]
+      summary: Create provider account
+      description: The codex default label uses the shared ~/.codex login; other codex labels get an isolated CODEX_HOME. Anthropic keys live in the vault as anthropic-<label>-api-key; default keeps anthropic-api-key.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ProviderAccountInput" }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ProviderAccount" }
+        "400": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+  /v1/provider-accounts/{id}:
+    parameters:
+      - $ref: "#/components/parameters/Id"
+    delete:
+      operationId: deleteProviderAccount
+      tags: [provider-accounts]
+      summary: Delete provider account
+      description: Refused with conflict while an agent's provider chain uses it. Deleting a non-default codex account removes its isolated CODEX_HOME.
+      responses:
+        "204": { description: Deleted }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+  /v1/connectors:
+    get:
+      operationId: listConnectors
+      tags: [tools]
+      summary: List connectors
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Connector" }
+    post:
+      operationId: createConnector
+      tags: [tools]
+      summary: Register a connector
+      description: A stdio connector runs its command with args as a child process whose environment holds only PATH and HOME. An http connector is a remote MCP endpoint. V1 sends no credentials to either.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ConnectorInput" }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Connector" }
+        "400": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+  /v1/connectors/{id}:
+    parameters:
+      - $ref: "#/components/parameters/Id"
+    delete:
+      operationId: deleteConnector
+      tags: [tools]
+      summary: Delete connector
+      description: Removes the connector and every agent grant on it.
+      responses:
+        "204": { description: Deleted }
+        "404": { $ref: "#/components/responses/Error" }
+  /v1/connectors/{id}/tools:
+    parameters:
+      - $ref: "#/components/parameters/Id"
+    get:
+      operationId: listConnectorTools
+      tags: [tools]
+      summary: List the tools a connector advertises
+      description: Connects to the connector now. Returns connector_unavailable (502) when it cannot be reached or does not list its tools.
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/ConnectorTool" }
+        "404": { $ref: "#/components/responses/Error" }
+        "502": { $ref: "#/components/responses/Error" }
+  /v1/agents/{id}/tools:
+    parameters:
+      - $ref: "#/components/parameters/Id"
+    get:
+      operationId: listAgentTools
+      tags: [tools]
+      summary: List an agent's connector grants
+      description: An agent with no grant on a connector has no access to it.
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/AgentTool" }
+        "404": { $ref: "#/components/responses/Error" }
+  /v1/agents/{id}/tools/{connectorID}:
+    parameters:
+      - $ref: "#/components/parameters/Id"
+      - name: connectorID
+        in: path
+        required: true
+        schema: { type: string }
+    put:
+      operationId: setAgentTool
+      tags: [tools]
+      summary: Grant, change or revoke an agent's access to a connector
+      description: "read exposes the connector's read-only tools. write also exposes the others, and each of their calls waits for approval. none removes the grant."
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AgentToolInput" }
+      responses:
+        "204": { description: Saved }
+        "400": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
   /v1/conversations:
     get:
       operationId: listConversations
@@ -240,17 +456,33 @@ paths:
               schema:
                 type: array
                 items: { $ref: "#/components/schemas/Conversation" }
+    post:
+      operationId: createConversation
+      tags: [conversations]
+      summary: Create a direct message with an agent
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [agent_id]
+              properties:
+                agent_id: { type: string }
+                title: { type: string }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Conversation" }
   /v1/conversations/{id}/messages:
     parameters:
       - $ref: "#/components/parameters/Id"
     get:
       operationId: listMessages
       tags: [conversations]
-      summary: Conversation messages
-      parameters:
-        - name: before
-          in: query
-          schema: { type: string }
+      summary: Conversation messages, oldest first
       responses:
         "200":
           description: OK
@@ -262,7 +494,13 @@ paths:
     post:
       operationId: createMessage
       tags: [conversations]
-      summary: Send message (may start runs)
+      summary: Send a message; starts a run for the agent
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          required: true
+          description: Client key. Repeating it returns the same message and run.
+          schema: { type: string, maxLength: 200 }
       requestBody:
         required: true
         content:
@@ -272,40 +510,119 @@ paths:
               required: [body]
               properties:
                 body: { type: string }
-                thread_id: { type: string }
       responses:
         "201":
           description: Created
           content:
             application/json:
-              schema: { $ref: "#/components/schemas/Message" }
+              schema:
+                type: object
+                required: [message, run]
+                properties:
+                  message: { $ref: "#/components/schemas/Message" }
+                  run: { $ref: "#/components/schemas/Run" }
+        "400": { $ref: "#/components/responses/Error" }
+  /v1/runs/{id}:
+    parameters:
+      - $ref: "#/components/parameters/Id"
+    get:
+      operationId: getRun
+      tags: [runs]
+      summary: Run with its steps
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/RunDetail" }
+        "404": { $ref: "#/components/responses/Error" }
   /v1/runs/{id}/stop:
     parameters:
       - $ref: "#/components/parameters/Id"
     post:
       operationId: stopRun
       tags: [runs]
-      summary: Stop a run
+      summary: Stop a queued or running run
       responses:
         "204": { description: Stopped }
+        "409": { $ref: "#/components/responses/Error" }
+  /v1/runs/{id}/retry:
+    parameters:
+      - $ref: "#/components/parameters/Id"
+    post:
+      operationId: retryRun
+      tags: [runs]
+      summary: Retry a finished run, with optional instructions
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          required: true
+          description: Client key. Repeating it returns the same retry run.
+          schema: { type: string, maxLength: 200 }
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                instructions: { type: string }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Run" }
+        "400": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
   /v1/runs/{id}/steer:
     parameters:
       - $ref: "#/components/parameters/Id"
     post:
       operationId: steerRun
       tags: [runs]
-      summary: Guide a run in progress
+      summary: Give a queued or running run guidance; its continuation run is queued
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          required: true
+          description: Client key. Repeating it returns the same continuation run.
+          schema: { type: string, maxLength: 200 }
       requestBody:
         required: true
         content:
           application/json:
             schema:
               type: object
-              required: [instruction]
+              required: [guidance]
               properties:
-                instruction: { type: string }
+                guidance: { type: string }
       responses:
-        "204": { description: Delivered }
+        "202":
+          description: Accepted; the continuation run is queued
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Run" }
+        "400": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+  /v1/events:
+    get:
+      operationId: streamEvents
+      tags: [events]
+      summary: WebSocket stream of conversation changes for the token's owner
+      description: >-
+        Upgrade to a WebSocket with `Authorization: Bearer <token>` (no cookies, no token in the URL).
+        Each server frame is JSON `{"type": "...", "data": ...}`. Types: `message.created` (data: Message),
+        `run.started` and `run.finished` (data: Run), `run.step` (data: Step plus `run_id`).
+        Nothing is replayed after a disconnect: reload conversations and runs over REST.
+        A client that falls more than 64 events behind is closed with code 1013 (try again later).
+        The server pings every 25 s and drops clients silent for 60 s.
+      responses:
+        "101": { description: Switching Protocols }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
   /v1/approvals:
     get:
       operationId: listApprovals
@@ -375,15 +692,77 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/Routine" }
+        "400": { $ref: "#/components/responses/Error" }
+  /v1/routines/{id}:
+    parameters:
+      - $ref: "#/components/parameters/Id"
+    get:
+      operationId: getRoutine
+      tags: [routines]
+      summary: Get routine
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Routine" }
+        "404": { $ref: "#/components/responses/Error" }
+    patch:
+      operationId: updateRoutine
+      tags: [routines]
+      summary: Edit routine; set paused to pause or resume it
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/RoutinePatch" }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Routine" }
+        "400": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+    delete:
+      operationId: deleteRoutine
+      tags: [routines]
+      summary: Delete routine
+      responses:
+        "204": { description: Deleted }
+        "404": { $ref: "#/components/responses/Error" }
   /v1/routines/{id}/run:
     parameters:
       - $ref: "#/components/parameters/Id"
     post:
       operationId: runRoutine
       tags: [routines]
-      summary: Run the routine now
+      summary: Queue one extra occurrence; it runs at the next scheduler tick
       responses:
-        "202": { description: Queued }
+        "202":
+          description: Queued
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/RoutineOccurrence" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+  /v1/routines/{id}/runs:
+    parameters:
+      - $ref: "#/components/parameters/Id"
+    get:
+      operationId: listRoutineRuns
+      tags: [routines]
+      summary: List occurrences of the routine
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/RoutineOccurrence" }
+        "404": { $ref: "#/components/responses/Error" }
   /v1/memories:
     get:
       operationId: listMemories
@@ -516,6 +895,25 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/AuditVerification" }
+  /v1/audit/export:
+    get:
+      operationId: exportAudit
+      tags: [audit]
+      summary: Export the audit chain
+      description: "Returns every audit entry in order, for offline verification. jsonl (default) writes one checkpoint line, then one entry line per record; csv writes the entries only, so a truncated tail can be detected only from jsonl. Facts hold names and identifiers, never secret values. Requires a device with read scope."
+      parameters:
+        - name: format
+          in: query
+          schema: { type: string, enum: [jsonl, csv], default: jsonl }
+      responses:
+        "200":
+          description: The chain in the requested format.
+          content:
+            application/x-ndjson:
+              schema: { type: string }
+            text/csv:
+              schema: { type: string }
+        "400": { $ref: "#/components/responses/Error" }
   /v1/usage:
     get:
       operationId: getUsage
@@ -569,52 +967,188 @@ components:
           properties:
             code:
               type: string
-              enum: [budget_exceeded, approval_required, not_found, invalid_input, unauthorized, forbidden, node_offline, harness_signed_out, conflict, rate_limited, internal]
+              enum: [budget_exceeded, approval_required, not_found, invalid_input, unauthorized, forbidden, node_offline, harness_signed_out, conflict, rate_limited, connector_unavailable, internal]
             message: { type: string }
+    ConnectorInput:
+      type: object
+      required: [name, transport]
+      properties:
+        name: { type: string, pattern: "^[a-z0-9][a-z0-9-]{0,23}$" }
+        transport: { type: string, enum: [stdio, http] }
+        command: { type: string, description: "stdio only." }
+        args: { type: array, items: { type: string }, description: "stdio only." }
+        url: { type: string, description: "http only. http or https." }
+    Connector:
+      type: object
+      required: [id, name, transport, command, args, url, created_at, updated_at]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        transport: { type: string, enum: [stdio, http] }
+        command: { type: string }
+        args: { type: array, items: { type: string } }
+        url: { type: string }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+    ConnectorTool:
+      type: object
+      required: [name, description, read_only]
+      properties:
+        name: { type: string }
+        description: { type: string }
+        read_only: { type: boolean, description: "True when the tool's annotations mark it read-only. Under read access only these tools are exposed." }
+    AgentToolInput:
+      type: object
+      required: [access]
+      properties:
+        access: { type: string, enum: [read, write, none] }
+    AgentTool:
+      type: object
+      required: [connector_id, access]
+      properties:
+        connector_id: { type: string }
+        access: { type: string, enum: [read, write] }
     RunOn:
       type: string
       enum: [pc, vps, auto]
+    ProviderAccountInput:
+      type: object
+      required: [kind, label]
+      properties:
+        kind: { type: string, enum: [codex, anthropic] }
+        label: { type: string, pattern: "^[a-z0-9][a-z0-9-]{0,31}$", description: "The default label is the account that migrated agents use." }
+    ProviderAccount:
+      type: object
+      required: [id, kind, label, key, setup, created_at, updated_at]
+      properties:
+        id: { type: string }
+        kind: { type: string, enum: [codex, anthropic] }
+        label: { type: string }
+        key: { type: string, description: "kind/label. The gateway name for usage and the value of a chain entry's account in responses." }
+        setup: { type: string, description: "The step that finishes sign-in for this account. Never a secret." }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+    ProviderRef:
+      type: object
+      required: [account_id, model]
+      properties:
+        account_id: { type: string, description: "Id of a provider account of the same owner." }
+        model: { type: string }
+        account: { type: string, readOnly: true, description: "kind/label, set in responses only." }
     AgentInput:
       type: object
       description: run_on defaults to pc and approval_level to sensitive. Optional fields omitted on PUT take their defaults.
-      required: [name, token_limit_month]
+      required: [name, token_limit_month, providers]
       properties:
         name: { type: string }
         role: { type: string }
         instructions: { type: string }
-        harness: { type: string, example: claude-code }
-        model: { type: string }
+        providers:
+          type: array
+          minItems: 1
+          maxItems: 8
+          description: Ordered fallback chain. The first entry is tried first; a later entry runs only when an earlier one fails before any output.
+          items: { $ref: "#/components/schemas/ProviderRef" }
         reasoning_effort: { type: string, enum: [low, medium, high, max] }
         run_on: { $ref: "#/components/schemas/RunOn" }
         token_limit_month: { type: integer, minimum: 1 }
         approval_level: { type: string, enum: [always, sensitive, trusted] }
+        maestro_enabled:
+          type: boolean
+          default: false
+          description: Use the isolated Maestro Codex home for Codex providers in this agent's chain.
     Agent:
       allOf:
         - $ref: "#/components/schemas/AgentInput"
         - type: object
-          required: [id, paused, tokens_used_month]
+          required: [id, paused, tokens_used_month, maestro_enabled]
           properties:
             id: { type: string }
             paused: { type: boolean, description: "True while the node-wide pause is on. Per-agent pause is not in V1." }
             tokens_used_month: { type: integer }
+    MaestroRelease:
+      type: object
+      required: [version]
+      properties:
+        version: { type: string }
+    MaestroStatus:
+      type: object
+      required: [installed, auto_update, rollback_available]
+      properties:
+        installed: { type: boolean }
+        version: { type: string }
+        auto_update: { type: boolean }
+        rollback_available: { type: boolean }
+        update_available: { $ref: "#/components/schemas/MaestroRelease" }
+    MaestroInstallInput:
+      type: object
+      required: [version]
+      properties:
+        version: { type: string, pattern: "^1\\.[0-9]+\\.[0-9]+$" }
+    MaestroSettings:
+      type: object
+      required: [auto_update]
+      properties:
+        auto_update: { type: boolean }
+    MaestroUpdateResult:
+      type: object
+      required: [status, updated]
+      properties:
+        status: { $ref: "#/components/schemas/MaestroStatus" }
+        updated: { type: boolean }
     Conversation:
       type: object
-      required: [id, kind]
+      required: [id, kind, title, created_at]
       properties:
         id: { type: string }
         kind: { type: string, enum: [dm, channel] }
         title: { type: string }
-        unread: { type: integer }
+        created_at: { type: string, format: date-time }
     Message:
       type: object
       required: [id, conversation_id, author_kind, author_id, body, created_at]
       properties:
         id: { type: string }
         conversation_id: { type: string }
-        thread_id: { type: string }
         author_kind: { type: string, enum: [person, agent, system] }
         author_id: { type: string }
         body: { type: string }
+        created_at: { type: string, format: date-time }
+    Run:
+      type: object
+      required: [id, agent_id, conversation_id, source_message_id, trigger, status, tokens_in, tokens_out]
+      properties:
+        id: { type: string }
+        agent_id: { type: string }
+        conversation_id: { type: string }
+        source_message_id: { type: string }
+        trigger: { type: string, enum: [message, routine, task] }
+        status: { type: string, enum: [queued, running, waiting_approval, done, failed, stopped] }
+        instructions: { type: string }
+        retry_of: { type: string }
+        steer_of: { type: string }
+        tokens_in: { type: integer }
+        tokens_out: { type: integer }
+        started_at: { type: string, format: date-time }
+        ended_at: { type: string, format: date-time }
+        error_code: { type: string }
+    RunDetail:
+      allOf:
+        - $ref: "#/components/schemas/Run"
+        - type: object
+          required: [steps]
+          properties:
+            steps:
+              type: array
+              items: { $ref: "#/components/schemas/Step" }
+    Step:
+      type: object
+      required: [id, seq, kind, payload, created_at]
+      properties:
+        id: { type: string }
+        seq: { type: integer }
+        kind: { type: string }
+        payload: { type: string }
         created_at: { type: string, format: date-time }
     Approval:
       type: object
@@ -630,24 +1164,70 @@ components:
         outcome: { type: string, enum: [completed, failed, not_run] }
     RoutineInput:
       type: object
-      required: [agent_id, name, trigger_kind, schedule]
+      required: [agent_id, name, prompt, trigger_kind, schedule]
       properties:
         agent_id: { type: string }
         name: { type: string }
-        trigger_kind: { type: string, enum: [cron, interval, event] }
-        schedule: { type: string, example: "0 8 * * 1-5" }
+        prompt: { type: string, description: "Sent to the agent on every run, with the control contract appended. Whitespace-only is rejected." }
+        trigger_kind: { type: string, enum: [cron, interval] }
+        schedule: { type: string, description: "5-field cron for cron; Go duration for interval.", example: "0 8 * * 1-5" }
         run_on: { $ref: "#/components/schemas/RunOn" }
+        quiet_start: { type: integer, minimum: 0, maximum: 1439, description: "Minute of day. Set with quiet_end; start and end must differ." }
+        quiet_end: { type: integer, minimum: 0, maximum: 1439 }
+        notify_on: { type: string, enum: [always, news, failure], default: failure }
+        max_retries: { type: integer, minimum: 0, maximum: 5 }
+    RoutinePatch:
+      type: object
+      description: Partial edit. Absent fields keep their stored value. clear_quiet removes the quiet window and wins over quiet_start and quiet_end. Setting paused to false resumes without firing missed times. Ended routines reject every edit with 409.
+      additionalProperties: false
+      properties:
+        name: { type: string }
+        prompt: { type: string }
+        trigger_kind: { type: string, enum: [cron, interval] }
+        schedule: { type: string }
+        run_on: { $ref: "#/components/schemas/RunOn" }
+        quiet_start: { type: integer, minimum: 0, maximum: 1439 }
+        quiet_end: { type: integer, minimum: 0, maximum: 1439 }
+        clear_quiet: { type: boolean }
         notify_on: { type: string, enum: [always, news, failure] }
         max_retries: { type: integer, minimum: 0, maximum: 5 }
+        paused: { type: boolean }
     Routine:
-      allOf:
-        - $ref: "#/components/schemas/RoutineInput"
-        - type: object
-          required: [id, paused]
-          properties:
-            id: { type: string }
-            paused: { type: boolean }
-            next_run_at: { type: string, format: date-time }
+      type: object
+      required: [id, agent_id, name, prompt, trigger_kind, schedule, run_on, notify_on, max_retries, paused, next_run_at]
+      properties:
+        id: { type: string }
+        agent_id: { type: string }
+        name: { type: string }
+        prompt: { type: string }
+        trigger_kind: { type: string, enum: [cron, interval] }
+        schedule: { type: string }
+        run_on: { $ref: "#/components/schemas/RunOn" }
+        quiet_start: { type: [integer, "null"], minimum: 0, maximum: 1439 }
+        quiet_end: { type: [integer, "null"], minimum: 0, maximum: 1439 }
+        notify_on: { type: string, enum: [always, news, failure] }
+        max_retries: { type: integer }
+        paused: { type: boolean }
+        conversation_id: { type: string, description: "The routine's single DM. Absent until the first run." }
+        ended_at: { type: [string, "null"], format: date-time, description: "Set when a run's reply finishes the routine." }
+        next_run_at: { type: string, format: date-time }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+    RoutineOccurrence:
+      type: object
+      required: [id, occurrence_id, scheduled_for, status, attempt, next_attempt_at, created_at, updated_at]
+      properties:
+        id: { type: string }
+        occurrence_id: { type: string, description: "Scheduled times are <routine>@<RFC3339>; manual runs are <routine>@manual:<id>." }
+        scheduled_for: { type: string, format: date-time }
+        status: { type: string, enum: [pending, running, done, failed] }
+        attempt: { type: integer }
+        run_id: { type: string, description: "The agent run of the latest attempt." }
+        had_news: { type: [boolean, "null"] }
+        last_error: { type: string }
+        next_attempt_at: { type: string, format: date-time }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
     Memory:
       type: object
       required: [id, scope, kind, text]

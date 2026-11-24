@@ -39,13 +39,14 @@ flowchart LR
 | Gate | Status in this review | Evidence |
 |---|---|---|
 | `go vet ./...`, `go test ./...`, `gofmt` | Implemented in the workflow and run locally. | `.github/workflows/ci.yml`, `DEV/VERIFY.md` |
-| Cross build of the six targets | Workflow updated and six builds run locally. GitHub has not yet run this workflow after the first push. | `.github/workflows/ci.yml`, `DEV/VERIFY.md` |
+| Cross-build of six targets | Workflow and six local builds verified; GitHub Actions run 45188079827 on `dee8efa` passed. Current uncommitted changes are not covered by that run. | `.github/workflows/ci.yml`, `DEV/VERIFY.md` |
 | Site image build | Workflow builds the image; local run depends on access to the Docker daemon. | `Dockerfile`, `.github/workflows/ci.yml` |
 | Node image build | Workflow builds the image; missing an HTTP execution gate for the image in CI. | `deploy/Dockerfile.node`, `.github/workflows/ci.yml` |
-| OpenAPI semantic lint | Implemented in CI with Redocly CLI 2.81.0 pinned; local lint with no problems or warnings. GitHub has not run it after the first push. | `api/openapi.yaml`, `.github/workflows/ci.yml` |
+| OpenAPI semantic lint | Implemented in CI with Redocly CLI 2.81.0 pinned; current local lint is valid with one non-blocking warning. Run 45188079827 passed on `dee8efa`; current uncommitted changes need a later authorized push for CI coverage. | `api/openapi.yaml`, `.github/workflows/ci.yml` |
+| Offline local backup/restore | Runbook covers the full data directory and key source; a pre-migration restore test passes. Previous-binary compatibility and OS-keyring recovery remain unverified. | `BACKUP_RESTORE.md`, `internal/store/backup_restore_test.go` |
 | Token generation and drift check | Implemented for CSS and TypeScript/Dart constants; `--check` runs in CI. | `scripts/generate-tokens.mjs`, `packages/tokens/generated/`, `.github/workflows/ci.yml` |
-| SDK and i18n generation and drift check | Pending; the SDKs and the i18n catalog will be created with phases 1 and 2. | `api/`, `DEV/TODO_V1.md` |
-| Desktop install, signing, update and rollback | Planned; the desktop app does not exist yet. | `SPECS/modules/desktop-electron.md`, TODO V1 |
+| SDK and i18n generation | TypeScript SDK and i18n catalog generators are implemented with drift checks; Dart SDK is phase 2. | `api/`, `packages/sdk-ts`, `packages/i18n`, `DEV/TODO_V1.md` |
+| Desktop install, signing, update and rollback | Electron beta exists and runs on Linux; signed installers, Windows/macOS acceptance and signed app updates remain open. | `apps/desktop`, `SPECS/modules/desktop-electron.md`, TODO V1 |
 
 ## V1 release pipeline
 
@@ -62,14 +63,14 @@ flowchart LR
 - Do not publish an artifact that was not built by the pipeline from a reviewed tag.
 - Do not include credentials in an image, artifact, log, source map or SDK.
 - Do not approve merge, publication, payment or deploy automatically by the model's decision.
-- Maestro updates remain subject to ADR 0009 and decision D6; automatic update stays off by default until the default is explicitly approved.
+- Maestro updates remain subject to ADR 0009 (amended for D6): automatic update is on by default and always runs `verify`, with rollback.
 - CI network access is minimal and explicit. Unit tests use a fake provider; integration tests use ephemeral environments and disposable data.
 
 ## Gaps to close
 
-- Validate the workflow run on GitHub after the first authorized push.
-- Add SDK and i18n generators with drift tests; the token generator and the OpenAPI lint are already implemented.
+- Revalidate the workflow on GitHub after the next authorized push; run 45188079827 on `dee8efa` succeeded.
+- Generate the Dart SDK in phase 2; TypeScript SDK and i18n drift checks are implemented.
 - Make CI run the images and query their health checks; repeat locally once the Docker daemon is accessible.
 - Define tools and blocking levels for dependency analysis, SBOM and image scanning; document exceptions with an expiry date.
 - Implement the signing, provenance, publication and rollback chain before distributing the first public installer.
-- Close the backup/restore policy and demonstrate upgrade/return on a copied database before the first release with user data.
+- Validate rollback with the previous binary and real OS keyring; the current snapshot test only proves a pre-migration restore followed by migration in the current binary.
