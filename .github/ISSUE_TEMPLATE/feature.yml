@@ -1,27 +1,27 @@
-name: Feature request
-description: Propose a user-facing capability
+name: Funcionalidade
+description: Propor uma capacidade do produto
 body:
   - type: textarea
     id: section_1
     attributes:
-      label: Problem and user need
+      label: Problema e necessidade do usuário
     validations:
       required: true
   - type: textarea
     id: section_2
     attributes:
-      label: Objective and scope
+      label: Objetivo e escopo
     validations:
       required: true
   - type: textarea
     id: section_3
     attributes:
-      label: Acceptance criteria
+      label: Critérios de aceite
     validations:
       required: true
   - type: textarea
     id: section_4
     attributes:
-      label: Dependencies and out of scope
+      label: Dependências e fora de escopo
     validations:
       required: false
