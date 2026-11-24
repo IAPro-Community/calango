@@ -92,7 +92,12 @@ export function createClient(options: ClientOptions): CalangoClient {
   const fetchImpl = options.fetch ?? fetch;
   const base = options.baseUrl.replace(/\/$/, '');
 
-  async function request<T>(method: string, path: string, body?: unknown, headers: Record<string, string> = {}): Promise<T> {
+  async function request<T>(
+    method: string,
+    path: string,
+    body?: unknown,
+    headers: Record<string, string> = {},
+  ): Promise<T> {
     const response = await fetchImpl(base + path, {
       method,
       headers: {
@@ -140,7 +145,6 @@ export function createClient(options: ClientOptions): CalangoClient {
     return response.text();
   }
 
-
   return {
     listAgents: () => request<Agent[]>('GET', '/v1/agents'),
     createAgent: (input) => request<Agent>('POST', '/v1/agents', input),
@@ -150,13 +154,13 @@ export function createClient(options: ClientOptions): CalangoClient {
 
     listProviderAccounts: () => request<ProviderAccount[]>('GET', '/v1/provider-accounts'),
     createProviderAccount: (input) => request<ProviderAccount>('POST', '/v1/provider-accounts', input),
-    setVaultSecret: (name, value) =>
-      request<void>('PUT', `/v1/vault/${encodeURIComponent(name)}`, { value }),
+    setVaultSecret: (name, value) => request<void>('PUT', `/v1/vault/${encodeURIComponent(name)}`, { value }),
     listVaultItems: () => request<VaultItem[]>('GET', '/v1/vault'),
     deleteVaultSecret: (name) => request<void>('DELETE', `/v1/vault/${encodeURIComponent(name)}`),
 
     listConversations: () => request<Conversation[]>('GET', '/v1/conversations'),
-    createConversation: (agentId, title) => request<Conversation>('POST', '/v1/conversations', { agent_id: agentId, title }),
+    createConversation: (agentId, title) =>
+      request<Conversation>('POST', '/v1/conversations', { agent_id: agentId, title }),
     listMessages: (conversationId) =>
       request<Message[]>('GET', `/v1/conversations/${encodeURIComponent(conversationId)}/messages`),
     sendMessage: (conversationId, body, idempotencyKey) =>
@@ -175,7 +179,8 @@ export function createClient(options: ClientOptions): CalangoClient {
 
     listRoutines: () => request<Routine[]>('GET', '/v1/routines'),
     createRoutine: (input) => request<Routine>('POST', '/v1/routines', input),
-    updateRoutine: (routineId, patch) => request<Routine>('PATCH', `/v1/routines/${encodeURIComponent(routineId)}`, patch),
+    updateRoutine: (routineId, patch) =>
+      request<Routine>('PATCH', `/v1/routines/${encodeURIComponent(routineId)}`, patch),
 
     getUsage: (query = {}) => {
       const params = new URLSearchParams();
