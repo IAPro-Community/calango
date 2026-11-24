@@ -1,28 +1,24 @@
-## Related issue
+## Issue relacionada
 
-Refs #<!-- number; use Closes only if all acceptance criteria are met at merge -->
+Refs #<!-- número; Closes somente quando todos os critérios forem satisfeitos no merge -->
 
-## Summary
+## Resumo e objetivo
 
-<!-- What and why? -->
+## Escopo e alterações
 
-## Changes and scope
+## Validação e evidências
 
-## Validation and evidence
+<!-- Comandos, resultados reais, CI, testes não executados e motivo. -->
 
-<!-- Exact commands, actual results, CI links; list anything not run and why. -->
-
-## Compatibility, security and risks
-
-<!-- API/migrations, secrets, dependencies/licensing, rollback as applicable. -->
+## Compatibilidade, segurança e riscos
 
 ## Checklist
 
-- [ ] Acceptance criteria verified or outstanding criteria documented.
-- [ ] Relevant tests and documentation included.
-- [ ] Security, privacy and licensing impact considered.
-- [ ] No secrets or personal data committed.
-- [ ] CLA accepted when applicable.
-- [ ] AI assistance disclosed when material to review.
+- [ ] Critérios de aceite verificados ou pendências explicitadas.
+- [ ] Testes e documentação relevantes incluídos.
+- [ ] Impacto de segurança, privacidade e licenciamento avaliado.
+- [ ] Sem segredos ou dados pessoais.
+- [ ] CLA aceito quando aplicável.
+- [ ] Assistência de IA informada quando relevante.
 
-Human review and required checks must pass before merge.
+Revisão humana independente e CI obrigatórias antes do merge.
