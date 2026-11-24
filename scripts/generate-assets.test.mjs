@@ -40,7 +40,7 @@ test('generated token targets preserve every source value', () => {
   );
 
   const css = readFileSync(path.join(root, 'packages/tokens/generated/tokens.css'), 'utf8');
-  const cssDeclarations = [...css.matchAll(/^  (--calango-[^\n]+);$/gm)].map((match) => match[1]);
+  const cssDeclarations = [...css.matchAll(/^ {2}(--calango-[^\n]+);$/gm)].map((match) => match[1]);
   const expectedCSS = categories.flatMap((category) => Object.entries(expected[category])
     .map(([name, value]) => `--calango-${category}-${name}: ${value}`));
   assert.equal(cssDeclarations.length, expectedCSS.length);
@@ -48,10 +48,10 @@ test('generated token targets preserve every source value', () => {
 
   const dart = readFileSync(path.join(root, 'packages/tokens/generated/tokens.dart'), 'utf8');
   const dartMaps = new Map([...dart.matchAll(
-    /^  static const Map<String, String> ([a-z]+) = <String, String>\{\n([\s\S]*?)^  \};/gm,
+    /^ {2}static const Map<String, String> ([a-z]+) = <String, String>\{\n([\s\S]*?)^ {2}\};/gm,
   )].map((match) => {
     const values = Object.fromEntries([...match[2].matchAll(
-      /^    ("(?:[^"\\]|\\.)*"): ("(?:[^"\\]|\\.)*"),$/gm,
+      /^ {4}("(?:[^"\\]|\\.)*"): ("(?:[^"\\]|\\.)*"),$/gm,
     )].map((entry) => [JSON.parse(entry[1]), JSON.parse(entry[2])]));
     return [match[1], values];
   }));
