@@ -9,9 +9,9 @@ O idioma operacional é **português brasileiro**: issues, PRs, revisões, descr
 ## Como contribuir
 
 1. Consulte [GitHub Issues](https://github.com/IAPro-Community/calango/issues), evite duplicatas e solicite atribuição de uma issue Ready.
-2. Atualize main e crie uma branch temporária no formato `<tipo>/<numero-issue>-<descricao>`: feat, fix, refactor, docs, test, ci, chore, spike, hotfix. Colaboradores externos usam forks; sessões paralelas usam worktrees isoladas.
-3. Implemente somente o escopo, teste e abra draft PR vinculado. ADR revisado para decisões arquiteturais.
-4. Solicite revisão humana independente, resolva conversas e aguarde CI. Mantenedor integra por squash; branch removida após merge. Nunca push direto na main.
+2. Atualize develop e crie uma branch temporária no formato `<tipo>/<numero-issue>-<descricao>`: feat, fix, refactor, docs, test, ci, chore, spike, hotfix. Colaboradores externos usam forks; sessões paralelas usam worktrees isoladas.
+3. Implemente somente o escopo, teste e abra draft PR vinculado para develop. ADR revisado para decisões arquiteturais.
+4. Solicite revisão humana independente, resolva conversas e aguarde CI. Mantenedor integra tarefas por squash na develop; branch temporária removida após merge. Promoção develop → main por PR e merge commit; preservar develop, sincronizar hotfixes da main. Nunca push direto nas branches permanentes.
 5. Use Refs #N para entregas parciais e Closes #N somente quando o merge satisfaz todos os critérios; caso contrário encerre após validação.
 
 O TODO V1 e roadmap antigos são referências históricas até migração completa. Não assumir atividades sem coordenação.
