@@ -33,7 +33,7 @@ Base reconciliada: [a623dd17](https://github.com/IAPro-Community/calango/commit/
 
 ## Distribuição e rotina
 
-Todas as novas atividades estão no backlog, sem atribuição automática a Fernando. PO define responsáveis e prioridades; refinamento subdivide tarefas grandes; dependências e bloqueios explícitos. Cada responsável assume uma issue principal por vez; branch vinculada, PR, revisão humana e CI. Não atribuir trabalho sem decisão da equipe. Acompanhamento por GitHub Issues até criação do Project; após configuração, mover os campos e visões para Calango Product. Reunião de refinamento semanal quando útil, revisão contínua de bloqueios, evidências e gates de release.
+Todas as novas atividades estão no backlog, sem atribuição automática a Fernando. PO define responsáveis e prioridades; refinamento subdivide tarefas grandes; dependências e bloqueios explícitos. Cada responsável assume uma issue principal por vez; branch vinculada a partir de develop, PR para develop, revisão humana e CI; promoção para main por PR. Não atribuir trabalho sem decisão da equipe. Acompanhamento por GitHub Issues até criação do Project; após configuração, mover os campos e visões para Calango Product. Reunião de refinamento semanal quando útil, revisão contínua de bloqueios, evidências e gates de release.
 
 ## Pendências administrativas
 
