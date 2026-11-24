@@ -3,7 +3,7 @@ module calango
 go 1.23.0
 
 require (
-	github.com/IAPro-Community/IAPro-SDK v0.0.0-20261124222628-3f48e9b634a8
+	github.com/IAPro-Community/IAPro-SDK v0.0.0-20261124230439-ece304ad4225
 	github.com/gorilla/websocket v1.5.3
 	github.com/modelcontextprotocol/go-sdk v1.3.0
 	github.com/zalando/go-keyring v0.2.8

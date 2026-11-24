@@ -4,7 +4,7 @@ Status: proposto · issue #128 · primeiro recorte para revisão humana.
 
 ## Decisão
 
-Consumir o módulo público `github.com/IAPro-Community/IAPro-SDK` na revisão imutável `v0.0.0-20261124222628-3f48e9b634a8`, com checksums obtidos pelo Go em CI do SDK (run 45500969304). MIT: licença e NOTICE preservados no repositório de origem; AGPL do Calango não muda. Revisão de procedência completa e gate jurídico ainda pendentes. Não copiar módulos entre produtos.
+Consumir o módulo público `github.com/IAPro-Community/IAPro-SDK` na revisão imutável `v0.0.0-20261124230439-ece304ad4225`, com checksums obtidos pelo Go em CI do SDK (run 45506771570). MIT: licença e NOTICE preservados no repositório de origem; AGPL do Calango não muda. Revisão de procedência completa e gate jurídico ainda pendentes. Não copiar módulos entre produtos.
 
 O SDK fornece a classificação de status HTTP e a decisão de avançar na cadeia explícita do agente. O gateway do Calango permanece autoridade de orçamento, auditoria, persistência e aprovação. Identidade de provider Codex é canônica no SDK. O SDK não decide credenciais, autorização, política comercial, storage ou execução. A cadeia já configurada é a autorização de fallback existente; nenhum provider externo à cadeia é selecionado. O CLI não é reexecutado após falha ambígua. Se houver possibilidade de ação de ferramenta ou CLI, o fallback só prossegue quando a falha ocorreu antes do dispatch (não instalado/signed out). Anthropic direto não executa ferramentas; preserva comportamento de fallback antes de texto emitido.
 
