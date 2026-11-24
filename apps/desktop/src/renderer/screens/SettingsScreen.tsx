@@ -31,7 +31,9 @@ export function SettingsScreen({ client, t }: ScreenProps) {
         if (active) setLaunchError(t('settingsStartupError'));
       },
     );
-    return () => { active = false; };
+    return () => {
+      active = false;
+    };
   }, [t]);
 
   async function runMaestroAction(action: () => Promise<unknown>) {
@@ -132,7 +134,11 @@ export function SettingsScreen({ client, t }: ScreenProps) {
                 disabled={busy}
               />
             </label>
-            {actionError && <p className="error" role="alert">{actionError}</p>}
+            {actionError && (
+              <p className="error" role="alert">
+                {actionError}
+              </p>
+            )}
             {saved && <output className="muted">{t('settingsSecretSaved')}</output>}
             <button type="submit" disabled={busy || name.trim() === '' || secret.length === 0}>
               {busy ? t('commonLoading') : t('commonSave')}
@@ -141,9 +147,15 @@ export function SettingsScreen({ client, t }: ScreenProps) {
         </section>
         <section className="card">
           <h2>{t('settingsVault')}</h2>
-          {loadError && <p className="error" role="alert">{t('settingsVaultLoadError')}</p>}
+          {loadError && (
+            <p className="error" role="alert">
+              {t('settingsVaultLoadError')}
+            </p>
+          )}
           {items === null ? (
-            loadError ? null : <p className="muted">{t('commonLoading')}</p>
+            loadError ? null : (
+              <p className="muted">{t('commonLoading')}</p>
+            )
           ) : items.length === 0 ? (
             <p className="muted">{t('settingsVaultEmpty')}</p>
           ) : (
@@ -157,12 +169,7 @@ export function SettingsScreen({ client, t }: ScreenProps) {
                   {item.name === 'api-token' ? (
                     <span className="muted">{t('settingsSecretProtected')}</span>
                   ) : (
-                    <button
-                      type="button"
-                      className="danger"
-                      onClick={() => void remove(item)}
-                      disabled={busy}
-                    >
+                    <button type="button" className="danger" onClick={() => void remove(item)} disabled={busy}>
                       {deletingName === item.name ? t('commonLoading') : t('commonDelete')}
                     </button>
                   )}
@@ -183,14 +190,26 @@ export function SettingsScreen({ client, t }: ScreenProps) {
             />
             {t('settingsStartupEnable')}
           </label>
-          {launchError && <p className="error" role="alert">{launchError}</p>}
+          {launchError && (
+            <p className="error" role="alert">
+              {launchError}
+            </p>
+          )}
         </section>
         <section className="card">
           <h2>{t('maestroTitle')}</h2>
           <p className="muted">{t('maestroDescription')}</p>
           <p className="muted">{t('maestroLoginNotice')}</p>
-          {maestroLoadError && <p className="error" role="alert">{t('maestroLoadError')}</p>}
-          {maestroActionError && <p className="error" role="alert">{maestroActionError}</p>}
+          {maestroLoadError && (
+            <p className="error" role="alert">
+              {t('maestroLoadError')}
+            </p>
+          )}
+          {maestroActionError && (
+            <p className="error" role="alert">
+              {maestroActionError}
+            </p>
+          )}
           {maestroStatus === null ? (
             <p className="muted">{t('commonLoading')}</p>
           ) : (
@@ -215,9 +234,13 @@ export function SettingsScreen({ client, t }: ScreenProps) {
               <div className="actions">
                 <button
                   type="button"
-                  onClick={() => void runMaestroAction(() => maestroStatus.update_available
-                    ? client.installMaestro(maestroStatus.update_available.version)
-                    : client.updateMaestro())}
+                  onClick={() =>
+                    void runMaestroAction(() =>
+                      maestroStatus.update_available
+                        ? client.installMaestro(maestroStatus.update_available.version)
+                        : client.updateMaestro(),
+                    )
+                  }
                   disabled={maestroBusy}
                 >
                   {maestroBusy ? t('commonLoading') : t(maestroStatus.installed ? 'maestroUpdate' : 'maestroInstall')}
