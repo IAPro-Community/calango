@@ -165,10 +165,73 @@ func TestCodexHomeRequiresActiveVerifiedRelease(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := filepath.Join(m.root, "versions", "1.1.1", "home", ".codex")
+	want := filepath.Join(m.root, ".codex")
 	if home != want {
 		t.Fatalf("Codex home = %q, want %q", home, want)
 	}
+}
+
+func TestCodexHomeIsStableAcrossReleases(t *testing.T) {
+	runner := &fakeRunner{}
+	auditFailure := ""
+	m := newTestManager(t, runner, nil, nil, func(_ context.Context, _, _ string, _ bool, result string) error {
+		if result == auditFailure {
+			return errors.New("audit store unavailable")
+		}
+		return nil
+	})
+	ctx := context.Background()
+	if err := m.Install(ctx, "1.1.1"); err != nil {
+		t.Fatal(err)
+	}
+	home, err := m.CodexHome()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := m.Install(ctx, "1.1.2"); err != nil {
+		t.Fatal(err)
+	}
+	if after, err := m.CodexHome(); err != nil || after != home {
+		t.Fatalf("Codex home after update = %q, err = %v; want %q", after, err, home)
+	}
+
+	// A failed audit after the switch must re-activate the release that stays selected.
+	auditFailure = "rollback"
+	runner.calls = nil
+	if err := m.Rollback(ctx); err == nil {
+		t.Fatal("rollback succeeded after its audit write failed")
+	}
+	if got := lastHomeInstall(runner.calls, m.root); got != m.cliPath("1.1.2") {
+		t.Fatalf("Codex home last installed by %q, want the selected release 1.1.2", got)
+	}
+}
+
+func TestFailedReleaseVerificationNeverWritesActiveCodexHome(t *testing.T) {
+	runner := &fakeRunner{}
+	m := newTestManager(t, runner, nil, nil, nil)
+	ctx := context.Background()
+	if err := m.Install(ctx, "1.1.1"); err != nil {
+		t.Fatal(err)
+	}
+	runner.calls = nil
+	runner.failVerify = "1.1.2"
+	if err := m.Install(ctx, "1.1.2"); err == nil {
+		t.Fatal("failed verification accepted")
+	}
+	if got := lastHomeInstall(runner.calls, m.root); got != "" {
+		t.Fatalf("active Codex home was written by %q during a failed staging verification", got)
+	}
+}
+
+// lastHomeInstall returns the Maestro executable of the last install that targeted home.
+func lastHomeInstall(calls [][]string, home string) string {
+	for i := len(calls) - 1; i >= 0; i-- {
+		call := calls[i]
+		if len(call) > 3 && call[1] == "install" && call[3] == home {
+			return call[0]
+		}
+	}
+	return ""
 }
 
 func TestCleanupRetainsActiveAndPreviousPlusNewestVerifiedV1(t *testing.T) {

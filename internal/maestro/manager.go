@@ -135,19 +135,19 @@ func (m *Manager) Status(ctx context.Context) (Status, error) {
 	return status, nil
 }
 
-// CodexHome returns the isolated Codex home for the active verified release.
+// CodexHome returns the stable Codex home that every verified release is activated into.
 func (m *Manager) CodexHome() (string, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	version, err := m.currentVersion()
+	_, err := m.currentVersion()
 	if errors.Is(err, os.ErrNotExist) {
 		return "", errors.New("maestro: no active verified installation")
 	}
 	if err != nil {
 		return "", err
 	}
-	return filepath.Join(m.versionHome(version), ".codex"), nil
+	return m.codexHome(), nil
 }
 
 // SetAutoUpdate persists the owner's automatic update preference.
@@ -243,16 +243,16 @@ func (m *Manager) install(ctx context.Context, version string, automatic bool) e
 	if err := os.WriteFile(filepath.Join(m.root, "npmrc"), []byte("registry=https://registry.npmjs.org/\n"), 0o600); err != nil {
 		return fmt.Errorf("maestro: configure npm registry: %w", err)
 	}
-	if _, err := m.runner.Run(ctx, m.root, m.env(version), "npm", npmArgs...); err != nil {
+	if _, err := m.runner.Run(ctx, m.root, m.env(m.root), "npm", npmArgs...); err != nil {
 		return fmt.Errorf("maestro: install %s: %w", version, err)
 	}
 
 	cli := m.cliPath(version)
-	home := m.versionHome(version)
-	if _, err := m.runner.Run(ctx, m.root, m.env(version), cli, "install", "--home-path", home, "--only", "codex", "--non-interactive"); err != nil {
+	staging := m.stagingHome(version)
+	if _, err := m.runner.Run(ctx, m.root, m.env(staging), cli, "install", "--home-path", staging, "--only", "codex", "--non-interactive"); err != nil {
 		return fmt.Errorf("maestro: configure %s: %w", version, err)
 	}
-	if _, err := m.runner.Run(ctx, m.root, m.env(version), cli, "verify", "--home-path", home); err != nil {
+	if _, err := m.runner.Run(ctx, m.root, m.env(staging), cli, "verify", "--home-path", staging); err != nil {
 		auditErr := m.writeAudit(ctx, current, version, automatic, "verify_failed")
 		return errors.Join(fmt.Errorf("maestro: verify %s: %w", version, err), auditErr)
 	}
@@ -263,11 +263,14 @@ func (m *Manager) install(ctx context.Context, version string, automatic bool) e
 		return fmt.Errorf("maestro: record verified version: %w", err)
 	}
 
+	if err := m.activate(ctx, version); err != nil {
+		return errors.Join(fmt.Errorf("maestro: activate %s: %w", version, err), m.restoreHome(ctx, current))
+	}
 	if err := m.writePrevious(current); err != nil {
-		return fmt.Errorf("maestro: record previous version: %w", err)
+		return errors.Join(fmt.Errorf("maestro: record previous version: %w", err), m.restoreHome(ctx, current))
 	}
 	if err := m.writeCurrent(version); err != nil {
-		return errors.Join(err, m.writePrevious(oldPrevious))
+		return errors.Join(err, m.writePrevious(oldPrevious), m.restoreHome(ctx, current))
 	}
 	if err := m.writeAudit(ctx, current, version, automatic, "success"); err != nil {
 		var restoreCurrentErr error
@@ -276,7 +279,7 @@ func (m *Manager) install(ctx context.Context, version string, automatic bool) e
 		} else {
 			restoreCurrentErr = os.Remove(filepath.Join(m.root, "current"))
 		}
-		return fmt.Errorf("maestro: audit version switch: %w", errors.Join(err, restoreCurrentErr, m.writePrevious(oldPrevious)))
+		return fmt.Errorf("maestro: audit version switch: %w", errors.Join(err, restoreCurrentErr, m.writePrevious(oldPrevious), m.restoreHome(ctx, current)))
 	}
 
 	m.available = nil
@@ -313,24 +316,25 @@ func (m *Manager) Rollback(ctx context.Context) error {
 	} else if err != nil {
 		return fmt.Errorf("maestro: inspect previous version: %w", err)
 	}
-	if _, err := m.runner.Run(ctx, m.root, m.env(previous), m.cliPath(previous), "verify", "--home-path", m.versionHome(previous)); err != nil {
-		return fmt.Errorf("maestro: previous version failed verification: %w", err)
+	if err := m.activate(ctx, previous); err != nil {
+		return errors.Join(fmt.Errorf("maestro: previous version failed verification: %w", err), m.restoreHome(ctx, current))
 	}
 	if err := ctx.Err(); err != nil {
 		return err
 	}
 
 	if err := m.writePrevious(current); err != nil {
-		return fmt.Errorf("maestro: record previous version: %w", err)
+		return errors.Join(fmt.Errorf("maestro: record previous version: %w", err), m.restoreHome(ctx, current))
 	}
 	if err := m.writeCurrent(previous); err != nil {
-		return errors.Join(err, m.writePrevious(previous))
+		return errors.Join(err, m.writePrevious(previous), m.restoreHome(ctx, current))
 	}
 	if err := m.writeAudit(ctx, current, previous, false, "rollback"); err != nil {
 		return errors.Join(
 			fmt.Errorf("maestro: audit rollback: %w", err),
 			m.writeCurrent(current),
 			m.writePrevious(previous),
+			m.restoreHome(ctx, current),
 		)
 	}
 	m.available = nil
@@ -388,12 +392,39 @@ func (m *Manager) writeAudit(ctx context.Context, from, to string, automatic boo
 	}
 	return m.audit(ctx, from, to, automatic, result)
 }
-func (m *Manager) env(version string) []string {
-	home := m.versionHome(version)
+func (m *Manager) env(home string) []string {
 	return []string{"ORQUESTRADOR_MAESTRO_SKIP_CLI_UPDATE=1", "ORQUESTRADOR_MAESTRO_TELEMETRY=0", "XDG_CONFIG_HOME=" + filepath.Join(home, "config"), "HOME=" + home, "CODEX_HOME=" + filepath.Join(home, ".codex"), "NPM_CONFIG_USERCONFIG=" + filepath.Join(m.root, "npmrc"), "npm_config_cache=" + filepath.Join(m.root, "npm-cache"), "NPM_CONFIG_REGISTRY=https://registry.npmjs.org/"}
 }
-func (m *Manager) versionHome(version string) string {
+
+// codexHome is the stable CODEX_HOME of Maestro agents (ADR 0014). Every verified release is activated into it.
+func (m *Manager) codexHome() string {
+	return filepath.Join(m.root, ".codex")
+}
+
+// stagingHome is where a release is installed and verified before it can become active.
+func (m *Manager) stagingHome(version string) string {
 	return filepath.Join(m.root, "versions", version, "home")
+}
+
+// activate installs and verifies one release's Codex target in the stable home. The home is shared by all
+// releases, so it is written only after the release has verified in its staging home.
+func (m *Manager) activate(ctx context.Context, version string) error {
+	cli := m.cliPath(version)
+	if _, err := m.runner.Run(ctx, m.root, m.env(m.root), cli, "install", "--home-path", m.root, "--only", "codex", "--non-interactive"); err != nil {
+		return fmt.Errorf("install into Codex home: %w", err)
+	}
+	if _, err := m.runner.Run(ctx, m.root, m.env(m.root), cli, "verify", "--home-path", m.root); err != nil {
+		return fmt.Errorf("verify Codex home: %w", err)
+	}
+	return nil
+}
+
+// restoreHome re-activates the release that stays selected after a failed switch.
+func (m *Manager) restoreHome(ctx context.Context, version string) error {
+	if version == "" {
+		return nil
+	}
+	return m.activate(ctx, version)
 }
 func (m *Manager) cliPath(version string) string {
 	name := "orquestrador-maestro"
