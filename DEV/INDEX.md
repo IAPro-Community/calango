@@ -93,3 +93,5 @@
 - [Contribution workflow](../CONTRIBUTING.md)
 - [Governance bootstrap and administrative verification](GOVERNANCE_BOOTSTRAP.md)
 - [GitHub Issues](https://github.com/IAPro-Community/calango/issues) — operational work; legacy TODO/roadmap pending reconciliation.
+
+- [Auditoria retroativa da main](AUDITORIA_RETROATIVA.md) — mapeamento de entregas históricas e validações pendentes.
