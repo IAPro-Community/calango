@@ -25,10 +25,12 @@ function generatedJSON(relativePath, prefix, suffix) {
 
 test('generated token targets preserve every source value', () => {
   const source = readJSON('packages/tokens/tokens.json');
-  const expected = Object.fromEntries(categories.map((category) => [
-    category,
-    Object.fromEntries(Object.entries(source[category]).map(([name, token]) => [name, token.value])),
-  ]));
+  const expected = Object.fromEntries(
+    categories.map((category) => [
+      category,
+      Object.fromEntries(Object.entries(source[category]).map(([name, token]) => [name, token.value])),
+    ]),
+  );
 
   assert.deepEqual(
     generatedJSON(
@@ -41,20 +43,26 @@ test('generated token targets preserve every source value', () => {
 
   const css = readFileSync(path.join(root, 'packages/tokens/generated/tokens.css'), 'utf8');
   const cssDeclarations = [...css.matchAll(/^ {2}(--calango-[^\n]+);$/gm)].map((match) => match[1]);
-  const expectedCSS = categories.flatMap((category) => Object.entries(expected[category])
-    .map(([name, value]) => `--calango-${category}-${name}: ${value}`));
+  const expectedCSS = categories.flatMap((category) =>
+    Object.entries(expected[category]).map(([name, value]) => `--calango-${category}-${name}: ${value}`),
+  );
   assert.equal(cssDeclarations.length, expectedCSS.length);
   assert.deepEqual(new Set(cssDeclarations), new Set(expectedCSS));
 
   const dart = readFileSync(path.join(root, 'packages/tokens/generated/tokens.dart'), 'utf8');
-  const dartMaps = new Map([...dart.matchAll(
-    /^ {2}static const Map<String, String> ([a-z]+) = <String, String>\{\n([\s\S]*?)^ {2}\};/gm,
-  )].map((match) => {
-    const values = Object.fromEntries([...match[2].matchAll(
-      /^ {4}("(?:[^"\\]|\\.)*"): ("(?:[^"\\]|\\.)*"),$/gm,
-    )].map((entry) => [JSON.parse(entry[1]), JSON.parse(entry[2])]));
-    return [match[1], values];
-  }));
+  const dartMaps = new Map(
+    [...dart.matchAll(/^ {2}static const Map<String, String> ([a-z]+) = <String, String>\{\n([\s\S]*?)^ {2}\};/gm)].map(
+      (match) => {
+        const values = Object.fromEntries(
+          [...match[2].matchAll(/^ {4}("(?:[^"\\]|\\.)*"): ("(?:[^"\\]|\\.)*"),$/gm)].map((entry) => [
+            JSON.parse(entry[1]),
+            JSON.parse(entry[2]),
+          ]),
+        );
+        return [match[1], values];
+      },
+    ),
+  );
   assert.deepEqual(Object.fromEntries(dartMaps), expected);
 });
 
@@ -69,9 +77,9 @@ test('generated translation targets preserve all locales, keys, and values', () 
   assert.deepEqual(generated, expected);
 
   for (const locale of locales) {
-    assert.deepEqual(
-      readJSON(`packages/i18n/generated/arb/app_${locale.arb}.arb`),
-      { '@@locale': locale.arb, ...source[locale.source] },
-    );
+    assert.deepEqual(readJSON(`packages/i18n/generated/arb/app_${locale.arb}.arb`), {
+      '@@locale': locale.arb,
+      ...source[locale.source],
+    });
   }
 });
