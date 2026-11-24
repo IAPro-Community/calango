@@ -1,27 +1,27 @@
-name: Documentation
-description: Improve documentation
+name: Documentação
+description: Melhorar documentação
 body:
   - type: textarea
     id: section_1
     attributes:
-      label: Audience and problem
+      label: Público e problema
     validations:
       required: true
   - type: textarea
     id: section_2
     attributes:
-      label: Scope and target documents
+      label: Escopo e documentos
     validations:
       required: true
   - type: textarea
     id: section_3
     attributes:
-      label: Acceptance criteria
+      label: Critérios de aceite
     validations:
       required: true
   - type: textarea
     id: section_4
     attributes:
-      label: Dependencies
+      label: Dependências
     validations:
       required: false
