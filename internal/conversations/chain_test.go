@@ -3,9 +3,11 @@ package conversations_test
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"reflect"
 	"testing"
+	"time"
 
 	"calango/internal/core"
 	"calango/internal/gateway"
@@ -100,5 +102,31 @@ func TestBudgetExhaustionNeverFallsBack(t *testing.T) {
 	}
 	if n := len(primary.Prompts()) + len(backup.Prompts()); n != 0 {
 		t.Fatalf("provider calls = %d, want 0 when the budget blocks the call", n)
+	}
+}
+
+func TestChainStopsOnPossibleEffectsWithoutOutput(t *testing.T) {
+	primary := &fakeProvider{failure: gateway.ErrUnavailable, effects: true}
+	backup := &fakeProvider{chunks: []string{"never"}}
+	set := providerSet{"fake/primary": primary, "fake/backup": backup}
+	chain := []chainEntry{{label: "primary", model: "m-1"}, {label: "backup", model: "m-2"}}
+	e := newEnvWith(t, set, chain, 1000000, 0)
+	run := sendAndWait(t, e, "k-effects", core.RunFailed)
+	if len(primary.Prompts()) != 1 || len(backup.Prompts()) != 0 || len(attempts(t, e, run.ID)) != 1 {
+		t.Fatal("ambiguous effect must stop the entire chain")
+	}
+}
+
+func TestChainStopsOnUsageIDFailure(t *testing.T) {
+	primary := &fakeProvider{failure: gateway.ErrUnavailable}
+	backup := &fakeProvider{chunks: []string{"never"}}
+	set := providerSet{"fake/primary": primary, "fake/backup": backup}
+	chain := []chainEntry{{label: "primary", model: "m-1"}, {label: "backup", model: "m-2"}}
+	e := newEnvWithUsageID(t, set, chain, 1000000, 0, func(time.Time) (string, error) {
+		return "", errors.New("usage id failure")
+	})
+	run := sendAndWait(t, e, "k-ledger-id", core.RunFailed)
+	if len(primary.Prompts()) != 0 || len(backup.Prompts()) != 0 || len(attempts(t, e, run.ID)) != 1 {
+		t.Fatal("ledger ID failure must prevent dispatch and fallback")
 	}
 }

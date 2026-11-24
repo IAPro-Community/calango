@@ -8,6 +8,9 @@ RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/calango ./cmd/cala
 
 FROM gcr.io/distroless/static-debian12:nonroot
 COPY --from=build /out/calango /usr/local/bin/calango
+COPY --from=build /src/LICENSE /usr/share/licenses/calango/LICENSE
+COPY --from=build /src/NOTICE /usr/share/licenses/calango/NOTICE
+COPY --from=build /src/third_party/ /usr/share/licenses/calango/third_party/
 # Dentro do container o servidor precisa escutar em todas as interfaces; o acesso externo
 # deve passar pelo proxy TLS, nunca direto.
 ENV CALANGO_ADDR=0.0.0.0:7317

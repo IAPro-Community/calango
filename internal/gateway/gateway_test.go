@@ -285,3 +285,30 @@ func TestNewRejectsDuplicateProviderNames(t *testing.T) {
 		t.Fatal("New() accepted two providers named fake")
 	}
 }
+
+func TestUsageIDFailureBlocksBeforeDispatch(t *testing.T) {
+	ledger := &memLedger{limits: map[string]int64{"agent": 100}}
+	provider := &fakeProvider{err: ErrUnavailable}
+	g, err := New(Config{
+		Ledger: ledger, Providers: []Provider{provider},
+		Now:   func() time.Time { return testNow },
+		NewID: func(time.Time) (string, error) { return "", errors.New("id failure") },
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = g.Call(context.Background(), Caller{AgentID: "agent"}, fakeRequest("m", 10), nil)
+	if !errors.Is(err, ErrLedger) || provider.calls != 0 || len(ledger.snapshot()) != 0 {
+		t.Fatalf("ledger ID failure must prevent dispatch: %v, calls=%d", err, provider.calls)
+	}
+}
+
+func TestUnknownEffectsAreConservative(t *testing.T) {
+	ledger := &memLedger{limits: map[string]int64{"agent": 100}}
+	provider := &fakeProvider{err: ErrUnavailable}
+	g := newTestGateway(t, ledger, provider, PriceTable{}, nil)
+	_, err := g.Call(context.Background(), Caller{AgentID: "agent"}, fakeRequest("m", 10), nil)
+	if !errors.Is(err, ErrUnavailable) || !AttemptMayHaveEffects(err) {
+		t.Fatalf("unknown adapter must preserve failure and possible effects: %v", err)
+	}
+}

@@ -13,3 +13,8 @@ Não migrar autenticação, probes de quotas, handoff, coordenação de agentes,
 ## Validação
 
 Testes da cadeia e harness existentes, novo TestSDKChainSafety, testes Anthropic e quality-gate. CI do SDK e consumidores deve passar no SHA exato; revisão humana e integração conforme GOVERNANCE.md. Homologação real e paridade do épico permanecem abertas. Rollback: reverter PR e pin correspondente. Não declarar v0.1 estável nem encerrar #128 antes dos demais critérios.
+
+
+## Revisão de segurança
+
+O gateway aloca o identificador de uso antes do dispatch; falhas de ID, contabilização ou cálculo de custo bloqueiam o fallback via ErrLedger. O adapter declara MayHaveSideEffects; ausência da capacidade é tratada como efeitos possíveis. A decisão usa a evidência do adapter efetivamente resolvido, não o nome. Testes de cadeia verificam bloqueio de backup sem output quando há efeitos possíveis e falha de ID. Licença MIT integral e NOTICE do SDK acompanham a imagem de node; os futuros instaladores desktop devem incluí-los e verificar o conteúdo antes da publicação (#39, #40, #116).

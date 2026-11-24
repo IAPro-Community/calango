@@ -82,6 +82,9 @@ func NewAccount(secrets Secrets, keyName, baseURL string) (*Provider, error) {
 // Name implements gateway.Provider.
 func (p *Provider) Name() string { return Name }
 
+// MayHaveSideEffects declares the direct text adapter has no tool execution.
+func (p *Provider) MayHaveSideEffects() bool { return false }
+
 type messagesRequest struct {
 	Model     string    `json:"model"`
 	MaxTokens int64     `json:"max_tokens"`

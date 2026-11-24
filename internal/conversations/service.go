@@ -809,10 +809,7 @@ func (s *Service) call(ctx context.Context, run core.Run) (core.RunStatus, strin
 			return core.RunDone, "", total
 		}
 		slog.Warn("provider attempt failed", "run", run.ID, "account", ref.Key(), "error_code", code)
-		// The direct Anthropic adapter does not call tools. A CLI or an
-		// endpoint-capable provider may have performed an action before text.
-		effectsPossible := ref.Kind == core.ProviderKindCodex || (endpoint != nil && ref.Kind != core.ProviderKindAnthropic)
-		if !canAdvanceChain(ctx, err, emitted, effectsPossible) {
+		if !canAdvanceChain(ctx, err, emitted, gateway.AttemptMayHaveEffects(err)) {
 			break
 		}
 	}

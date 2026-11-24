@@ -70,6 +70,9 @@ func (c *Codex) commandWithHome(ctx context.Context, home string, args ...string
 // Name implements gateway.Provider.
 func (c *Codex) Name() string { return CodexName }
 
+// MayHaveSideEffects includes native commands even without an MCP endpoint.
+func (c *Codex) MayHaveSideEffects() bool { return true }
+
 // Available reports whether the CLI is installed and signed in. It runs
 // `codex login status`, which does not contact the model.
 func (c *Codex) Available(ctx context.Context) (Status, error) {

@@ -18,6 +18,12 @@ AgenticOS
   Calango rewrites the logic of selected upstream modules (ADR 0011). Each derived file names its upstream path and commit a4b0b3c in its header.
   Upstream third-party assets (brand marks, bundled libraries, Tauri code) are not included.
 
+IAPro-SDK
+  Copyright (c) 2026 IAPro
+  Licensed under MIT. https://github.com/IAPro-Community/IAPro-SDK
+  Full license: third_party/iapro-sdk/LICENSE; upstream provenance: third_party/iapro-sdk/NOTICE.
+  Consumed as an immutable Go module (see go.mod and go.sum); source not vendored.
+
 Go modules reviewed so far (see go.mod)
   modernc.org/sqlite v1.35.0, BSD-3-Clause (Copyright 2017 The SQLite Authors)
   github.com/zalando/go-keyring v0.2.8, MIT (Copyright 2016 Zalando SE)

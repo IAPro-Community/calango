@@ -93,6 +93,14 @@ jobs:
       - uses: actions/checkout@v4
       - name: Build the node image
         run: docker build -f deploy/Dockerfile.node -t calango/calango:ci .
+      - name: Verify license files in node image
+        run: |
+          cid=$(docker create calango/calango:ci)
+          trap 'docker rm "$cid" >/dev/null' EXIT
+          docker cp "$cid:/usr/share/licenses/calango/third_party/iapro-sdk/LICENSE" "$RUNNER_TEMP/iapro-sdk-license"
+          docker cp "$cid:/usr/share/licenses/calango/third_party/iapro-sdk/NOTICE" "$RUNNER_TEMP/iapro-sdk-notice"
+          cmp third_party/iapro-sdk/LICENSE "$RUNNER_TEMP/iapro-sdk-license"
+          cmp third_party/iapro-sdk/NOTICE "$RUNNER_TEMP/iapro-sdk-notice"
 
   source-quality:
     runs-on: ubuntu-latest
