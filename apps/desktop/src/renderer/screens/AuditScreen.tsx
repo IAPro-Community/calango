@@ -84,7 +84,7 @@ export function AuditScreen({ client, t }: ScreenProps) {
           </>
         )}
       </div>
-      {emptyExport && <p className="muted" role="status">{t('auditExportEmpty')}</p>}
+      {emptyExport && <output className="muted">{t('auditExportEmpty')}</output>}
     </section>
   );
 }
