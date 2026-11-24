@@ -19,7 +19,7 @@
     "format": "npm run format:go && npm run format:web",
     "format:check": "npm run format:go:check && npm run format:web:check",
     "lint": "npm run lint:go && npm run lint:web",
-    "contracts:check": "node scripts/generate-tokens.mjs --check && node scripts/generate-i18n.mjs --check && node --test scripts/generate-assets.test.mjs && npm run sdk:generate && git diff --exit-code -- packages/sdk-ts/src/schema.ts",
+    "contracts:check": "node scripts/generate-tokens.mjs --check && node scripts/generate-i18n.mjs --check && node --test scripts/generate-assets.test.mjs && npm run sdk:generate -- --check",
     "test": "go test ./... -count=1 && npm run test:main -w apps/desktop",
     "typecheck": "npm run typecheck -w apps/desktop && npm run build:main -w apps/desktop",
     "quality": "npm run format:check && npm run lint && npm run contracts:check && npm run typecheck && npm test && npm run desktop:build"
