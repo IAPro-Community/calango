@@ -1,27 +1,27 @@
-name: Epic
-description: Group a product capability
+name: Épico
+description: Agrupar capacidade de produto
 body:
   - type: textarea
     id: section_1
     attributes:
-      label: Product objective and value
+      label: Objetivo e valor
     validations:
       required: true
   - type: textarea
     id: section_2
     attributes:
-      label: Scope and non-goals
+      label: Escopo e não objetivos
     validations:
       required: true
   - type: textarea
     id: section_3
     attributes:
-      label: Sub-issues and dependencies
+      label: Sub-issues e dependências
     validations:
       required: true
   - type: textarea
     id: section_4
     attributes:
-      label: Completion criteria
+      label: Critério de conclusão
     validations:
-      required: false
+      required: true
