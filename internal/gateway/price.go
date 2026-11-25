@@ -3,8 +3,8 @@ package gateway
 import (
 	"encoding/hex"
 	"fmt"
-	"strings"
 	"math/big"
+	"strings"
 )
 
 const microsPerMillionTokens = 1_000_000

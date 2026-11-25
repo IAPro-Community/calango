@@ -217,7 +217,7 @@ func (p *leasedCodex) Admit(ctx context.Context, req *gateway.Request) (func(err
 			case "verified_capacity_fallback":
 				_, err = routing.SelectFallback(routing.SwitchRequest{
 					OwnerID: route.OwnerID, RunID: route.RunID, Source: route.SourceScope,
-					AllowSwitch: true, BeforeDispatch: true, Now: s.cfg.Now(),
+					AllowSwitch: true, BeforeDispatch: true, NoOutput: true, NoSideEffects: true, Now: s.cfg.Now(),
 				}, []routing.Account{evidence})
 				if err != nil {
 					return errRouteUnavailable

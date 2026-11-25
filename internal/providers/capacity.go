@@ -28,10 +28,10 @@ type CapacityView struct {
 }
 
 type CapacityWindow struct {
-	Group     string     `json:"group"`
-	Kind      string     `json:"kind"`
-	State     string     `json:"state"`
-	Remaining *float64   `json:"remaining_percent,omitempty"`
+	Group     string    `json:"group"`
+	Kind      string    `json:"kind"`
+	State     string    `json:"state"`
+	Remaining *float64  `json:"remaining_percent,omitempty"`
 	ResetAt   *time.Time `json:"reset_at,omitempty"`
 }
 
@@ -233,17 +233,17 @@ func (m *capacityMonitor) refresh(ctx context.Context, a core.ProviderAccount) {
 			if err != nil {
 				return
 			}
+			// Keep the fence until the observation has been published. Otherwise
+			// a completed run could invalidate before this pre-run snapshot is stored.
+			defer func() {
+				cleanup, stop := context.WithTimeout(context.Background(), 5*time.Second)
+				defer stop()
+				if s.leases.Release(cleanup, key, reservation, true) != nil {
+					m.forget(a)
+				}
+			}()
 		}
 		snap, err = e.cache.GetUsage(ctx, account)
-		if s.leases != nil {
-			// Probe is read-only and the SDK reaps its owned transport.
-			cleanup, stop := context.WithTimeout(context.Background(), 5*time.Second)
-			releaseErr := s.leases.Release(cleanup, key, reservation, true)
-			stop()
-			if releaseErr != nil {
-				err = releaseErr
-			}
-		}
 	}
 	if parentCtx.Err() != nil {
 		return

@@ -85,6 +85,10 @@ func (q QuotaAdapter) Identity(owner, profile string) (sdk.Account, error) {
 	if q.Codex == nil || q.Codex.home == "" || owner == "" || profile == "" {
 		return sdk.Account{}, sdk.ErrUnsupported
 	}
+	homeInfo, err := os.Lstat(q.Codex.home)
+	if err != nil || !homeInfo.IsDir() || homeInfo.Mode()&os.ModeSymlink != 0 {
+		return sdk.Account{}, sdk.ErrIdentityMismatch
+	}
 	resolved, err := filepath.EvalSymlinks(q.Codex.home)
 	if err != nil || !sameQuotaHome(resolved, q.Codex.home) {
 		return sdk.Account{}, sdk.ErrIdentityMismatch
