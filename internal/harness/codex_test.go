@@ -14,8 +14,8 @@ import (
 )
 
 // fakeCodex writes a stand-in for the codex binary. Its behaviour is driven by
-// environment variables set through t.Setenv: FAKE_SIGNED_OUT, FAKE_EXEC_FAIL,
-// FAKE_HANG. It records its argv and stdin next to itself.
+// marker files in its isolated test directory, not inherited environment variables.
+// It records its argv and stdin next to itself.
 func fakeCodex(t *testing.T) (bin, dir string) {
 	t.Helper()
 	if runtime.GOOS == "windows" {
@@ -27,19 +27,19 @@ dir="$(dirname "$0")"
 case "$1" in
 login)
   printf '%s' "$CODEX_HOME" > "$dir/login_home.txt"
-  if [ -n "$FAKE_SIGNED_OUT" ]; then echo "Not logged in"; exit 1; fi
+  if [ -f "$dir/FAKE_SIGNED_OUT" ]; then echo "Not logged in"; exit 1; fi
   echo "Logged in using ChatGPT"; exit 0;;
 exec)
   printf '%s\n' "$@" > "$dir/args.txt"
   cat > "$dir/stdin.txt"
   printf '%s' "$CODEX_HOME" > "$dir/home.txt"
   printf '%s' "$CALANGO_MCP_TOKEN" > "$dir/mcp_token.txt"
-  if [ -n "$FAKE_HANG" ]; then sleep 30; fi
-  if [ -n "$FAKE_EXEC_FAIL" ]; then echo "boom with secret-prompt" >&2; exit 3; fi
+  if [ -f "$dir/FAKE_HANG" ]; then sleep 30; fi
+  if [ -f "$dir/FAKE_EXEC_FAIL" ]; then echo "boom with secret-prompt" >&2; exit 3; fi
   printf '%s\n' '{"type":"thread.started","thread_id":"synthetic"}'
   printf '%s\n' '{"type":"item.completed","item":{"id":"message-1","type":"agent_message","text":"hello from fake codex"}}'
-  if [ -n "$FAKE_PARTIAL" ]; then echo "secret diagnostic" >&2; exit 3; fi
-  if [ -n "$FAKE_NO_USAGE" ]; then
+  if [ -f "$dir/FAKE_PARTIAL" ]; then echo "secret diagnostic" >&2; exit 3; fi
+  if [ -f "$dir/FAKE_NO_USAGE" ]; then
     printf '%s\n' '{"type":"turn.completed"}'
   else
     printf '%s\n' '{"type":"turn.completed","usage":{"input_tokens":7,"output_tokens":3}}'
@@ -210,7 +210,9 @@ func TestCodexDefaultAccountKeepsInheritedCodexHome(t *testing.T) {
 
 func TestCodexSignedOutFailsBeforeRunningExec(t *testing.T) {
 	c, dir := newFakeCodex(t)
-	t.Setenv("FAKE_SIGNED_OUT", "1")
+	if err := os.WriteFile(filepath.Join(dir, "FAKE_SIGNED_OUT"), nil, 0o600); err != nil {
+		t.Fatal(err)
+	}
 
 	_, err := c.Complete(context.Background(), request("hi"), nil)
 	if !errors.Is(err, ErrSignedOut) {
@@ -241,8 +243,10 @@ func TestCodexNotInstalled(t *testing.T) {
 }
 
 func TestCodexExecFailureStreamsNothingAndDoesNotEchoOutput(t *testing.T) {
-	c, _ := newFakeCodex(t)
-	t.Setenv("FAKE_EXEC_FAIL", "1")
+	c, dir := newFakeCodex(t)
+	if err := os.WriteFile(filepath.Join(dir, "FAKE_EXEC_FAIL"), nil, 0o600); err != nil {
+		t.Fatal(err)
+	}
 
 	var chunks int
 	_, err := c.Complete(context.Background(), request("hi"), func(gateway.Chunk) { chunks++ })
@@ -258,8 +262,10 @@ func TestCodexExecFailureStreamsNothingAndDoesNotEchoOutput(t *testing.T) {
 }
 
 func TestCodexCancellationStopsTheRun(t *testing.T) {
-	c, _ := newFakeCodex(t)
-	t.Setenv("FAKE_HANG", "1")
+	c, dir := newFakeCodex(t)
+	if err := os.WriteFile(filepath.Join(dir, "FAKE_HANG"), nil, 0o600); err != nil {
+		t.Fatal(err)
+	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 300*time.Millisecond)
 	defer cancel()
@@ -280,8 +286,10 @@ func TestNewCodexRequiresWorkDir(t *testing.T) {
 }
 
 func TestCodexMissingTerminalUsageIsEstimated(t *testing.T) {
-	c, _ := newFakeCodex(t)
-	t.Setenv("FAKE_NO_USAGE", "1")
+	c, dir := newFakeCodex(t)
+	if err := os.WriteFile(filepath.Join(dir, "FAKE_NO_USAGE"), nil, 0o600); err != nil {
+		t.Fatal(err)
+	}
 	usage, err := c.Complete(context.Background(), request("say hi"), nil)
 	if err != nil || !usage.Estimated || usage.TokensIn <= 0 || usage.TokensOut <= 0 {
 		t.Fatalf("missing measured usage: %+v %v", usage, err)
@@ -289,8 +297,10 @@ func TestCodexMissingTerminalUsageIsEstimated(t *testing.T) {
 }
 
 func TestCodexPartialTurnDoesNotSucceedOrUnderreportUsage(t *testing.T) {
-	c, _ := newFakeCodex(t)
-	t.Setenv("FAKE_PARTIAL", "1")
+	c, dir := newFakeCodex(t)
+	if err := os.WriteFile(filepath.Join(dir, "FAKE_PARTIAL"), nil, 0o600); err != nil {
+		t.Fatal(err)
+	}
 	var chunks int
 	usage, err := c.Complete(context.Background(), request("hi"), func(gateway.Chunk) { chunks++ })
 	if err == nil || chunks != 1 || usage != (gateway.Usage{}) {
