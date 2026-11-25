@@ -1,0 +1,3 @@
+#!/bin/sh
+# Puts the fake Codex CLI on PATH for the E2E tests.
+exec node "$(dirname "$0")/../fake-codex.mjs" "$@"
