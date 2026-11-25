@@ -28,10 +28,10 @@ type CapacityView struct {
 }
 
 type CapacityWindow struct {
-	Group     string    `json:"group"`
-	Kind      string    `json:"kind"`
-	State     string    `json:"state"`
-	Remaining *float64  `json:"remaining_percent,omitempty"`
+	Group     string     `json:"group"`
+	Kind      string     `json:"kind"`
+	State     string     `json:"state"`
+	Remaining *float64   `json:"remaining_percent,omitempty"`
 	ResetAt   *time.Time `json:"reset_at,omitempty"`
 }
 
