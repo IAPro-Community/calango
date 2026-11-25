@@ -2,6 +2,7 @@
 package maestro
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -89,7 +90,7 @@ func New(cfg Config) (*Manager, error) {
 		cfg.Runner = execRunner{}
 	}
 	if cfg.Registry == nil {
-		cfg.Registry = npmRegistry{runner: cfg.Runner, root: root, env: []string{"HOME=" + root, "XDG_CONFIG_HOME=" + filepath.Join(root, "config"), "NPM_CONFIG_USERCONFIG=" + filepath.Join(root, "npmrc"), "npm_config_cache=" + filepath.Join(root, "npm-cache"), "NPM_CONFIG_REGISTRY=https://registry.npmjs.org/"}}
+		cfg.Registry = npmRegistry{runner: cfg.Runner, root: root, env: []string{"HOME=" + root, "XDG_CONFIG_HOME=" + filepath.Join(root, "config"), "NPM_CONFIG_USERCONFIG=" + filepath.Join(root, "npmrc"), "npm_config_cache=" + filepath.Join(root, "npm-cache"), "NPM_CONFIG_REGISTRY=https://registry.npmjs.org/", "NPM_CONFIG_UPDATE_NOTIFIER=false"}}
 	}
 	return &Manager{root: root, runner: cfg.Runner, registry: cfg.Registry, audit: cfg.Audit, activeRuns: cfg.ActiveRuns}, nil
 }
@@ -393,7 +394,7 @@ func (m *Manager) writeAudit(ctx context.Context, from, to string, automatic boo
 	return m.audit(ctx, from, to, automatic, result)
 }
 func (m *Manager) env(home string) []string {
-	return []string{"ORQUESTRADOR_MAESTRO_SKIP_CLI_UPDATE=1", "ORQUESTRADOR_MAESTRO_TELEMETRY=0", "XDG_CONFIG_HOME=" + filepath.Join(home, "config"), "HOME=" + home, "CODEX_HOME=" + filepath.Join(home, ".codex"), "NPM_CONFIG_USERCONFIG=" + filepath.Join(m.root, "npmrc"), "npm_config_cache=" + filepath.Join(m.root, "npm-cache"), "NPM_CONFIG_REGISTRY=https://registry.npmjs.org/"}
+	return []string{"ORQUESTRADOR_MAESTRO_SKIP_CLI_UPDATE=1", "ORQUESTRADOR_MAESTRO_TELEMETRY=0", "XDG_CONFIG_HOME=" + filepath.Join(home, "config"), "HOME=" + home, "CODEX_HOME=" + filepath.Join(home, ".codex"), "NPM_CONFIG_USERCONFIG=" + filepath.Join(m.root, "npmrc"), "npm_config_cache=" + filepath.Join(m.root, "npm-cache"), "NPM_CONFIG_REGISTRY=https://registry.npmjs.org/", "NPM_CONFIG_UPDATE_NOTIFIER=false"}
 }
 
 // codexHome is the stable CODEX_HOME of Maestro agents (ADR 0014). Every verified release is activated into it.
@@ -599,9 +600,13 @@ func (execRunner) Run(ctx context.Context, dir string, env []string, executable 
 	for key, value := range envMap {
 		cmd.Env = append(cmd.Env, key+"="+value)
 	}
-	out, err := cmd.CombinedOutput()
+	// Only stdout is returned: npm writes notices to stderr, and callers parse stdout as JSON.
+	var stderr bytes.Buffer
+	cmd.Stderr = &stderr
+	out, err := cmd.Output()
 	if err != nil {
-		return out, fmt.Errorf("%s: %w: %s", filepath.Base(executable), err, strings.TrimSpace(string(out)))
+		detail := strings.TrimSpace(strings.TrimSpace(string(out)) + "\n" + strings.TrimSpace(stderr.String()))
+		return out, fmt.Errorf("%s: %w: %s", filepath.Base(executable), err, detail)
 	}
 	return out, nil
 }
@@ -613,6 +618,10 @@ type npmRegistry struct {
 }
 
 func (r npmRegistry) Versions(ctx context.Context) ([]string, error) {
+	// The registry is queried before the first install, when root does not exist yet.
+	if err := os.MkdirAll(r.root, 0o700); err != nil {
+		return nil, fmt.Errorf("create maestro directory: %w", err)
+	}
 	out, err := r.runner.Run(ctx, r.root, r.env, "npm", "view", packageName+"@^"+pinnedLine, "version", "--json", "--registry=https://registry.npmjs.org/")
 	if err != nil {
 		return nil, err
@@ -661,7 +670,7 @@ func compareVersions(a, b string) int {
 	return 0
 }
 func controlledEnvironmentKey(key string) bool {
-	for _, controlled := range []string{"HOME", "XDG_CONFIG_HOME", "CODEX_HOME", "ORQUESTRADOR_MAESTRO_SKIP_CLI_UPDATE", "ORQUESTRADOR_MAESTRO_TELEMETRY", "NPM_CONFIG_USERCONFIG", "NPM_CONFIG_CACHE", "NPM_CONFIG_REGISTRY"} {
+	for _, controlled := range []string{"HOME", "XDG_CONFIG_HOME", "CODEX_HOME", "ORQUESTRADOR_MAESTRO_SKIP_CLI_UPDATE", "ORQUESTRADOR_MAESTRO_TELEMETRY", "NPM_CONFIG_USERCONFIG", "NPM_CONFIG_CACHE", "NPM_CONFIG_REGISTRY", "NPM_CONFIG_UPDATE_NOTIFIER"} {
 		if strings.EqualFold(key, controlled) {
 			return true
 		}

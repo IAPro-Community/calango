@@ -299,3 +299,54 @@ func TestAuditFailuresRestoreVersionPointers(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+type dirRunner struct {
+	dirExisted bool
+	out        []byte
+}
+
+func (r *dirRunner) Run(_ context.Context, dir string, _ []string, _ string, _ ...string) ([]byte, error) {
+	_, err := os.Stat(dir)
+	r.dirExisted = err == nil
+	return r.out, nil
+}
+
+func TestRegistryCreatesRootBeforeFirstQuery(t *testing.T) {
+	runner := &dirRunner{out: []byte("\"1.1.1\"\n")}
+	root := filepath.Join(t.TempDir(), "maestro")
+	versions, err := npmRegistry{runner: runner, root: root}.Versions(context.Background())
+	if err != nil || len(versions) != 1 || versions[0] != "1.1.1" {
+		t.Fatalf("versions=%v err=%v", versions, err)
+	}
+	if !runner.dirExisted {
+		t.Fatal("npm ran in a directory that did not exist")
+	}
+}
+
+// TestHelperProcess stands in for npm in TestExecRunnerReturnsOnlyStdout.
+func TestHelperProcess(t *testing.T) {
+	if os.Getenv("MAESTRO_HELPER_PROCESS") != "1" {
+		t.Skip("helper process")
+	}
+	_, _ = os.Stdout.WriteString("\"1.1.1\"\n")
+	_, _ = os.Stderr.WriteString("npm notice New major version of npm available!\n")
+	if os.Getenv("MAESTRO_HELPER_FAIL") == "1" {
+		os.Exit(3)
+	}
+	os.Exit(0)
+}
+
+func TestExecRunnerReturnsOnlyStdout(t *testing.T) {
+	helper := []string{"-test.run=^TestHelperProcess$"}
+	out, err := execRunner{}.Run(context.Background(), t.TempDir(), []string{"MAESTRO_HELPER_PROCESS=1"}, os.Args[0], helper...)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(out) != "\"1.1.1\"\n" {
+		t.Fatalf("stdout=%q", out)
+	}
+	_, err = execRunner{}.Run(context.Background(), t.TempDir(), []string{"MAESTRO_HELPER_PROCESS=1", "MAESTRO_HELPER_FAIL=1"}, os.Args[0], helper...)
+	if err == nil || !strings.Contains(err.Error(), "npm notice") {
+		t.Fatalf("failure did not carry stderr: %v", err)
+	}
+}
