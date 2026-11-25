@@ -46,24 +46,29 @@ const (
 const desktopOrigin = "app://calango"
 
 func main() {
-	cfg, err := config.Load()
+	printingToken := len(os.Args) > 1 && os.Args[1] == "print-token"
+	loadConfig := config.Load
+	if printingToken {
+		loadConfig = config.LoadForPrintToken
+	}
+	cfg, err := loadConfig()
 	if err != nil {
 		log.Fatalf("invalid configuration: %v", err)
 	}
 
-	prices, err := gateway.LoadPriceTable(cfg.PriceTableFile)
-	if err != nil {
-		log.Fatalf("invalid price table: %v", err)
-	}
-
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
-	if len(os.Args) > 1 && os.Args[1] == "print-token" {
+	if printingToken {
 		if err := printToken(ctx, cfg); err != nil {
 			log.Fatalf("print-token: %v", err)
 		}
 		return
 	}
+	prices, err := gateway.LoadPriceTable(cfg.PriceTableFile)
+	if err != nil {
+		log.Fatalf("invalid price table: %v", err)
+	}
+
 	database, err := store.Open(ctx, filepath.Join(cfg.DataDir, "calango.db"))
 	if err != nil {
 		log.Fatalf("open store: %v", err)
