@@ -1,0 +1,21 @@
+IAPro SDK — source provenance
+
+Initial Go slice derives from IAPro Nexus, Copyright (c) 2026 IAPro, MIT.
+Source: https://github.com/IAPro-Community/nexus/tree/ab1efac2c80dddb7b3aa60016baf1d4791bc3203
+
+- model/types.go: internal/core/model/types.go (subset: account scope, provider, usage, capabilities, failure).
+- classifier/classifier.go and classifier_test.go: internal/core/classifier/* (import paths).
+- quota/eligibility.go, eligibility_test.go, view.go, view_builder.go: internal/core/quota/* (import paths).
+- quota/render.go: RenderProgressBar and formatProgressLabel from internal/core/quota/quota.go (isolated with stdlib imports).
+
+Original license reproduced in LICENSE. No Calango AGPL code imported. Source file history checked for initial classifier/model slice; broader attribution and legal gate remain open (Nexus #74). No release or relicensing implied. Future ports must update this inventory and preserve all required notices.
+
+Second extraction from the same Nexus commit:
+- providers/spec/* and contract goldens: internal/core/provider/spec/*; AGY helper directory injected by host rather than resolving a Nexus path.
+- runtime/discovery.go, executable.go and executable_test.go: selected runtime helpers; no process execution or secret store copied.
+- coordination/request.go: independent envelope, validation, semantic equality/ID and limits from internal/nexus/runner/coordination.go; no MissionRunner copied.
+- capacity/*: pure threshold, transition and fingerprint logic, types and tests from internal/nexus/capacitymonitor/{types,state,state_test}.go.
+- routing/reason.go: typed switch reason from internal/nexus/runtime_routing.go; routing/fallback.go adds a host-authorized conservative gate, not a transactional handoff.
+- hud/types.go and primary.go: read-only DTOs and primary selection from internal/nexus/hud_projection.go; cost enum fields represented by strings.
+- providers/parsers/{claude,gemini}: JSON normalization from respective usage_live.go; no auth or HTTP requests copied.
+New tests exercise local primitives. No real user credentials or session records copied. Broader legal and integration gates remain open.

@@ -33,6 +33,7 @@ type fakeProvider struct {
 	// failure is returned before any chunk streams; tail after them.
 	failure error
 	tail    error
+	effects bool
 
 	mu                 sync.Mutex
 	codexHomes         []string
@@ -42,6 +43,8 @@ type fakeProvider struct {
 }
 
 func (p *fakeProvider) Name() string { return "fake" }
+
+func (p *fakeProvider) MayHaveSideEffects() bool { return p.effects }
 
 func (p *fakeProvider) Release() {
 	if p.release != nil {
@@ -163,6 +166,11 @@ func (ps providerSet) resolve(_ context.Context, name string) (gateway.Provider,
 
 func newEnvWith(t *testing.T, set providerSet, chain []chainEntry, tokenLimit int64, parallel int) *env {
 	t.Helper()
+	return newEnvWithUsageID(t, set, chain, tokenLimit, parallel, core.NewID)
+}
+
+func newEnvWithUsageID(t *testing.T, set providerSet, chain []chainEntry, tokenLimit int64, parallel int, usageID func(time.Time) (string, error)) *env {
+	t.Helper()
 	ctx := context.Background()
 
 	st, err := store.OpenMemory(ctx)
@@ -175,7 +183,7 @@ func newEnvWith(t *testing.T, set providerSet, chain []chainEntry, tokenLimit in
 
 	clk := &clock{t: time.Date(2025, 3, 1, 12, 0, 0, 0, time.UTC)}
 	gw, err := gateway.New(gateway.Config{
-		Ledger: st, Resolve: set.resolve, Now: clk.now, NewID: core.NewID,
+		Ledger: st, Resolve: set.resolve, Now: clk.now, NewID: usageID,
 	})
 	if err != nil {
 		t.Fatalf("gateway: %v", err)

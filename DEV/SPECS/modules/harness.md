@@ -34,3 +34,7 @@ type Harness interface {
 ## Acceptance
 - A fake harness in tests covers streaming, errors and cancellation.
 - With the CLI signed out, the run ends in `failed/harness_signed_out` and the interface shows a sign-in button.
+
+## Integração SDK (issue #128)
+
+O primeiro recorte usa tipos canônicos de provider e classificação HTTP do IAPro-SDK, além do gate compartilhado de fallback da cadeia. Consulte [ADR 0020](../../ADR/0020-iapro-sdk.md). Autenticação, execução, quota real, continuidade, coordenação e HUD permanecem no roadmap de integração; não há execução automática fora da cadeia ou mudança de permissões.

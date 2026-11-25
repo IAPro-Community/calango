@@ -13,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	"calango/internal/core"
 	"calango/internal/gateway"
 )
 
@@ -24,7 +25,7 @@ var ErrSignedOut = errors.New("harness: CLI is signed out; sign in again with th
 var ErrNotInstalled = errors.New("harness: CLI is not installed or not on PATH")
 
 // CodexName is the gateway provider name of the Codex CLI harness.
-const CodexName = "codex"
+const CodexName = core.ProviderKindCodex
 
 // Status says whether a CLI can run a turn right now.
 type Status struct {
@@ -68,6 +69,9 @@ func (c *Codex) commandWithHome(ctx context.Context, home string, args ...string
 
 // Name implements gateway.Provider.
 func (c *Codex) Name() string { return CodexName }
+
+// MayHaveSideEffects includes native commands even without an MCP endpoint.
+func (c *Codex) MayHaveSideEffects() bool { return true }
 
 // Available reports whether the CLI is installed and signed in. It runs
 // `codex login status`, which does not contact the model.

@@ -43,6 +43,29 @@ type Provider interface {
 	Complete(ctx context.Context, req Request, stream func(Chunk)) (Usage, error)
 }
 
+// EffectsProvider is an optional explicit adapter capability. Unknown
+// providers are treated as capable of external effects, even without MCP.
+type EffectsProvider interface {
+	MayHaveSideEffects() bool
+}
+
+type attemptError struct {
+	err     error
+	effects bool
+}
+
+func (e *attemptError) Error() string { return e.err.Error() }
+func (e *attemptError) Unwrap() error { return e.err }
+
+// AttemptMayHaveEffects returns conservative evidence for chain retry policy.
+func AttemptMayHaveEffects(err error) bool {
+	var attempt *attemptError
+	if errors.As(err, &attempt) {
+		return attempt.effects
+	}
+	return true
+}
+
 // Request is one model call. MaxOutputTokens must be positive: it is part of
 // the pre-call budget estimate. Tools, when set, is the MCP endpoint the model
 // may call for this turn; providers that cannot use it ignore it.
@@ -232,6 +255,20 @@ func (g *Gateway) Call(ctx context.Context, who Caller, req Request, stream func
 	}
 	defer g.release(who.AgentID, reserve)
 
+	// Allocate the ledger identity before dispatch, so failure cannot leave
+	// an executed attempt without a usage ID.
+	recordID, err := g.newID(now)
+	if err != nil {
+		return Usage{}, fmt.Errorf("%w: create usage id: %w", ErrLedger, err)
+	}
+	if recordID == "" {
+		return Usage{}, fmt.Errorf("%w: empty usage id", ErrLedger)
+	}
+	effects := true
+	if declared, ok := provider.(EffectsProvider); ok {
+		effects = declared.MayHaveSideEffects()
+	}
+
 	usage, callErr := provider.Complete(ctx, req, stream)
 	switch {
 	case usage.TokensIn < 0 || usage.TokensOut < 0:
@@ -244,18 +281,19 @@ func (g *Gateway) Call(ctx context.Context, who Caller, req Request, stream func
 	}
 
 	rec, costErr := g.buildRecord(who, req, usage, now)
-	if rec.ID, err = g.newID(now); err != nil {
-		return usage, errors.Join(callErr, fmt.Errorf("gateway: create usage id: %w", err))
-	}
+	rec.ID = recordID
 
 	recordErr := g.record(context.WithoutCancel(ctx), who.AgentID, limit, rec, now)
 	if recordErr != nil {
 		recordErr = fmt.Errorf("%w: %w", ErrLedger, recordErr)
 	}
 
+	if costErr != nil {
+		costErr = fmt.Errorf("%w: calculate usage cost: %w", ErrLedger, costErr)
+	}
 	err = errors.Join(callErr, costErr, recordErr)
 	if err != nil {
-		return usage, fmt.Errorf("gateway: call %s/%s: %w", req.Provider, req.Model, err)
+		return usage, &attemptError{err: fmt.Errorf("gateway: call %s/%s: %w", req.Provider, req.Model, err), effects: effects}
 	}
 	return usage, nil
 }

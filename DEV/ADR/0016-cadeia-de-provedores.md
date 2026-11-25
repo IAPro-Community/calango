@@ -45,3 +45,8 @@ ADR 0013 made each harness a `gateway.Provider` and the daemon wires one provide
 - **Empty chain.** A run of an agent with no `providers` fails at once with `no_provider`. Migration 0010 gives no chain to agents that had no model, so they must be saved again with `providers` before they run.
 - **Delete.** `DELETE /v1/provider-accounts/{id}` answers 409 while a chain uses the account. It removes the account row and, for Codex, its home (never `default`). Anthropic vault items are not touched; the owner removes them with `DELETE /v1/vault/{name}`.
 - **API.** `providers` (1–8 entries, required) replaces `harness` and `model` on agents; responses carry `account` (the gateway key `<kind>/<label>`). Routes: `GET/POST /v1/provider-accounts`, `DELETE /v1/provider-accounts/{id}`. Only the `codex` and `anthropic` kinds are accepted. The `setup` field says how to sign in (`CODEX_HOME=<home> codex login`) or where to put the key.
+
+
+## Amendment (SDK integration, proposed)
+
+See ADR 0020. Retry requires a safe boundary, not just absence of output. Gateway obtains a usage ID before dispatch and returns ErrLedger for accounting failure. The adapter explicitly declares whether external side effects are possible; undeclared means possible. Native CLI preflight failures remain retryable, ambiguous post-dispatch failures do not. No automatic fallback outside the configured chain.
