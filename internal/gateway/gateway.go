@@ -101,11 +101,12 @@ type Request struct {
 	Tools           *ToolEndpoint
 	// CodexHome overrides the account home for an explicitly linked Maestro agent.
 	// Only the daemon sets this local execution option; it is not an API field.
-	CodexHome      string
-	CapacityRoute  *CapacityRoute
-	AdmissionScope *model.AccountScope
-	AdmissionOwner string
-	CheckAdmission func(context.Context) error
+	CodexHome        string
+	CapacityRoute    *CapacityRoute
+	AdmissionScope   *model.AccountScope
+	AdmissionOwner   string
+	CheckAdmission   func(context.Context) error
+	AdmissionContext context.Context
 }
 
 // ToolEndpoint is the MCP endpoint of one turn. Token is the bearer token that
@@ -310,7 +311,11 @@ func (g *Gateway) Call(ctx context.Context, who Caller, req Request, stream func
 		}
 		return Usage{}, errors.New("gateway: capacity route requires a valid account admission")
 	}
-	usage, callErr := provider.Complete(ctx, req, stream)
+	dispatchCtx := ctx
+	if req.AdmissionContext != nil {
+		dispatchCtx = req.AdmissionContext
+	}
+	usage, callErr := provider.Complete(dispatchCtx, req, stream)
 	switch {
 	case usage.TokensIn < 0 || usage.TokensOut < 0:
 		callErr = errors.Join(callErr, fmt.Errorf("gateway: provider %s reported negative tokens", provider.Name()))
