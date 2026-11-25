@@ -37,7 +37,7 @@ type Status struct {
 
 // Codex runs turns through the OpenAI Codex CLI (`codex exec`). It implements
 // gateway.Provider. Runs are isolated from the person's Codex configuration
-// and session history, and they cannot use any tools Codex brings with it.
+// and session history; MCP calls remain subject to Calango's turn gateway.
 type Codex struct {
 	bin     string
 	workDir string
@@ -113,7 +113,6 @@ func (c *Codex) Complete(ctx context.Context, req gateway.Request, stream func(g
 	if !status.SignedIn {
 		return gateway.Usage{}, ErrSignedOut
 	}
-
 
 	// mcpTokenEnv names the variable that carries a turn's MCP bearer token.
 	const mcpTokenEnv = "CALANGO_MCP_TOKEN"
