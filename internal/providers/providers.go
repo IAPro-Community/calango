@@ -41,11 +41,15 @@ type Config struct {
 	AnthropicBaseURL string
 	Now              func() time.Time
 	NewID            func(time.Time) (string, error)
+	CapacityInterval time.Duration
+	CapacityOwner    string
+	OnCapacity       func(string, CapacityView)
 }
 
 // Service manages accounts and resolves them to gateway providers.
 type Service struct {
 	cfg Config
+	capacity *capacityMonitor
 }
 
 // NewService validates cfg and returns a Service.
@@ -59,7 +63,11 @@ func NewService(cfg Config) (*Service, error) {
 	if cfg.CodexWorkDir == "" || cfg.AccountsDir == "" {
 		return nil, errors.New("providers service needs the codex work directory and the accounts directory")
 	}
-	return &Service{cfg: cfg}, nil
+	s := &Service{cfg: cfg}
+	if cfg.CapacityInterval > 0 && cfg.CapacityOwner != "" {
+		s.capacity = newCapacityMonitor(s)
+	}
+	return s, nil
 }
 
 // View is an account with the step that finishes its sign-in. Setup names the
@@ -69,6 +77,7 @@ type View struct {
 	// Key is the gateway name the agent chain refers to: "<kind>/<label>".
 	Key   string
 	Setup string
+	Capacity CapacityView
 }
 
 // Create stores a new account. A Codex account gets its own home directory.
@@ -128,6 +137,9 @@ func (s *Service) Delete(ctx context.Context, ownerID, id string) error {
 	if err := s.cfg.Repo.DeleteProviderAccount(ctx, ownerID, id); err != nil {
 		return err
 	}
+	if s.capacity != nil {
+		s.capacity.forget(*target)
+	}
 	if home := s.codexHome(*target); home != "" {
 		if err := os.RemoveAll(home); err != nil {
 			return fmt.Errorf("remove codex home of %s: %w", target.Name(), err)
@@ -153,6 +165,9 @@ func (s *Service) Resolve(ctx context.Context, ownerID, key string) (gateway.Pro
 		p, err := harness.NewCodex(s.cfg.CodexBin, s.cfg.CodexWorkDir, s.codexHome(a))
 		if err != nil {
 			return nil, err
+		}
+		if s.capacity != nil && ownerID == s.cfg.CapacityOwner {
+			p.CoordinateQuota()
 		}
 		return p, nil
 	case core.ProviderKindAnthropic:
@@ -184,7 +199,7 @@ func keyItem(a core.ProviderAccount) string {
 }
 
 func (s *Service) view(a core.ProviderAccount) View {
-	return View{ProviderAccount: a, Key: a.Name(), Setup: s.setup(a)}
+	return View{ProviderAccount: a, Key: a.Name(), Setup: s.setup(a), Capacity: s.capacityView(a)}
 }
 
 func (s *Service) setup(a core.ProviderAccount) string {

@@ -147,12 +147,18 @@ func main() {
 	if err := os.MkdirAll(workDir, 0o700); err != nil {
 		log.Fatalf("conversations workspace: %v", err)
 	}
+	hub := events.NewHub()
 	providerSvc, err := providers.NewService(providers.Config{
 		Repo:             database,
 		Secrets:          secrets,
 		CodexBin:         "codex",
 		CodexWorkDir:     workDir,
 		AccountsDir:      filepath.Join(cfg.DataDir, "accounts"),
+		CapacityInterval: cfg.CapacityInterval,
+		CapacityOwner: localOwnerID,
+		OnCapacity: func(owner string, view providers.CapacityView) {
+			hub.Publish(events.Event{Type: events.TypeCapacityChanged, OwnerID: owner, Data: view})
+		},
 		AnthropicBaseURL: anthropic.DefaultBaseURL,
 		Now:              time.Now,
 		NewID:            core.NewID,
@@ -173,7 +179,16 @@ func main() {
 	if err != nil {
 		log.Fatalf("gateway: %v", err)
 	}
-	hub := events.NewHub()
+	capacityCtx, stopCapacity := context.WithCancel(ctx)
+	capacityDone := make(chan struct{})
+	go func() {
+		defer close(capacityDone)
+		providerSvc.RunCapacity(capacityCtx)
+	}()
+	defer func() {
+		stopCapacity()
+		<-capacityDone
+	}()
 	maestroManager, err := maestro.New(maestro.Config{
 		DataDir: cfg.DataDir,
 		ActiveRuns: func(ctx context.Context) (bool, error) {

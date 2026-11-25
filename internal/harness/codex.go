@@ -44,6 +44,7 @@ type Codex struct {
 	// home is the CODEX_HOME of this account. Empty means the person's default
 	// Codex home, which is ADR 0013's shared default.
 	home string
+	coordinateQuota bool
 }
 
 // NewCodex returns a Codex harness. bin is the CLI binary ("codex" when empty).
@@ -69,6 +70,9 @@ func (c *Codex) commandWithHome(ctx context.Context, home string, args ...string
 	cmd.Env = sdkruntime.EnvSet(safeCLIEnv(os.Environ()), overrides, "CALANGO_MCP_TOKEN")
 	return cmd
 }
+
+// CoordinateQuota serializes dedicated-home runs with quota maintenance.
+func (c *Codex) CoordinateQuota() { c.coordinateQuota = true }
 
 // Name implements gateway.Provider.
 func (c *Codex) Name() string { return CodexName }
@@ -102,6 +106,13 @@ func (c *Codex) Complete(ctx context.Context, req gateway.Request, stream func(g
 	home := c.home
 	if req.CodexHome != "" {
 		home = req.CodexHome
+	}
+	if c.coordinateQuota && home != "" {
+		release, err := lockQuotaHome(ctx, home)
+		if err != nil {
+			return gateway.Usage{}, err
+		}
+		defer release()
 	}
 	status, err := c.available(ctx, home)
 	if err != nil {

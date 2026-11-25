@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 )
 
 const defaultAddr = "127.0.0.1:7317"
@@ -30,6 +31,7 @@ type Config struct {
 	TrustedProxies []netip.Prefix
 	// PriceTableFile is an optional versioned USD tariff file, not a credential.
 	PriceTableFile string
+	CapacityInterval time.Duration
 }
 
 // Load reads supported CALANGO_* environment variables and validates them.
@@ -69,12 +71,20 @@ func Load() (Config, error) {
 	if err != nil {
 		return Config{}, err
 	}
+	var capacityInterval time.Duration
+	if raw := os.Getenv("CALANGO_CAPACITY_INTERVAL"); raw != "" {
+		capacityInterval, err = time.ParseDuration(raw)
+		if err != nil || capacityInterval < 30*time.Second || capacityInterval > time.Hour {
+			return Config{}, fmt.Errorf("CALANGO_CAPACITY_INTERVAL: must be a duration from 30s to 1h")
+		}
+	}
 	cfg := Config{
 		Addr: addr, DataDir: dataDir,
 		VaultKey: vaultKey, VaultKeyFile: vaultKeyFile, VaultKeyVersion: vaultKeyVersion,
 		VaultKeyPrevious: os.Getenv("CALANGO_VAULT_KEY_PREVIOUS"), VaultKeyPreviousFile: os.Getenv("CALANGO_VAULT_KEY_PREVIOUS_FILE"),
 		TrustedProxies: trustedProxies,
 		PriceTableFile: os.Getenv("CALANGO_PRICE_TABLE_FILE"),
+		CapacityInterval: capacityInterval,
 	}
 	if err := cfg.Validate(); err != nil {
 		return Config{}, err
@@ -123,6 +133,9 @@ func (c Config) Validate() error {
 	}
 	if c.PriceTableFile != "" && (!filepath.IsAbs(c.PriceTableFile) || strings.TrimSpace(c.PriceTableFile) != c.PriceTableFile || strings.ContainsRune(c.PriceTableFile, 0)) {
 		return fmt.Errorf("CALANGO_PRICE_TABLE_FILE: must be an absolute path without surrounding whitespace or NUL")
+	}
+	if c.CapacityInterval != 0 && (c.CapacityInterval < 30*time.Second || c.CapacityInterval > time.Hour) {
+		return fmt.Errorf("CALANGO_CAPACITY_INTERVAL: must be a duration from 30s to 1h")
 	}
 	if err := c.validateVaultKeys(); err != nil {
 		return err
