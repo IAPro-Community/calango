@@ -54,3 +54,29 @@ func TestCapacityUnsupportedAccounts(t *testing.T) {
 		t.Fatalf("disabled monitor: %+v", view)
 	}
 }
+
+func TestLeaseFailureInvalidatesQuotaAndPublishesOnce(t *testing.T) {
+	now := time.Now()
+	a := core.ProviderAccount{ID: "profile", OwnerID: "owner", Kind: core.ProviderKindCodex, Label: "work"}
+	var events []CapacityView
+	s := &Service{cfg: Config{
+		Now: time.Now, CapacityOwner: a.OwnerID, CapacityInterval: time.Minute,
+		OnCapacity: func(owner string, view CapacityView) {
+			if owner != a.OwnerID {
+				t.Fatal("wrong event owner")
+			}
+			events = append(events, view)
+		},
+	}}
+	s.capacity = newCapacityMonitor(s)
+	s.capacity.entries[a.ID] = &capacityEntry{
+		snapshot: model.UsageSnapshot{FetchedAt: now},
+		view: CapacityView{Status: string(model.UsageLive)},
+	}
+	s.capacity.markLeaseFailure(a, "lease_reconciliation_required")
+	s.capacity.markLeaseFailure(a, "lease_reconciliation_required")
+	view := s.capacityView(a)
+	if view.Status != string(model.UsageError) || view.Reason != "lease_reconciliation_required" || len(view.Windows) != 0 || len(events) != 1 {
+		t.Fatalf("view=%+v events=%d", view, len(events))
+	}
+}
