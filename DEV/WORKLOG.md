@@ -316,4 +316,4 @@
 - Worked on #45. Fixed the node image's data-volume contract: it now defaults to `/data` and makes that directory writable for its distroless non-root UID/GID; this addresses the observed startup failure with a named volume.
 - Documented the reproducible bridge smoke in `DEV/DEPLOYMENT.md`; updated TODO, handoff, context, and verification records.
 - Verified both Docker builds, site/node `/healthz`, Docker healthcheck, named-volume ownership/persistence across node container recreation, and no key in logs. Compose/Caddy/TLS remains unverified because Compose CLI is unavailable.
-- Issue #45 remains open; `fix/45-docker-bridge-volume` is committed as `ad6590ea1f` and published in draft PR #154. CI and review are pending.
+- Issue #45 remains open; `fix/45-docker-bridge-volume` is published as PR #154, ready for review. Required CI passed; independent review was requested from @kyotodevIndie. Merge requires that approval. Compose/Caddy/TLS remains unverified.
