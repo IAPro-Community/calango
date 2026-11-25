@@ -111,6 +111,7 @@ func (s *Service) Replace(ctx context.Context, ownerID, id string, in core.Agent
 	updated.TokenLimitMonth = in.TokenLimitMonth
 	updated.ApprovalLevel = in.ApprovalLevel
 	updated.MaestroEnabled = in.MaestroEnabled
+	updated.CapacityRouting = in.CapacityRouting
 	updated.Normalize()
 	if err := updated.Validate(); err != nil {
 		return View{}, err

@@ -980,6 +980,8 @@ export interface components {
              * @default false
              */
             maestro_enabled: boolean;
+            /** @description Opt-in verified capacity routing before dispatch; no paid automatic fallback. */
+            capacity_routing?: boolean;
         };
         Agent: components["schemas"]["AgentInput"] & {
             id: string;

@@ -31,6 +31,13 @@ func (t PriceTable) validate() error {
 	return nil
 }
 
+// ConfirmedZeroTariff requires an explicit, versioned zero-marginal-cost
+// entry. Absence of a price never grants permission to switch accounts.
+func (t PriceTable) ConfirmedZeroTariff(provider, model string) bool {
+	p, ok := t.lookup(provider, model)
+	return ok && t.Version != "" && p.InputPerMillion == 0 && p.OutputPerMillion == 0
+}
+
 func (t PriceTable) lookup(provider, model string) (Price, bool) {
 	p, ok := t.Models[provider+"/"+model]
 	return p, ok

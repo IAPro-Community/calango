@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	"time"
 
 	"calango/internal/core"
 	"calango/internal/gateway"
@@ -25,6 +26,9 @@ var ErrSignedOut = errors.New("harness: CLI is signed out; sign in again with th
 
 // ErrNotInstalled means the CLI binary was not found on PATH.
 var ErrNotInstalled = errors.New("harness: CLI is not installed or not on PATH")
+
+// ErrQuotaIdentityChanged is emitted only before a model dispatch.
+var ErrQuotaIdentityChanged = errors.New("harness: quota identity changed before dispatch")
 
 // CodexName is the gateway provider name of the Codex CLI harness.
 const CodexName = core.ProviderKindCodex
@@ -123,6 +127,14 @@ func (c *Codex) Complete(ctx context.Context, req gateway.Request, stream func(g
 	}
 	if !status.SignedIn {
 		return gateway.Usage{}, ErrSignedOut
+	}
+
+	if route := req.CapacityRoute; route != nil {
+		adapter := QuotaAdapter{Codex: c}
+		current, err := adapter.Identity(route.OwnerID, route.Scope.ProfileID)
+		if err != nil || current.Scope != route.Scope || !time.Now().Before(route.ExpiresAt) || req.CodexHome != "" {
+			return gateway.Usage{}, ErrQuotaIdentityChanged
+		}
 	}
 
 	// mcpTokenEnv names the variable that carries a turn's MCP bearer token.

@@ -156,6 +156,9 @@ func main() {
 		AccountsDir:      filepath.Join(cfg.DataDir, "accounts"),
 		CapacityInterval: cfg.CapacityInterval,
 		CapacityOwner:    localOwnerID,
+		RoutingAllowed:   cfg.CapacityRoutingAllowed,
+		LeaseStore:       database.AccountLeases(),
+		Prices:           prices,
 		OnCapacity: func(owner string, view providers.CapacityView) {
 			hub.Publish(events.Event{Type: events.TypeCapacityChanged, OwnerID: owner, Data: view})
 		},
@@ -225,6 +228,7 @@ func main() {
 	convSvc, err := conversations.NewService(conversations.Config{
 		Repo:        database,
 		Gateway:     gw,
+		CapacityRouter: providerSvc,
 		Memory:      memorySvc,
 		Now:         time.Now,
 		NewID:       core.NewID,

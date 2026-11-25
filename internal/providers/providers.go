@@ -17,6 +17,8 @@ import (
 	"calango/internal/core"
 	"calango/internal/gateway"
 	"calango/internal/harness"
+
+	"github.com/IAPro-Community/IAPro-SDK/lease"
 )
 
 // Repository is the persistence the service needs. The SQLite store implements it.
@@ -44,12 +46,16 @@ type Config struct {
 	CapacityInterval time.Duration
 	CapacityOwner    string
 	OnCapacity       func(string, CapacityView)
+	RoutingAllowed   bool
+	LeaseStore       lease.Store
+	Prices           gateway.PriceTable
 }
 
 // Service manages accounts and resolves them to gateway providers.
 type Service struct {
 	cfg      Config
 	capacity *capacityMonitor
+	leases   *lease.Coordinator
 }
 
 // NewService validates cfg and returns a Service.
@@ -66,6 +72,16 @@ func NewService(cfg Config) (*Service, error) {
 	s := &Service{cfg: cfg}
 	if cfg.CapacityInterval > 0 && cfg.CapacityOwner != "" {
 		s.capacity = newCapacityMonitor(s)
+	}
+	if cfg.RoutingAllowed {
+		if s.capacity == nil {
+			return nil, errors.New("capacity routing requires a configured monitor")
+		}
+		var err error
+		s.leases, err = lease.New(cfg.LeaseStore, cfg.Now)
+		if err != nil {
+			return nil, err
+		}
 	}
 	return s, nil
 }
@@ -176,6 +192,9 @@ func (s *Service) Resolve(ctx context.Context, ownerID, key string) (gateway.Pro
 		}
 		if s.capacity != nil && ownerID == s.cfg.CapacityOwner {
 			p.CoordinateQuota()
+		}
+		if s.leases != nil && ownerID == s.cfg.CapacityOwner && a.Label != core.DefaultAccountLabel {
+			return &leasedCodex{service: s, account: a, cli: p}, nil
 		}
 		return p, nil
 	case core.ProviderKindAnthropic:

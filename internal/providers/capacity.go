@@ -11,6 +11,7 @@ import (
 
 	capacity "github.com/IAPro-Community/IAPro-SDK/capacity"
 	"github.com/IAPro-Community/IAPro-SDK/model"
+	"github.com/IAPro-Community/IAPro-SDK/lease"
 	sdk "github.com/IAPro-Community/IAPro-SDK/providers"
 )
 
@@ -208,7 +209,29 @@ func (m *capacityMonitor) refresh(ctx context.Context, a core.ProviderAccount) {
 	account, err := e.adapter.Identity(a.OwnerID, a.ID)
 	var snap model.UsageSnapshot
 	if err == nil {
+		var reservation lease.Record
+		var key lease.Key
+		if s.leases != nil {
+			holder, idErr := s.cfg.NewID(s.cfg.Now())
+			if idErr != nil {
+				return
+			}
+			key = accountLeaseKey(a.OwnerID, account.Scope)
+			reservation, err = s.leases.Acquire(ctx, key, holder, admissionTTL, 0)
+			if err != nil {
+				return
+			}
+		}
 		snap, err = e.cache.GetUsage(ctx, account)
+		if s.leases != nil {
+			// Probe is read-only and the SDK reaps its owned transport.
+			cleanup, stop := context.WithTimeout(context.Background(), 5*time.Second)
+			releaseErr := s.leases.Release(cleanup, key, reservation, true)
+			stop()
+			if releaseErr != nil {
+				err = releaseErr
+			}
+		}
 	}
 	if ctx.Err() != nil {
 		return

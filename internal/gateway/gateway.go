@@ -11,6 +11,8 @@ import (
 	"math/big"
 	"sync"
 	"time"
+
+	"github.com/IAPro-Community/IAPro-SDK/model"
 )
 
 var (
@@ -49,6 +51,25 @@ type EffectsProvider interface {
 	MayHaveSideEffects() bool
 }
 
+// AdmissionProvider holds an account reservation across dispatch and ledger
+// recording. On ambiguous failure, the adapter must retain its fence.
+type AdmissionProvider interface {
+	Admit(context.Context, Request) (func(error) error, error)
+}
+
+// CapacityRoute is a host-only pre-dispatch decision. Never deserialize it
+// from an API request or use it as a substitute for revalidation.
+type CapacityRoute struct {
+	OwnerID    string
+	RunID      string
+	AccountKey string
+	Model      string
+	Scope      model.AccountScope
+	ExpiresAt  time.Time
+	SourceKey  string
+	Reason     string
+}
+
 type attemptError struct {
 	err     error
 	effects bool
@@ -78,6 +99,7 @@ type Request struct {
 	// CodexHome overrides the account home for an explicitly linked Maestro agent.
 	// Only the daemon sets this local execution option; it is not an API field.
 	CodexHome string
+	CapacityRoute *CapacityRoute
 }
 
 // ToolEndpoint is the MCP endpoint of one turn. Token is the bearer token that
@@ -269,6 +291,15 @@ func (g *Gateway) Call(ctx context.Context, who Caller, req Request, stream func
 		effects = declared.MayHaveSideEffects()
 	}
 
+	var finishAdmission func(error) error
+	if admission, ok := provider.(AdmissionProvider); ok {
+		finishAdmission, err = admission.Admit(ctx, req)
+		if err != nil {
+			return Usage{}, err
+		}
+	} else if req.CapacityRoute != nil {
+		return Usage{}, errors.New("gateway: capacity route requires an admission-capable provider")
+	}
 	usage, callErr := provider.Complete(ctx, req, stream)
 	switch {
 	case usage.TokensIn < 0 || usage.TokensOut < 0:
@@ -292,6 +323,9 @@ func (g *Gateway) Call(ctx context.Context, who Caller, req Request, stream func
 		costErr = fmt.Errorf("%w: calculate usage cost: %w", ErrLedger, costErr)
 	}
 	err = errors.Join(callErr, costErr, recordErr)
+	if finishAdmission != nil {
+		err = errors.Join(err, finishAdmission(err))
+	}
 	if err != nil {
 		return usage, &attemptError{err: fmt.Errorf("gateway: call %s/%s: %w", req.Provider, req.Model, err), effects: effects}
 	}

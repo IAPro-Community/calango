@@ -31,7 +31,8 @@ type Config struct {
 	TrustedProxies []netip.Prefix
 	// PriceTableFile is an optional versioned USD tariff file, not a credential.
 	PriceTableFile string
-	CapacityInterval time.Duration
+	CapacityInterval       time.Duration
+	CapacityRoutingAllowed bool
 }
 
 // Load reads supported CALANGO_* environment variables and validates them.
@@ -78,13 +79,21 @@ func Load() (Config, error) {
 			return Config{}, fmt.Errorf("CALANGO_CAPACITY_INTERVAL: must be a duration from 30s to 1h")
 		}
 	}
+	var capacityRouting bool
+	if raw := os.Getenv("CALANGO_CAPACITY_ROUTING_ALLOWED"); raw != "" {
+		capacityRouting, err = strconv.ParseBool(raw)
+		if err != nil {
+			return Config{}, fmt.Errorf("CALANGO_CAPACITY_ROUTING_ALLOWED: must be a boolean")
+		}
+	}
 	cfg := Config{
 		Addr: addr, DataDir: dataDir,
 		VaultKey: vaultKey, VaultKeyFile: vaultKeyFile, VaultKeyVersion: vaultKeyVersion,
 		VaultKeyPrevious: os.Getenv("CALANGO_VAULT_KEY_PREVIOUS"), VaultKeyPreviousFile: os.Getenv("CALANGO_VAULT_KEY_PREVIOUS_FILE"),
 		TrustedProxies: trustedProxies,
 		PriceTableFile: os.Getenv("CALANGO_PRICE_TABLE_FILE"),
-		CapacityInterval: capacityInterval,
+		CapacityInterval:       capacityInterval,
+		CapacityRoutingAllowed: capacityRouting,
 	}
 	if err := cfg.Validate(); err != nil {
 		return Config{}, err
@@ -136,6 +145,9 @@ func (c Config) Validate() error {
 	}
 	if c.CapacityInterval != 0 && (c.CapacityInterval < 30*time.Second || c.CapacityInterval > time.Hour) {
 		return fmt.Errorf("CALANGO_CAPACITY_INTERVAL: must be a duration from 30s to 1h")
+	}
+	if c.CapacityRoutingAllowed && (c.CapacityInterval == 0 || c.PriceTableFile == "") {
+		return fmt.Errorf("CALANGO_CAPACITY_ROUTING_ALLOWED: requires capacity monitor and an explicit tariff file")
 	}
 	if err := c.validateVaultKeys(); err != nil {
 		return err

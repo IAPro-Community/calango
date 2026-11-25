@@ -77,10 +77,17 @@ type Publisher interface {
 	Publish(events.Event)
 }
 
+// CapacityRouter selects once before the first dispatch; strict mode never
+// advances to another account after a gateway attempt.
+type CapacityRouter interface {
+	SelectCapacityRoute(context.Context, core.Agent, string) (core.ProviderRef, *gateway.CapacityRoute, error)
+}
+
 // Config wires a Service. Now and NewID are injected so tests are deterministic.
 type Config struct {
 	Repo    Repository
 	Gateway Gateway
+	CapacityRouter CapacityRouter
 	// Memory supplies the remembered facts injected before each run. Nil disables injection.
 	Memory MemoryContext
 	// Tools gives each run its MCP endpoint. Nil disables tool access.
@@ -779,14 +786,44 @@ func (s *Service) call(ctx context.Context, run core.Run) (core.RunStatus, strin
 		endpoint = ep
 	}
 
+	var route *gateway.CapacityRoute
+	chain := agent.Providers
+	if agent.CapacityRouting {
+		if s.cfg.CapacityRouter == nil {
+			return core.RunFailed, core.ErrCodeProviderError, total
+		}
+		selected, decision, err := s.cfg.CapacityRouter.SelectCapacityRoute(ctx, agent, run.ID)
+		if err != nil || decision == nil {
+			appendStep(core.StepProviderAttempt, map[string]string{
+				"account": chain[0].Key(), "model": chain[0].Model,
+				"outcome": "blocked", "error_code": core.ErrCodeProviderError,
+				"routing_reason": "capacity_intervention_required",
+			})
+			if stepErr != nil {
+				return core.RunFailed, core.ErrCodeStoreError, total
+			}
+			return core.RunFailed, core.ErrCodeProviderError, total
+		}
+		route = decision
+		chain = []core.ProviderRef{selected}
+		appendStep(core.StepProviderAttempt, map[string]string{
+			"account": selected.Key(), "model": selected.Model, "outcome": "selected",
+			"error_code": "", "routing_reason": route.Reason, "source_account": route.SourceKey,
+		})
+		if stepErr != nil {
+			return core.RunFailed, core.ErrCodeStoreError, total
+		}
+	}
+
 	var code string
-	for _, ref := range agent.Providers {
+	for _, ref := range chain {
 		request := gateway.Request{
 			Provider:        ref.Key(),
 			Model:           ref.Model,
 			Prompt:          prompt,
 			MaxOutputTokens: s.cfg.MaxOutputTokens,
 			Tools:           endpoint,
+			CapacityRoute:   route,
 		}
 		if agent.MaestroEnabled && ref.Kind == "codex" {
 			request.CodexHome = maestroHome
@@ -809,7 +846,7 @@ func (s *Service) call(ctx context.Context, run core.Run) (core.RunStatus, strin
 			return core.RunDone, "", total
 		}
 		slog.Warn("provider attempt failed", "run", run.ID, "account", ref.Key(), "error_code", code)
-		if !canAdvanceChain(ctx, err, emitted, gateway.AttemptMayHaveEffects(err)) {
+		if route != nil || !canAdvanceChain(ctx, err, emitted, gateway.AttemptMayHaveEffects(err)) {
 			break
 		}
 	}

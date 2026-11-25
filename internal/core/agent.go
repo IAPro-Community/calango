@@ -60,6 +60,7 @@ type Agent struct {
 	TokenLimitMonth int64
 	ApprovalLevel   ApprovalLevel
 	MaestroEnabled  bool
+	CapacityRouting bool
 	CreatedAt       time.Time
 	UpdatedAt       time.Time
 }
@@ -101,6 +102,9 @@ func (a Agent) Validate() error {
 	}
 	if n := len(a.Providers); n == 0 || n > MaxProvidersPerAgent {
 		return fmt.Errorf("%w: providers must list 1 to %d accounts", ErrInvalidInput, MaxProvidersPerAgent)
+	}
+	if a.CapacityRouting && (a.MaestroEnabled || len(a.Providers) < 2) {
+		return fmt.Errorf("%w: capacity_routing requires at least two providers and no Maestro home override", ErrInvalidInput)
 	}
 	for i, p := range a.Providers {
 		if p.AccountID == "" {
