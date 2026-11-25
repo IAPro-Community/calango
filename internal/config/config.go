@@ -90,8 +90,8 @@ func Load() (Config, error) {
 		Addr: addr, DataDir: dataDir,
 		VaultKey: vaultKey, VaultKeyFile: vaultKeyFile, VaultKeyVersion: vaultKeyVersion,
 		VaultKeyPrevious: os.Getenv("CALANGO_VAULT_KEY_PREVIOUS"), VaultKeyPreviousFile: os.Getenv("CALANGO_VAULT_KEY_PREVIOUS_FILE"),
-		TrustedProxies: trustedProxies,
-		PriceTableFile:          os.Getenv("CALANGO_PRICE_TABLE_FILE"),
+		TrustedProxies:         trustedProxies,
+		PriceTableFile:         os.Getenv("CALANGO_PRICE_TABLE_FILE"),
 		CapacityInterval:       capacityInterval,
 		CapacityRoutingAllowed: capacityRouting,
 	}
