@@ -51,6 +51,11 @@ func main() {
 		log.Fatalf("invalid configuration: %v", err)
 	}
 
+	prices, err := gateway.LoadPriceTable(cfg.PriceTableFile)
+	if err != nil {
+		log.Fatalf("invalid price table: %v", err)
+	}
+
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 	if len(os.Args) > 1 && os.Args[1] == "print-token" {
@@ -161,6 +166,7 @@ func main() {
 	gw, err := gateway.New(gateway.Config{
 		Ledger:  database,
 		Resolve: resolve,
+		Prices:  prices,
 		Now:     time.Now,
 		NewID:   core.NewID,
 	})
@@ -204,6 +210,7 @@ func main() {
 	convSvc, err := conversations.NewService(conversations.Config{
 		Repo:        database,
 		Gateway:     gw,
+		Memory:      memorySvc,
 		Now:         time.Now,
 		NewID:       core.NewID,
 		Events:      hub,
