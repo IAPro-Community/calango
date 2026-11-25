@@ -31,6 +31,9 @@ func TestLoadPriceTable(t *testing.T) {
 func TestLoadPriceTableRejectsIncompleteOrInvalidTariff(t *testing.T) {
 	for _, data := range []string{
 		`{}`,
+		`{"version":"v1","currency":"USD","models":{"p/m":{"input_per_million":1,"output_per_million":1},"p/m":{"input_per_million":2,"output_per_million":1}}}`,
+		`{"version":"v1","currency":"USD","models":{"p/m":{"input_per_million":1,"INPUT_PER_MILLION":2,"output_per_million":1}}}`,
+		`{"version":"v1","Version":"v2","currency":"USD","models":{}}`,
 		`{"version":"v1","currency":"BRL","models":{}}`,
 		`{"version":"v1","currency":"USD","models":{"p/m":{"input_per_million":1}}}`,
 		`{"version":"v1","currency":"USD","models":{"p/m":{"input_per_million":-1,"output_per_million":1}}}`,
@@ -43,5 +46,11 @@ func TestLoadPriceTableRejectsIncompleteOrInvalidTariff(t *testing.T) {
 		if _, err := LoadPriceTable(path); err == nil {
 			t.Fatalf("accepted invalid tariff %s", data)
 		}
+	}
+}
+
+func TestLoadPriceTableRejectsDirectory(t *testing.T) {
+	if _, err := LoadPriceTable(t.TempDir()); err == nil {
+		t.Fatal("accepted directory as tariff")
 	}
 }
