@@ -29,6 +29,9 @@ var ErrNotInstalled = errors.New("harness: CLI is not installed or not on PATH")
 // ErrQuotaIdentityChanged is emitted only before a model dispatch.
 var ErrQuotaIdentityChanged = errors.New("harness: quota identity changed before dispatch")
 
+// ErrQuotaNotDispatched proves the model invocation was never started.
+var ErrQuotaNotDispatched = errors.New("harness: model invocation was not dispatched")
+
 // CodexName is the gateway provider name of the Codex CLI harness.
 const CodexName = core.ProviderKindCodex
 
@@ -113,13 +116,13 @@ func (c *Codex) Complete(ctx context.Context, req gateway.Request, stream func(g
 	if c.coordinateQuota && home != "" {
 		release, err := lockQuotaHome(ctx, home)
 		if err != nil {
-			return gateway.Usage{}, err
+			return gateway.Usage{}, errors.Join(ErrQuotaNotDispatched, err)
 		}
 		defer release()
 	}
 	status, err := c.available(ctx, home)
 	if err != nil {
-		return gateway.Usage{}, err
+		return gateway.Usage{}, errors.Join(ErrQuotaNotDispatched, err)
 	}
 	if !status.Installed {
 		return gateway.Usage{}, fmt.Errorf("%w: %s", ErrNotInstalled, c.bin)
