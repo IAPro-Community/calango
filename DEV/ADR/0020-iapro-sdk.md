@@ -18,3 +18,8 @@ Testes da cadeia e harness existentes, novo TestSDKChainSafety, testes Anthropic
 ## Revisão de segurança
 
 O gateway aloca o identificador de uso antes do dispatch; falhas de ID, contabilização ou cálculo de custo bloqueiam o fallback via ErrLedger. O adapter declara MayHaveSideEffects; ausência da capacidade é tratada como efeitos possíveis. A decisão usa a evidência do adapter efetivamente resolvido, não o nome. Testes de cadeia verificam bloqueio de backup sem output quando há efeitos possíveis e falha de ID. Licença MIT integral e NOTICE do SDK acompanham a imagem de node; os futuros instaladores desktop devem incluí-los e verificar o conteúdo antes da publicação (#39, #40, #116).
+
+
+## Segundo recorte — runtime Codex
+
+Atualização do pin para `v0.0.0-20261125011527-b93285109b30`, com checksums e seis jobs aprovados no run SDK 45524394245. `providers/codex.RunExec` e `CheckLoginStatus` substituem a execução e decodificação local. O host mantém as flags existentes de sandbox/ephemeral, workspace, CODEX_HOME, configuração MCP, gateway, aprovações e orçamento. `--json` emite mensagens completas (não deltas de tokens). Contadores do terminal são usados se ambos medidos; ausência no sucesso mantém estimativa explícita; ausência em falha devolve Usage{} para que gateway contabilize a reserva. Sem replay de execução ambígua; sem token em argv, sem stderr bruto e sem herdar bearer anterior. Sessões continuam efêmeras. Probes, quota real, handoff, UI e persistência de coordenação não são ativados neste PR. Fixture local não comprova compatibilidade com CLI real (#53/#113). Rollback por reversão do PR/pin.

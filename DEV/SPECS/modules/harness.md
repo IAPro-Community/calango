@@ -38,3 +38,7 @@ type Harness interface {
 ## Integração SDK (issue #128)
 
 O primeiro recorte usa tipos canônicos de provider e classificação HTTP do IAPro-SDK, além do gate compartilhado de fallback da cadeia. Consulte [ADR 0020](../../ADR/0020-iapro-sdk.md). Autenticação, execução, quota real, continuidade, coordenação e HUD permanecem no roadmap de integração; não há execução automática fora da cadeia ou mudança de permissões.
+
+### Runtime Codex compartilhado (SDK, segundo recorte)
+
+Execução JSONL via IAPro-SDK e launch controlado pelo Calango (ADR 0020). Mensagens completas são entregues progressivamente; contadores terminais medidos prevalecem, estimativas são explícitas e falhas sem contagem usam a reserva do gateway. CLI real e versões compatíveis exigem homologação autorizada. Sem mudança na política MCP, sem persistência de sessão ou seleção automática por quotas.

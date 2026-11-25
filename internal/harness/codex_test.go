@@ -34,14 +34,17 @@ exec)
   cat > "$dir/stdin.txt"
   printf '%s' "$CODEX_HOME" > "$dir/home.txt"
   printf '%s' "$CALANGO_MCP_TOKEN" > "$dir/mcp_token.txt"
-  out=""
-  while [ $# -gt 0 ]; do
-    if [ "$1" = "-o" ]; then out="$2"; fi
-    shift
-  done
   if [ -n "$FAKE_HANG" ]; then sleep 30; fi
   if [ -n "$FAKE_EXEC_FAIL" ]; then echo "boom with secret-prompt" >&2; exit 3; fi
-  echo "hello from fake codex" > "$out"; exit 0;;
+  printf '%s\n' '{"type":"thread.started","thread_id":"synthetic"}'
+  printf '%s\n' '{"type":"item.completed","item":{"id":"message-1","type":"agent_message","text":"hello from fake codex"}}'
+  if [ -n "$FAKE_PARTIAL" ]; then echo "secret diagnostic" >&2; exit 3; fi
+  if [ -n "$FAKE_NO_USAGE" ]; then
+    printf '%s\n' '{"type":"turn.completed"}'
+  else
+    printf '%s\n' '{"type":"turn.completed","usage":{"input_tokens":7,"output_tokens":3}}'
+  fi
+  exit 0;;
 esac
 exit 2
 `
@@ -66,7 +69,7 @@ func request(prompt string) gateway.Request {
 	return gateway.Request{Provider: CodexName, Model: "gpt-test", Prompt: prompt, MaxOutputTokens: 100}
 }
 
-func TestCodexStreamsFinalMessageAndEstimatesUsage(t *testing.T) {
+func TestCodexStreamsMessageAndMeasuredUsage(t *testing.T) {
 	c, _ := newFakeCodex(t)
 
 	var got []string
@@ -79,8 +82,8 @@ func TestCodexStreamsFinalMessageAndEstimatesUsage(t *testing.T) {
 	if len(got) != 1 || got[0] != "hello from fake codex" {
 		t.Fatalf("streamed chunks = %q, want one final message", got)
 	}
-	if !usage.Estimated || usage.TokensIn <= 0 || usage.TokensOut <= 0 {
-		t.Fatalf("usage = %+v, want estimated positive tokens", usage)
+	if usage.Estimated || usage.TokensIn != 7 || usage.TokensOut != 3 {
+		t.Fatalf("usage = %+v, want measured tokens 7/3", usage)
 	}
 }
 
@@ -118,7 +121,7 @@ func TestCodexRunsIsolatedAndSendsPromptOnStdin(t *testing.T) {
 		t.Fatal(err)
 	}
 	args := string(argv)
-	for _, flag := range []string{"--ephemeral", "--ignore-user-config", "--ignore-rules", "--sandbox", "workspace-write"} {
+	for _, flag := range []string{"--json", "--ephemeral", "--ignore-user-config", "--ignore-rules", "--sandbox", "workspace-write"} {
 		if !strings.Contains(args, flag) {
 			t.Errorf("argv lacks %q: %s", flag, args)
 		}
@@ -273,5 +276,39 @@ func TestCodexCancellationStopsTheRun(t *testing.T) {
 func TestNewCodexRequiresWorkDir(t *testing.T) {
 	if _, err := NewCodex("", "", ""); err == nil {
 		t.Fatal("expected an error without a working directory")
+	}
+}
+
+func TestCodexMissingTerminalUsageIsEstimated(t *testing.T) {
+	c, _ := newFakeCodex(t)
+	t.Setenv("FAKE_NO_USAGE", "1")
+	usage, err := c.Complete(context.Background(), request("say hi"), nil)
+	if err != nil || !usage.Estimated || usage.TokensIn <= 0 || usage.TokensOut <= 0 {
+		t.Fatalf("missing measured usage: %+v %v", usage, err)
+	}
+}
+
+func TestCodexPartialTurnDoesNotSucceedOrUnderreportUsage(t *testing.T) {
+	c, _ := newFakeCodex(t)
+	t.Setenv("FAKE_PARTIAL", "1")
+	var chunks int
+	usage, err := c.Complete(context.Background(), request("hi"), func(gateway.Chunk) { chunks++ })
+	if err == nil || chunks != 1 || usage != (gateway.Usage{}) {
+		t.Fatalf("partial turn: usage=%+v chunks=%d err=%v", usage, chunks, err)
+	}
+	if strings.Contains(err.Error(), "secret diagnostic") {
+		t.Fatal("raw CLI diagnostic exposed")
+	}
+}
+
+func TestCodexDoesNotInheritOldMCPToken(t *testing.T) {
+	c, dir := newFakeCodex(t)
+	t.Setenv("CALANGO_MCP_TOKEN", "old-token")
+	if _, err := c.Complete(context.Background(), request("hi"), nil); err != nil {
+		t.Fatal(err)
+	}
+	seen, err := os.ReadFile(filepath.Join(dir, "mcp_token.txt"))
+	if err != nil || len(seen) != 0 {
+		t.Fatalf("stale bearer reached child: %v", err)
 	}
 }
