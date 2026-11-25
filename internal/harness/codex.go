@@ -65,8 +65,8 @@ func (c *Codex) commandWithHome(ctx context.Context, home string, args ...string
 	if home != "" {
 		overrides["CODEX_HOME"] = home
 	}
-	// Never inherit a previous turn's MCP bearer token.
-	cmd.Env = sdkruntime.EnvSet(os.Environ(), overrides, "CALANGO_MCP_TOKEN")
+	// Allow only platform variables; never inherit a previous turn's token.
+	cmd.Env = sdkruntime.EnvSet(safeCLIEnv(os.Environ()), overrides, "CALANGO_MCP_TOKEN")
 	return cmd
 }
 
