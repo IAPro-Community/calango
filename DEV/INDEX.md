@@ -11,6 +11,7 @@
 | [TODO_V1.md](TODO_V1.md) | snapshot histórico; backlog operacional no GitHub |
 | [../CONTRIBUTING.md](../CONTRIBUTING.md) | how to contribute (public) |
 | [../LICENSE](../LICENSE), [../COMMERCIAL.md](../COMMERCIAL.md), [../CLA.md](../CLA.md), [../TRADEMARKS.md](../TRADEMARKS.md) | license, commercial license, contributor agreement and trademarks |
+| [../docs/guia/README.md](../docs/guia/README.md) | guia de uso em pt-BR: primeiros passos, pareamento, VPS, Maestro e privacidade |
 | [WORKLOG.md](WORKLOG.md) | short history of what was done |
 | [VERIFY.md](VERIFY.md) | what was verified |
 

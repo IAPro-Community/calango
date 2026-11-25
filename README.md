@@ -88,6 +88,8 @@ node scripts/generate-i18n.mjs --check
 
 ## Documentation
 
+- [docs/guia](docs/guia/README.md): user guide in Brazilian Portuguese (getting started, pairing, VPS, Maestro and privacy).
+
 - [GOVERNANCE.md](GOVERNANCE.md): branch policy and decision authority.
 
 - [AGENTS.md](AGENTS.md): entry point for anyone writing code here, human or AI agent.
