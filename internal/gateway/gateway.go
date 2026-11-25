@@ -189,7 +189,7 @@ func New(cfg Config) (*Gateway, error) {
 	if cfg.Now == nil || cfg.NewID == nil {
 		return nil, errors.New("gateway: clock and id generator are required")
 	}
-	if err := cfg.Prices.validate(); err != nil {
+	if err := cfg.Prices.Validate(); err != nil {
 		return nil, err
 	}
 
@@ -372,12 +372,12 @@ func (g *Gateway) buildRecord(who Caller, req Request, usage Usage, at time.Time
 		CostStatus: CostUnknown,
 	}
 
-	price, ok := g.prices.lookup(req.Provider, req.Model)
+	price, ok := g.prices.Lookup(req.Provider, req.Model)
 	if !ok {
 		// A missing price is unknown, never zero.
 		return rec, nil
 	}
-	cost, err := price.cost(usage.TokensIn, usage.TokensOut)
+	cost, err := price.MicroUSD(usage.TokensIn, usage.TokensOut)
 	if err != nil {
 		return rec, err
 	}

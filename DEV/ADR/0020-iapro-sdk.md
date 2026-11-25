@@ -21,3 +21,7 @@ The gateway allocates the usage identifier before dispatch; identifier, ledger o
 ## Second slice — Codex runtime
 
 Update the pin to `v0.0.0-20261125011527-b93285109b30`, with checksums and six successful jobs in SDK run 45524394245. `providers/codex.RunExec` and `CheckLoginStatus` replace local execution and decoding. The host retains existing sandbox/ephemeral flags, workspace, CODEX_HOME, MCP configuration, gateway, approvals and budget. `--json` emits complete messages (not token deltas). Terminal counters are used when both are measured; missing counts on success retain an explicit estimate; missing counts on failure return Usage{} so the gateway accounts for the reservation. No replay of ambiguous execution, token in argv, raw stderr or inherited prior bearer token. Sessions remain ephemeral. Probes, real quota, handoff, UI and persistent coordination are not enabled in this PR. Local fixtures do not prove real CLI compatibility (#53/#113). Rollback by reverting the PR/pin.
+
+## Third slice — shared tariff and environment policy implementation
+
+Consume SDK revision `v0.0.0-20261125235232-55a6c7bd2c0c` for evaluation in draft. The SDK CI consumer-pin job (run 45724638234) resolved the module and checksums. Calango retains the daemon-specific environment allowlist, authorized tariff path, price ledger and approval policy. Shared parsing, integer price arithmetic and environment filtering use SDK code only. Merge requires full SDK review and CI, then consumer CI; this is not a released SDK version.
