@@ -155,7 +155,7 @@ func main() {
 		CodexWorkDir:     workDir,
 		AccountsDir:      filepath.Join(cfg.DataDir, "accounts"),
 		CapacityInterval: cfg.CapacityInterval,
-		CapacityOwner: localOwnerID,
+		CapacityOwner:    localOwnerID,
 		OnCapacity: func(owner string, view providers.CapacityView) {
 			hub.Publish(events.Event{Type: events.TypeCapacityChanged, OwnerID: owner, Data: view})
 		},

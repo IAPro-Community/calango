@@ -22,6 +22,20 @@ export function AgentsScreen({ client, t }: ScreenProps) {
 
   const [actionError, setActionError] = useState<string | null>(null);
   const [maestroBusyAgent, setMaestroBusyAgent] = useState<string | null>(null);
+  const [capacityBusy, setCapacityBusy] = useState<string | null>(null);
+
+  async function refreshCapacity(accountId: string) {
+    setActionError(null);
+    setCapacityBusy(accountId);
+    try {
+      await client.refreshProviderCapacity(accountId);
+      refresh();
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setCapacityBusy(null);
+    }
+  }
 
   async function toggleAgentMaestro(agent: Agent) {
     setActionError(null);
@@ -93,6 +107,16 @@ export function AgentsScreen({ client, t }: ScreenProps) {
               <li key={account.id}>
                 <span>{account.key}</span>
                 <span className="muted">{account.setup}</span>
+                <AccountCapacity account={account} t={t} />
+                {account.kind === 'codex' && account.label !== DEFAULT_LABEL && (
+                  <button
+                    type="button"
+                    disabled={capacityBusy !== null || account.capacity?.reason === 'monitor_disabled'}
+                    onClick={() => void refreshCapacity(account.id)}
+                  >
+                    {capacityBusy === account.id ? t('commonLoading') : t('capacityRefresh')}
+                  </button>
+                )}
               </li>
             ))}
           </ul>
@@ -131,6 +155,52 @@ export function AgentsScreen({ client, t }: ScreenProps) {
         )}
       </div>
     </section>
+  );
+}
+
+function AccountCapacity({ account, t }: { account: ProviderAccount; t: ScreenProps['t'] }) {
+  const capacity = account.capacity;
+  if (!capacity) return <span className="muted">{t('capacityUnknown')}</span>;
+  const status = (() => {
+    switch (capacity.status) {
+      case 'LIVE':
+      case 'CACHED':
+        return t('capacityObserved');
+      case 'UNSUPPORTED':
+        return t('capacityUnsupported');
+      case 'ERROR':
+        return t('capacityError');
+      case 'STALE':
+        return t('capacityStale');
+      case 'RATE_LIMITED':
+        return t('capacityRateLimited');
+      default:
+        return t('capacityUnknown');
+    }
+  })();
+  return (
+    <div>
+      <span className="muted">
+        {t('capacityLabel')}: {status}
+      </span>
+      {capacity.reason === 'monitor_disabled' && <p className="muted">{t('capacityDisabled')}</p>}
+      {capacity.reason === 'shared_home' && <p className="muted">{t('capacitySharedHome')}</p>}
+      {capacity.reason === 'identity_unverified' && <p className="muted">{t('capacityIdentity')}</p>}
+      {capacity.observed_at && (
+        <p className="muted">
+          {t('capacityUpdated')}: {new Date(capacity.observed_at).toLocaleString()} · {capacity.source}
+        </p>
+      )}
+      {capacity.windows.map((window) => (
+        <p className="muted" key={`${window.group}/${window.kind}`}>
+          {window.kind}:{' '}
+          {window.remaining_percent === undefined
+            ? t('capacityUnknown')
+            : `${window.remaining_percent.toFixed(0)}% ${t('capacityRemaining')}`}
+          {window.reset_at && ` · ${t('capacityReset')}: ${new Date(window.reset_at).toLocaleString()}`}
+        </p>
+      ))}
+    </div>
   );
 }
 

@@ -159,7 +159,21 @@
     "auditExportCsv": "Baixar CSV",
     "auditExportError": "Não foi possível exportar a auditoria.",
     "auditExportEmpty": "A exportação está vazia.",
-    "auditEmptyChain": "A cadeia não contém entradas."
+    "auditEmptyChain": "A cadeia não contém entradas.",
+    "capacityLabel": "Capacidade",
+    "capacityRefresh": "Atualizar quota",
+    "capacityUnknown": "Desconhecida",
+    "capacityObserved": "Observada",
+    "capacityUnsupported": "Consulta não suportada",
+    "capacityError": "Falha de consulta",
+    "capacityStale": "Desatualizada",
+    "capacityRateLimited": "Limite atingido",
+    "capacityDisabled": "Monitor desativado no daemon.",
+    "capacitySharedHome": "Conta compartilhada; consulta desativada.",
+    "capacityIdentity": "Identidade não verificada.",
+    "capacityUpdated": "Atualização",
+    "capacityRemaining": "restante",
+    "capacityReset": "Renovação"
   },
   "en": {
     "appName": "Calango",
@@ -320,7 +334,21 @@
     "auditExportCsv": "Download CSV",
     "auditExportError": "Could not export the audit log.",
     "auditExportEmpty": "The export is empty.",
-    "auditEmptyChain": "The chain has no entries."
+    "auditEmptyChain": "The chain has no entries.",
+    "capacityLabel": "Capacity",
+    "capacityRefresh": "Refresh quota",
+    "capacityUnknown": "Unknown",
+    "capacityObserved": "Observed",
+    "capacityUnsupported": "Query unsupported",
+    "capacityError": "Query failed",
+    "capacityStale": "Stale",
+    "capacityRateLimited": "Rate limited",
+    "capacityDisabled": "Monitor disabled in the daemon.",
+    "capacitySharedHome": "Shared account; query disabled.",
+    "capacityIdentity": "Identity not verified.",
+    "capacityUpdated": "Updated",
+    "capacityRemaining": "remaining",
+    "capacityReset": "Reset"
   },
   "es": {
     "appName": "Calango",
@@ -481,6 +509,20 @@
     "auditExportCsv": "Descargar CSV",
     "auditExportError": "No se pudo exportar la auditoría.",
     "auditExportEmpty": "La exportación está vacía.",
-    "auditEmptyChain": "La cadena no contiene entradas."
+    "auditEmptyChain": "La cadena no contiene entradas.",
+    "capacityLabel": "Capacidad",
+    "capacityRefresh": "Actualizar cuota",
+    "capacityUnknown": "Desconocida",
+    "capacityObserved": "Observada",
+    "capacityUnsupported": "Consulta no compatible",
+    "capacityError": "Error de consulta",
+    "capacityStale": "Desactualizada",
+    "capacityRateLimited": "Límite alcanzado",
+    "capacityDisabled": "Monitor desactivado en el daemon.",
+    "capacitySharedHome": "Cuenta compartida; consulta desactivada.",
+    "capacityIdentity": "Identidad no verificada.",
+    "capacityUpdated": "Actualización",
+    "capacityRemaining": "restante",
+    "capacityReset": "Renovación"
   }
 }

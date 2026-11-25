@@ -158,5 +158,19 @@
   "auditExportCsv": "Download CSV",
   "auditExportError": "Could not export the audit log.",
   "auditExportEmpty": "The export is empty.",
-  "auditEmptyChain": "The chain has no entries."
+  "auditEmptyChain": "The chain has no entries.",
+  "capacityLabel": "Capacity",
+  "capacityRefresh": "Refresh quota",
+  "capacityUnknown": "Unknown",
+  "capacityObserved": "Observed",
+  "capacityUnsupported": "Query unsupported",
+  "capacityError": "Query failed",
+  "capacityStale": "Stale",
+  "capacityRateLimited": "Rate limited",
+  "capacityDisabled": "Monitor disabled in the daemon.",
+  "capacitySharedHome": "Shared account; query disabled.",
+  "capacityIdentity": "Identity not verified.",
+  "capacityUpdated": "Updated",
+  "capacityRemaining": "remaining",
+  "capacityReset": "Reset"
 }

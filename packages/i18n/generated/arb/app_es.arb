@@ -158,5 +158,19 @@
   "auditExportCsv": "Descargar CSV",
   "auditExportError": "No se pudo exportar la auditoría.",
   "auditExportEmpty": "La exportación está vacía.",
-  "auditEmptyChain": "La cadena no contiene entradas."
+  "auditEmptyChain": "La cadena no contiene entradas.",
+  "capacityLabel": "Capacidad",
+  "capacityRefresh": "Actualizar cuota",
+  "capacityUnknown": "Desconocida",
+  "capacityObserved": "Observada",
+  "capacityUnsupported": "Consulta no compatible",
+  "capacityError": "Error de consulta",
+  "capacityStale": "Desactualizada",
+  "capacityRateLimited": "Límite alcanzado",
+  "capacityDisabled": "Monitor desactivado en el daemon.",
+  "capacitySharedHome": "Cuenta compartida; consulta desactivada.",
+  "capacityIdentity": "Identidad no verificada.",
+  "capacityUpdated": "Actualización",
+  "capacityRemaining": "restante",
+  "capacityReset": "Renovación"
 }

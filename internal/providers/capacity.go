@@ -172,6 +172,10 @@ func (m *capacityMonitor) refresh(ctx context.Context, a core.ProviderAccount) {
 	s := m.service
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
+	currentAccount, err := s.cfg.Repo.GetProviderAccountByName(ctx, a.OwnerID, a.Kind, a.Label)
+	if err != nil || currentAccount.ID != a.ID {
+		return
+	}
 	now := s.cfg.Now()
 	m.mu.Lock()
 	e := m.entries[a.ID]
@@ -239,7 +243,8 @@ func (m *capacityMonitor) refresh(ctx context.Context, a core.ProviderAccount) {
 	}
 	failures := e.failures
 	m.mu.Unlock()
-	if s.cfg.OnCapacity != nil && capacityChanged(oldView, view) && (view.Status != string(model.UsageError) || failures >= 2) {
+	persistentFailure := failures == 2
+	if s.cfg.OnCapacity != nil && (persistentFailure || (capacityChanged(oldView, view) && failures == 0)) {
 		s.cfg.OnCapacity(a.OwnerID, view)
 	}
 }

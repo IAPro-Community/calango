@@ -48,7 +48,7 @@ type Config struct {
 
 // Service manages accounts and resolves them to gateway providers.
 type Service struct {
-	cfg Config
+	cfg      Config
 	capacity *capacityMonitor
 }
 
@@ -75,8 +75,8 @@ func NewService(cfg Config) (*Service, error) {
 type View struct {
 	core.ProviderAccount
 	// Key is the gateway name the agent chain refers to: "<kind>/<label>".
-	Key   string
-	Setup string
+	Key      string
+	Setup    string
 	Capacity CapacityView
 }
 
@@ -133,6 +133,14 @@ func (s *Service) Delete(ctx context.Context, ownerID, id string) error {
 	}
 	if target == nil {
 		return fmt.Errorf("%w: provider account %s", core.ErrNotFound, id)
+	}
+	if s.capacity != nil {
+		select {
+		case s.capacity.gate <- struct{}{}:
+			defer func() { <-s.capacity.gate }()
+		case <-ctx.Done():
+			return ctx.Err()
+		}
 	}
 	if err := s.cfg.Repo.DeleteProviderAccount(ctx, ownerID, id); err != nil {
 		return err

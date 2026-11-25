@@ -43,7 +43,7 @@ type Codex struct {
 	workDir string
 	// home is the CODEX_HOME of this account. Empty means the person's default
 	// Codex home, which is ADR 0013's shared default.
-	home string
+	home            string
 	coordinateQuota bool
 }
 
