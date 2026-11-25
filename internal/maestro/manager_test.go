@@ -114,6 +114,7 @@ func TestInstallVerifiesBeforeSwitchAndRollback(t *testing.T) {
 		"ORQUESTRADOR_MAESTRO_TELEMETRY=0",
 		"XDG_CONFIG_HOME=",
 		"CODEX_HOME=",
+		"USERPROFILE=",
 	} {
 		found := false
 		for _, value := range runner.activeEnv {
@@ -348,5 +349,21 @@ func TestExecRunnerReturnsOnlyStdout(t *testing.T) {
 	_, err = execRunner{}.Run(context.Background(), t.TempDir(), []string{"MAESTRO_HELPER_PROCESS=1", "MAESTRO_HELPER_FAIL=1"}, os.Args[0], helper...)
 	if err == nil || !strings.Contains(err.Error(), "npm notice") {
 		t.Fatalf("failure did not carry stderr: %v", err)
+	}
+}
+
+func TestEnvIsolatesUserProfileLikeHome(t *testing.T) {
+	m := newTestManager(t, &fakeRunner{}, nil, nil, nil)
+	home := filepath.Join(m.root, "versions", "1.1.1", "home")
+	vars := map[string]string{}
+	for _, value := range m.env(home) {
+		key, val, _ := strings.Cut(value, "=")
+		vars[key] = val
+	}
+	if vars["HOME"] != home || vars["USERPROFILE"] != home {
+		t.Fatalf("HOME=%q USERPROFILE=%q, want both %q", vars["HOME"], vars["USERPROFILE"], home)
+	}
+	if !controlledEnvironmentKey("userprofile") {
+		t.Fatal("USERPROFILE from the parent environment would reach Maestro")
 	}
 }
