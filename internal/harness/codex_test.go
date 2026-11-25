@@ -14,8 +14,8 @@ import (
 )
 
 // fakeCodex writes a stand-in for the codex binary. Its behaviour is driven by
-// environment variables set through t.Setenv: FAKE_SIGNED_OUT, FAKE_EXEC_FAIL,
-// FAKE_HANG. It records its argv and stdin next to itself.
+// marker files in its isolated test directory, not inherited environment variables.
+// It records its argv and stdin next to itself.
 func fakeCodex(t *testing.T) (bin, dir string) {
 	t.Helper()
 	if runtime.GOOS == "windows" {
@@ -27,7 +27,7 @@ dir="$(dirname "$0")"
 case "$1" in
 login)
   printf '%s' "$CODEX_HOME" > "$dir/login_home.txt"
-  if [ -n "$FAKE_SIGNED_OUT" ]; then echo "Not logged in"; exit 1; fi
+  if [ -f "$dir/FAKE_SIGNED_OUT" ]; then echo "Not logged in"; exit 1; fi
   echo "Logged in using ChatGPT"; exit 0;;
 exec)
   printf '%s\n' "$@" > "$dir/args.txt"
@@ -39,8 +39,8 @@ exec)
     if [ "$1" = "-o" ]; then out="$2"; fi
     shift
   done
-  if [ -n "$FAKE_HANG" ]; then sleep 30; fi
-  if [ -n "$FAKE_EXEC_FAIL" ]; then echo "boom with secret-prompt" >&2; exit 3; fi
+  if [ -f "$dir/FAKE_HANG" ]; then sleep 30; fi
+  if [ -f "$dir/FAKE_EXEC_FAIL" ]; then echo "boom with secret-prompt" >&2; exit 3; fi
   echo "hello from fake codex" > "$out"; exit 0;;
 esac
 exit 2
@@ -207,7 +207,9 @@ func TestCodexDefaultAccountKeepsInheritedCodexHome(t *testing.T) {
 
 func TestCodexSignedOutFailsBeforeRunningExec(t *testing.T) {
 	c, dir := newFakeCodex(t)
-	t.Setenv("FAKE_SIGNED_OUT", "1")
+	if err := os.WriteFile(filepath.Join(dir, "FAKE_SIGNED_OUT"), nil, 0o600); err != nil {
+		t.Fatal(err)
+	}
 
 	_, err := c.Complete(context.Background(), request("hi"), nil)
 	if !errors.Is(err, ErrSignedOut) {
@@ -238,8 +240,10 @@ func TestCodexNotInstalled(t *testing.T) {
 }
 
 func TestCodexExecFailureStreamsNothingAndDoesNotEchoOutput(t *testing.T) {
-	c, _ := newFakeCodex(t)
-	t.Setenv("FAKE_EXEC_FAIL", "1")
+	c, dir := newFakeCodex(t)
+	if err := os.WriteFile(filepath.Join(dir, "FAKE_EXEC_FAIL"), nil, 0o600); err != nil {
+		t.Fatal(err)
+	}
 
 	var chunks int
 	_, err := c.Complete(context.Background(), request("hi"), func(gateway.Chunk) { chunks++ })
@@ -255,8 +259,10 @@ func TestCodexExecFailureStreamsNothingAndDoesNotEchoOutput(t *testing.T) {
 }
 
 func TestCodexCancellationStopsTheRun(t *testing.T) {
-	c, _ := newFakeCodex(t)
-	t.Setenv("FAKE_HANG", "1")
+	c, dir := newFakeCodex(t)
+	if err := os.WriteFile(filepath.Join(dir, "FAKE_HANG"), nil, 0o600); err != nil {
+		t.Fatal(err)
+	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 300*time.Millisecond)
 	defer cancel()
