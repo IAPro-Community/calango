@@ -23,7 +23,7 @@ const write = process.argv.includes('--write');
 const rendererPackages = ['react', 'react-dom', 'scheduler'];
 // Modules whose texts already live in a hand-maintained third_party folder.
 const handled = { 'github.com/IAPro-Community/IAPro-SDK': 'iapro-sdk' };
-const licenseFile = /^(licen[cs]e|copying|copyright|notice|patents)([-._].*)?$/i;
+const licenseFile = /^(licen[cs]e|copying|copyright|notice|patents)([-_][a-z0-9-]+)?(\.(txt|md))?$/i;
 
 function go(args, env = {}) {
   return execFileSync('go', args, { cwd: root, encoding: 'utf8', env: { ...process.env, ...env } });
