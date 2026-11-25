@@ -36,7 +36,7 @@ func providerAccountResponseOf(v providers.View) providerAccountResponse {
 		Setup:     v.Setup,
 		CreatedAt: v.CreatedAt,
 		UpdatedAt: v.UpdatedAt,
-		Capacity: v.Capacity,
+		Capacity:  v.Capacity,
 	}
 }
 

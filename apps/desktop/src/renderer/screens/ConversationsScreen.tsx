@@ -193,6 +193,22 @@ function ConversationView({ client, t, conversationId }: ScreenProps & { convers
   );
 }
 
+function providerAttempt(payload: string): { account: string; source?: string; reason?: string; outcome: string } | null {
+  try {
+    const raw: unknown = JSON.parse(payload);
+    if (!raw || typeof raw !== 'object' || !('account' in raw) || !('outcome' in raw)) return null;
+    if (typeof raw.account !== 'string' || typeof raw.outcome !== 'string') return null;
+    return {
+      account: raw.account,
+      outcome: raw.outcome,
+      source: 'source_account' in raw && typeof raw.source_account === 'string' ? raw.source_account : undefined,
+      reason: 'routing_reason' in raw && typeof raw.routing_reason === 'string' ? raw.routing_reason : undefined,
+    };
+  } catch {
+    return null;
+  }
+}
+
 function RunWatcher({ client, t, runId }: ScreenProps & { runId: string }) {
   const load = useCallback(async () => {
     const detail = await client.getRun(runId);
@@ -246,6 +262,22 @@ function RunWatcher({ client, t, runId }: ScreenProps & { runId: string }) {
           </button>
         )}
       </div>
+      {run?.steps
+        .filter((step) => step.kind === 'provider_attempt')
+        .map((step) => {
+          const attempt = providerAttempt(step.payload);
+          if (!attempt) return null;
+          return (
+            <p className="muted" key={step.id}>
+              {t('routingAccount')}: {attempt.account}
+              {attempt.reason === 'verified_capacity_fallback' && attempt.source && (
+                <> · {t('routingSwitched')}: {attempt.source} → {attempt.account}</>
+              )}
+              {attempt.reason === 'capacity_intervention_required' && <> · {t('routingIntervention')}</>}
+              {attempt.outcome === 'failed' && <> · {t('runFailed')}</>}
+            </p>
+          );
+        })}
       {data?.approvals.length ? (
         <div className="card">
           {approvalError && <p className="error">{approvalError}</p>}

@@ -85,8 +85,8 @@ type CapacityRouter interface {
 
 // Config wires a Service. Now and NewID are injected so tests are deterministic.
 type Config struct {
-	Repo    Repository
-	Gateway Gateway
+	Repo           Repository
+	Gateway        Gateway
 	CapacityRouter CapacityRouter
 	// Memory supplies the remembered facts injected before each run. Nil disables injection.
 	Memory MemoryContext

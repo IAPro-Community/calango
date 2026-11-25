@@ -172,5 +172,18 @@
   "capacityIdentity": "Identidad no verificada.",
   "capacityUpdated": "Actualización",
   "capacityRemaining": "restante",
-  "capacityReset": "Renovación"
+  "capacityReset": "Renovación",
+  "routingOrder": "Orden de cuentas",
+  "routingEdit": "Editar cadena",
+  "routingStrict": "Enrutamiento por cuota verificada",
+  "routingStrictNote": "Requiere autorización del daemon y cuentas dedicadas Codex para el mismo modelo. Sin evidencia o presupuesto se bloquea la ejecución; sin fallback de pago automático.",
+  "routingUp": "Subir",
+  "routingDown": "Bajar",
+  "routingRemove": "Eliminar",
+  "routingAdd": "Agregar cuenta alternativa",
+  "routingSave": "Guardar cadena",
+  "routingCancel": "Cancelar",
+  "routingAccount": "Cuenta",
+  "routingSwitched": "Cambio por capacidad",
+  "routingIntervention": "Intervención necesaria: capacidad o autorización insuficiente."
 }

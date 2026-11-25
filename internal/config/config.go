@@ -30,7 +30,7 @@ type Config struct {
 	// TrustedProxies are the peers whose X-Forwarded-For header counts toward the pairing limit.
 	TrustedProxies []netip.Prefix
 	// PriceTableFile is an optional versioned USD tariff file, not a credential.
-	PriceTableFile string
+	PriceTableFile         string
 	CapacityInterval       time.Duration
 	CapacityRoutingAllowed bool
 }
@@ -91,7 +91,7 @@ func Load() (Config, error) {
 		VaultKey: vaultKey, VaultKeyFile: vaultKeyFile, VaultKeyVersion: vaultKeyVersion,
 		VaultKeyPrevious: os.Getenv("CALANGO_VAULT_KEY_PREVIOUS"), VaultKeyPreviousFile: os.Getenv("CALANGO_VAULT_KEY_PREVIOUS_FILE"),
 		TrustedProxies: trustedProxies,
-		PriceTableFile: os.Getenv("CALANGO_PRICE_TABLE_FILE"),
+		PriceTableFile:         os.Getenv("CALANGO_PRICE_TABLE_FILE"),
 		CapacityInterval:       capacityInterval,
 		CapacityRoutingAllowed: capacityRouting,
 	}

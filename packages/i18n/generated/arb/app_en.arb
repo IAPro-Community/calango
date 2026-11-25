@@ -172,5 +172,18 @@
   "capacityIdentity": "Identity not verified.",
   "capacityUpdated": "Updated",
   "capacityRemaining": "remaining",
-  "capacityReset": "Reset"
+  "capacityReset": "Reset",
+  "routingOrder": "Account order",
+  "routingEdit": "Edit chain",
+  "routingStrict": "Verified quota routing",
+  "routingStrictNote": "Requires daemon authorization and dedicated Codex accounts for the same model. Missing evidence or budget blocks execution; no automatic paid fallback.",
+  "routingUp": "Move up",
+  "routingDown": "Move down",
+  "routingRemove": "Remove",
+  "routingAdd": "Add fallback account",
+  "routingSave": "Save chain",
+  "routingCancel": "Cancel",
+  "routingAccount": "Account",
+  "routingSwitched": "Capacity-based switch",
+  "routingIntervention": "Intervention required: insufficient capacity evidence or authorization."
 }

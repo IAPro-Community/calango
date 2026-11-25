@@ -226,15 +226,15 @@ func main() {
 		log.Fatalf("maestro manager: %v", err)
 	}
 	convSvc, err := conversations.NewService(conversations.Config{
-		Repo:        database,
-		Gateway:     gw,
+		Repo:           database,
+		Gateway:        gw,
 		CapacityRouter: providerSvc,
-		Memory:      memorySvc,
-		Now:         time.Now,
-		NewID:       core.NewID,
-		Events:      hub,
-		MaestroHome: maestroManager.CodexHome,
-		Tools:       mcpGW,
+		Memory:         memorySvc,
+		Now:            time.Now,
+		NewID:          core.NewID,
+		Events:         hub,
+		MaestroHome:    maestroManager.CodexHome,
+		Tools:          mcpGW,
 	})
 	if err != nil {
 		log.Fatalf("conversations service: %v", err)

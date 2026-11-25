@@ -9,6 +9,8 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
+	"strings"
 	"sync"
 	"time"
 
@@ -38,6 +40,12 @@ func lockQuotaHome(ctx context.Context, home string) (func(), error) {
 	home, err = filepath.Abs(home)
 	if err != nil {
 		return nil, errors.New("quota home unavailable")
+	}
+	if runtime.GOOS == "windows" {
+		home = strings.ToLower(home)
+	}
+	if err := ctx.Err(); err != nil {
+		return nil, err
 	}
 	quotaHomes.Lock()
 	slot := quotaHomes.slots[home]
@@ -77,7 +85,11 @@ func (q QuotaAdapter) Identity(owner, profile string) (sdk.Account, error) {
 	if q.Codex == nil || q.Codex.home == "" || owner == "" || profile == "" {
 		return sdk.Account{}, sdk.ErrUnsupported
 	}
-	path := filepath.Join(q.Codex.home, "auth.json")
+	resolved, err := filepath.EvalSymlinks(q.Codex.home)
+	if err != nil || !sameQuotaHome(resolved, q.Codex.home) {
+		return sdk.Account{}, sdk.ErrIdentityMismatch
+	}
+	path := filepath.Join(resolved, "auth.json")
 	info, err := os.Lstat(path)
 	if err != nil || !info.Mode().IsRegular() || info.Size() > maxQuotaAuthBytes {
 		return sdk.Account{}, sdk.ErrIdentityMismatch
