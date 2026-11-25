@@ -28,6 +28,8 @@ type Config struct {
 	VaultKeyPreviousFile string
 	// TrustedProxies are the peers whose X-Forwarded-For header counts toward the pairing limit.
 	TrustedProxies []netip.Prefix
+	// PriceTableFile is an optional versioned USD tariff file, not a credential.
+	PriceTableFile string
 }
 
 // Load reads supported CALANGO_* environment variables and validates them.
@@ -72,6 +74,7 @@ func Load() (Config, error) {
 		VaultKey: vaultKey, VaultKeyFile: vaultKeyFile, VaultKeyVersion: vaultKeyVersion,
 		VaultKeyPrevious: os.Getenv("CALANGO_VAULT_KEY_PREVIOUS"), VaultKeyPreviousFile: os.Getenv("CALANGO_VAULT_KEY_PREVIOUS_FILE"),
 		TrustedProxies: trustedProxies,
+		PriceTableFile: os.Getenv("CALANGO_PRICE_TABLE_FILE"),
 	}
 	if err := cfg.Validate(); err != nil {
 		return Config{}, err
@@ -117,6 +120,9 @@ func (c Config) Validate() error {
 	}
 	if c.VaultKey != "" && c.VaultKeyFile != "" {
 		return fmt.Errorf("CALANGO_VAULT_KEY and CALANGO_VAULT_KEY_FILE are mutually exclusive; set one")
+	}
+	if c.PriceTableFile != "" && (!filepath.IsAbs(c.PriceTableFile) || strings.TrimSpace(c.PriceTableFile) != c.PriceTableFile || strings.ContainsRune(c.PriceTableFile, 0)) {
+		return fmt.Errorf("CALANGO_PRICE_TABLE_FILE: must be an absolute path without surrounding whitespace or NUL")
 	}
 	if err := c.validateVaultKeys(); err != nil {
 		return err
