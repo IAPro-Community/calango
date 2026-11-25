@@ -2,6 +2,7 @@ package providers
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sync"
 	"time"
@@ -156,6 +157,33 @@ func (m *capacityMonitor) forget(a core.ProviderAccount) {
 	delete(m.entries, a.ID)
 }
 
+// markLeaseFailure removes quota evidence and makes an unsafe reservation
+// visible to the owner. Only an actual successful probe can restore evidence.
+func (m *capacityMonitor) markLeaseFailure(a core.ProviderAccount, reason string) {
+	view := emptyCapacity(a, string(model.UsageError), reason)
+	m.mu.Lock()
+	e := m.entries[a.ID]
+	if e == nil {
+		// Keep an error-only entry until the next refresh can rebuild its
+		// adapter. Bound this cache exactly like regular observations.
+		if len(m.entries) < maxCapacityProfiles {
+			m.entries[a.ID] = &capacityEntry{view: view}
+		}
+		m.mu.Unlock()
+		if m.service.cfg.OnCapacity != nil {
+			m.service.cfg.OnCapacity(a.OwnerID, view)
+		}
+		return
+	}
+	changed := capacityChanged(e.view, view)
+	e.view, e.snapshot, e.previous = view, model.UsageSnapshot{}, nil
+	e.next = m.service.cfg.Now().Add(m.service.cfg.CapacityInterval)
+	m.mu.Unlock()
+	if changed && m.service.cfg.OnCapacity != nil {
+		m.service.cfg.OnCapacity(a.OwnerID, view)
+	}
+}
+
 // RefreshCapacity is bounded by one daemon-wide maintenance job. A concurrent
 // request returns the current projection rather than spawning another probe.
 func (s *Service) RefreshCapacity(ctx context.Context, owner, id string) (View, error) {
@@ -192,8 +220,8 @@ func (m *capacityMonitor) refresh(ctx context.Context, a core.ProviderAccount) {
 	now := s.cfg.Now()
 	m.mu.Lock()
 	e := m.entries[a.ID]
-	if e == nil {
-		if len(m.entries) >= maxCapacityProfiles {
+	if e == nil || e.cache == nil {
+		if e == nil && len(m.entries) >= maxCapacityProfiles {
 			m.mu.Unlock()
 			return
 		}
@@ -208,7 +236,10 @@ func (m *capacityMonitor) refresh(ctx context.Context, a core.ProviderAccount) {
 			m.mu.Unlock()
 			return
 		}
-		e = &capacityEntry{adapter: adapter, cache: cache, view: emptyCapacity(a, string(model.UsageUnknown), "not_observed")}
+		if e == nil {
+			e = &capacityEntry{view: emptyCapacity(a, string(model.UsageUnknown), "not_observed")}
+		}
+		e.adapter, e.cache = adapter, cache
 		m.entries[a.ID] = e
 	}
 	if now.Before(e.next) {
@@ -231,6 +262,11 @@ func (m *capacityMonitor) refresh(ctx context.Context, a core.ProviderAccount) {
 			key = accountLeaseKey(a.OwnerID, account.Scope)
 			reservation, err = s.leases.Acquire(ctx, key, holder, admissionTTL, 0)
 			if err != nil {
+				if errors.Is(err, lease.ErrReconcile) {
+					m.markLeaseFailure(a, "lease_reconciliation_required")
+				} else if !errors.Is(err, lease.ErrBusy) && ctx.Err() == nil {
+					m.markLeaseFailure(a, "lease_unavailable")
+				}
 				return
 			}
 			// Keep the fence until the observation has been published. Otherwise
@@ -239,7 +275,7 @@ func (m *capacityMonitor) refresh(ctx context.Context, a core.ProviderAccount) {
 				cleanup, stop := context.WithTimeout(context.Background(), 5*time.Second)
 				defer stop()
 				if s.leases.Release(cleanup, key, reservation, true) != nil {
-					m.forget(a)
+					m.markLeaseFailure(a, "lease_release_failed")
 				}
 			}()
 		}
