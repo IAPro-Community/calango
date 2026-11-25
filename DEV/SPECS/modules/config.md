@@ -16,6 +16,8 @@ Load environment configuration in a single package and reject invalid values bef
 | `CALANGO_VAULT_KEY_PREVIOUS_FILE` | unset | Path to a file with the same old key. Mutually exclusive with `CALANGO_VAULT_KEY_PREVIOUS`. |
 | `CALANGO_TRUSTED_PROXIES` | unset | Comma-separated IP addresses or CIDR ranges of reverse proxies. When the TCP peer is listed, the `/v1/pair` limit uses the right-most `X-Forwarded-For` entry that is not a listed proxy. Empty trusts none. Malformed entries fail startup; errors name the variable only. |
 
+| `CALANGO_PRICE_TABLE_FILE` | unset | Absolute path to a versioned JSON tariff file in USD micros per million tokens. Invalid configured files stop startup. Unlisted account/model combinations remain unknown. See below. |
+
 `internal/config.Load` is the only point that reads `CALANGO_*` variables. New variables must come here with a default, validation, usage and documentation. Secrets must not be placed in environment variables when the system vault is supported. The one exception is the VPS vault master key (`CALANGO_VAULT_KEY`, `CALANGO_VAULT_KEY_FILE`, and the `_VERSION`, `_PREVIOUS` and `_PREVIOUS_FILE` variables during rotation), because a VPS has no OS vault (ADR 0012).
 
 ## Invariants
@@ -29,3 +31,13 @@ Load environment configuration in a single package and reject invalid values bef
 
 - Unit tests cover the default, an explicit address, invalid formats/ports, and the vault key settings (mutually exclusive sources).
 - `go test ./...` and `go vet ./...` run in CI.
+
+## Tabela de preços (#60)
+
+O arquivo é opcional; não contém credenciais. Exemplo sintético, **não usar como preço real**:
+
+```json
+{"version":"example-not-a-real-price","currency":"USD","models":{"anthropic/default/example-model":{"input_per_million":1000000,"output_per_million":2000000}}}
+```
+
+A chave usa exatamente o identificador do provider/conta seguido do modelo enviado ao gateway. Não há fallback de tarifa entre contas ou providers. Os valores são inteiros em milionésimos de USD por milhão de tokens. Ambos são obrigatórios; zero é válido somente se configurado explicitamente. Sem arquivo ou entrada correspondente, custo permanece desconhecido. Alterações exigem reinício e nova versão de tabela; não reprecificam o histórico. Preço configurado multiplicado por tokens medidos não comprova cobrança do fornecedor, especialmente em planos de assinatura, cache e descontos; não cadastrar tarifa sem validar a modalidade da conta. Homologação de custo real continua em #60.
