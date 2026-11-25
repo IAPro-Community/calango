@@ -34,10 +34,10 @@ A CI (job `desktop-windows-package`, runner `windows-latest`) gera o instalador 
 5. Verifique:
    - `curl http://127.0.0.1:7317/healthz` responde `{"status":"ok"}`;
    - a janela mostra o daemon como "running";
-   - reinício: finalize `calango.exe` no Gerenciador de Tarefas; o app sobe outro e `/healthz` volta a responder;
+   - reinício: finalize o daemon no Gerenciador de Tarefas; o app sobe outro e `/healthz` volta a responder. O Windows não diferencia maiúsculas, então `Calango.exe` (Electron) e `calango.exe` (daemon) parecem o mesmo processo: finalize o que está em `resources\bin\calango.exe`;
    - log do daemon em `%AppData%\Calango Desktop\logs\daemon.log`, sem token nem valores do cofre;
    - dados em `%AppData%\calango` (`calango.db`).
-6. Saia pelo menu da bandeja ("Sair"), desinstale por "Aplicativos instalados" e confirme que a pasta do programa sumiu.
+6. Saia pelo menu da bandeja ("Sair"), desinstale por "Aplicativos instalados" e confirme que a pasta do programa sumiu. O desinstalador mantém os dados em `%AppData%\calango` e a credencial `calango:vault-master-v1`; apague os dois à mão para zerar a máquina.
 
 Registre na issue: versão do Windows, hash do instalador, resultado de cada passo e o trecho relevante do `daemon.log`.
 
