@@ -25,8 +25,9 @@ func LoadPriceTable(path string) (PriceTable, error) {
 		return PriceTable{}, errors.New("cannot read tariff file or file exceeds 1 MiB")
 	}
 	type entry struct {
-		Input  *int64 `json:"input_per_million"`
-		Output *int64 `json:"output_per_million"`
+		Input                 *int64 `json:"input_per_million"`
+		Output                *int64 `json:"output_per_million"`
+		AccountIdentitySHA256 string `json:"account_identity_sha256"`
 	}
 	var input struct {
 		Version  string           `json:"version"`
@@ -50,7 +51,7 @@ func LoadPriceTable(path string) (PriceTable, error) {
 		if !ok || provider == "" || model == "" || strings.TrimSpace(key) != key || price.Input == nil || price.Output == nil {
 			return PriceTable{}, errors.New("tariff entry requires provider/model and both prices")
 		}
-		table.Models[key] = Price{InputPerMillion: *price.Input, OutputPerMillion: *price.Output}
+		table.Models[key] = Price{InputPerMillion: *price.Input, OutputPerMillion: *price.Output, AccountIdentitySHA256: price.AccountIdentitySHA256}
 	}
 	if err := table.validate(); err != nil {
 		return PriceTable{}, errors.New("tariff prices must be non-negative")

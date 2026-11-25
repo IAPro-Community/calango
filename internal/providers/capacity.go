@@ -10,8 +10,8 @@ import (
 	"calango/internal/harness"
 
 	capacity "github.com/IAPro-Community/IAPro-SDK/capacity"
-	"github.com/IAPro-Community/IAPro-SDK/model"
 	"github.com/IAPro-Community/IAPro-SDK/lease"
+	"github.com/IAPro-Community/IAPro-SDK/model"
 	sdk "github.com/IAPro-Community/IAPro-SDK/providers"
 )
 
@@ -139,6 +139,17 @@ func projectCapacity(a core.ProviderAccount, snap model.UsageSnapshot, previous 
 	return view
 }
 
+func (m *capacityMonitor) invalidateIdentity(scope model.AccountScope) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	for id, entry := range m.entries {
+		seen := entry.snapshot.AccountScope
+		if seen.ProviderID == scope.ProviderID && seen.AccountID == scope.AccountID {
+			delete(m.entries, id)
+		}
+	}
+}
+
 func (m *capacityMonitor) forget(a core.ProviderAccount) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -171,6 +182,7 @@ func (m *capacityMonitor) refresh(ctx context.Context, a core.ProviderAccount) {
 		return
 	}
 	s := m.service
+	parentCtx := ctx
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 	currentAccount, err := s.cfg.Repo.GetProviderAccountByName(ctx, a.OwnerID, a.Kind, a.Label)
@@ -233,8 +245,11 @@ func (m *capacityMonitor) refresh(ctx context.Context, a core.ProviderAccount) {
 			}
 		}
 	}
-	if ctx.Err() != nil {
+	if parentCtx.Err() != nil {
 		return
+	}
+	if ctx.Err() != nil {
+		err = ctx.Err()
 	}
 	now = s.cfg.Now()
 	view := emptyCapacity(a, string(model.UsageError), "probe_failed")

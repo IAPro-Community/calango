@@ -55,13 +55,23 @@ func (s *Service) routeEvidence(ctx context.Context, owner string, ref core.Prov
 		snap.ModelName == "" || snap.ModelName != ref.Model {
 		return routing.Account{}, errRouteUnavailable
 	}
+	if len(snap.Windows) == 0 {
+		return routing.Account{}, errRouteUnavailable
+	}
+	for _, window := range snap.Windows {
+		if window.Group != "claude_gpt" || window.RemainingPercent == nil ||
+			!(*window.RemainingPercent >= 0 && *window.RemainingPercent <= 100) ||
+			(window.ResetTime != nil && !now.Before(*window.ResetTime)) {
+			return routing.Account{}, errRouteUnavailable
+		}
+	}
 	view := quota.BuildQuotaView(snap, "", "")
 	view.ComputeAvailabilityAt(now)
 	return routing.Account{
 		OwnerID: owner, Scope: current.Scope, QuotaScope: snap.AccountScope,
 		Model: ref.Model, QuotaGroup: "claude_gpt", GroupMapped: true,
 		Authorized: true, TermsPermit: s.cfg.RoutingAllowed, ModelCompatible: true,
-		Paid: !s.cfg.Prices.ConfirmedZeroTariff(ref.Key(), ref.Model), ExpiresAt: *snap.ExpiresAt,
+		Paid: !s.cfg.Prices.ConfirmedZeroTariff(ref.Key(), ref.Model, accountLeaseKey(owner, current.Scope).AccountID), ExpiresAt: *snap.ExpiresAt,
 		Eligibility: quota.EligibilityInput{View: view, Authenticated: true, Health: string(model.HealthHealthy)},
 	}, nil
 }
@@ -82,7 +92,7 @@ func (s *Service) SelectCapacityRoute(ctx context.Context, agent core.Agent, run
 	makeRoute := func(ref core.ProviderRef, account routing.Account, reason string) (core.ProviderRef, *gateway.CapacityRoute, error) {
 		return ref, &gateway.CapacityRoute{
 			OwnerID: agent.OwnerID, RunID: runID, AccountKey: ref.Key(), Model: ref.Model,
-			Scope: account.Scope, ExpiresAt: account.ExpiresAt, SourceKey: first.Key(), Reason: reason,
+			Scope: account.Scope, ExpiresAt: account.ExpiresAt, SourceKey: first.Key(), SourceScope: source.Scope, Reason: reason,
 		}, nil
 	}
 	status := source.Eligibility.View.Status
@@ -138,11 +148,21 @@ func (p *leasedCodex) Name() string { return p.cli.Name() }
 func (p *leasedCodex) MayHaveSideEffects() bool { return true }
 
 func (p *leasedCodex) Complete(ctx context.Context, req gateway.Request, stream func(gateway.Chunk)) (gateway.Usage, error) {
-	return p.cli.Complete(ctx, req, stream)
+	usage, err := p.cli.Complete(ctx, req, stream)
+	if p.service.leases == nil && req.CodexHome == "" {
+		p.service.capacity.forget(p.account)
+	}
+	return usage, err
 }
 
-func (p *leasedCodex) Admit(ctx context.Context, req gateway.Request) (func(error) error, error) {
+func (p *leasedCodex) Admit(ctx context.Context, req *gateway.Request) (func(error) error, error) {
 	s := p.service
+	if s.leases == nil {
+		if req.CapacityRoute != nil {
+			return nil, errRouteUnavailable
+		}
+		return nil, nil
+	}
 	if req.CodexHome != "" {
 		if req.CapacityRoute != nil {
 			return nil, errRouteUnavailable
@@ -172,21 +192,50 @@ func (p *leasedCodex) Admit(ctx context.Context, req gateway.Request) (func(erro
 	fail := func() (func(error) error, error) {
 		return nil, errors.Join(errRouteUnavailable, release())
 	}
-	if route := req.CapacityRoute; route != nil {
-		ref := core.ProviderRef{AccountID: p.account.ID, Kind: p.account.Kind, Label: p.account.Label, Model: req.Model}
-		evidence, err := s.routeEvidence(ctx, p.account.OwnerID, ref)
-		if err != nil || route.OwnerID != p.account.OwnerID || route.AccountKey != req.Provider ||
-			route.Model != req.Model || route.Scope != identity.Scope || evidence.Scope != route.Scope ||
-			!s.cfg.Now().Before(route.ExpiresAt) || !quota.EvaluateEligibility(evidence.Eligibility).Eligible ||
-			(route.Reason == "verified_capacity_fallback" && evidence.Paid) {
-			return fail()
+	check := func(checkCtx context.Context) error {
+		valid, err := s.leases.Valid(checkCtx, key, record)
+		if err != nil || !valid {
+			return errRouteUnavailable
 		}
+		current, err := adapter.Identity(p.account.OwnerID, p.account.ID)
+		if err != nil || current.Scope != identity.Scope {
+			return errRouteUnavailable
+		}
+		if route := req.CapacityRoute; route != nil {
+			ref := core.ProviderRef{AccountID: p.account.ID, Kind: p.account.Kind, Label: p.account.Label, Model: req.Model}
+			evidence, err := s.routeEvidence(checkCtx, p.account.OwnerID, ref)
+			if err != nil || route.OwnerID != p.account.OwnerID || route.AccountKey != req.Provider ||
+				route.Model != req.Model || route.Scope != identity.Scope || evidence.Scope != route.Scope ||
+				!s.cfg.Now().Before(route.ExpiresAt) {
+				return errRouteUnavailable
+			}
+			switch route.Reason {
+			case "configured_primary":
+				if !quota.EvaluateEligibility(evidence.Eligibility).Eligible {
+					return errRouteUnavailable
+				}
+			case "verified_capacity_fallback":
+				_, err = routing.SelectFallback(routing.SwitchRequest{
+					OwnerID: route.OwnerID, RunID: route.RunID, Source: route.SourceScope,
+					AllowSwitch: true, BeforeDispatch: true, Now: s.cfg.Now(),
+				}, []routing.Account{evidence})
+				if err != nil {
+					return errRouteUnavailable
+				}
+			default:
+				return errRouteUnavailable
+			}
+		}
+		return nil
 	}
-	valid, err := s.leases.Valid(ctx, key, record)
-	if err != nil || !valid {
+	if err := check(ctx); err != nil {
 		return fail()
 	}
+	req.AdmissionScope = &identity.Scope
+	req.AdmissionOwner = p.account.OwnerID
+	req.CheckAdmission = check
 	return func(result error) error {
+		s.capacity.invalidateIdentity(identity.Scope)
 		// Never release on unknown effects or an unsuccessful ledger write.
 		// An expired record cannot be acquired without reconciliation.
 		if result == nil || (!errors.Is(result, gateway.ErrLedger) &&

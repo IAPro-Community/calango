@@ -1091,10 +1091,10 @@ components:
         token_limit_month: { type: integer, minimum: 1 }
         approval_level: { type: string, enum: [always, sensitive, trusted] }
         maestro_enabled:
-        capacity_routing: { type: boolean, description: "Opt-in verified capacity routing before dispatch; no paid automatic fallback." }
           type: boolean
           default: false
           description: Use the isolated Maestro Codex home for Codex providers in this agent's chain.
+        capacity_routing: { type: boolean, description: "Opt-in verified capacity routing before dispatch; no paid automatic fallback." }
     Agent:
       allOf:
         - $ref: "#/components/schemas/AgentInput"

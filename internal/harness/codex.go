@@ -10,7 +10,6 @@ import (
 	"os"
 	"os/exec"
 	"strings"
-	"time"
 
 	"calango/internal/core"
 	"calango/internal/gateway"
@@ -129,12 +128,17 @@ func (c *Codex) Complete(ctx context.Context, req gateway.Request, stream func(g
 		return gateway.Usage{}, ErrSignedOut
 	}
 
-	if route := req.CapacityRoute; route != nil {
+	if req.AdmissionScope != nil {
 		adapter := QuotaAdapter{Codex: c}
-		current, err := adapter.Identity(route.OwnerID, route.Scope.ProfileID)
-		if err != nil || current.Scope != route.Scope || !time.Now().Before(route.ExpiresAt) || req.CodexHome != "" {
+		current, err := adapter.Identity(req.AdmissionOwner, req.AdmissionScope.ProfileID)
+		if err != nil || current.Scope != *req.AdmissionScope || req.CodexHome != "" || req.CheckAdmission == nil {
 			return gateway.Usage{}, ErrQuotaIdentityChanged
 		}
+		if err := req.CheckAdmission(ctx); err != nil {
+			return gateway.Usage{}, ErrQuotaIdentityChanged
+		}
+	} else if req.CapacityRoute != nil {
+		return gateway.Usage{}, ErrQuotaIdentityChanged
 	}
 
 	// mcpTokenEnv names the variable that carries a turn's MCP bearer token.

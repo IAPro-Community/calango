@@ -193,7 +193,7 @@ func (s *Service) Resolve(ctx context.Context, ownerID, key string) (gateway.Pro
 		if s.capacity != nil && ownerID == s.cfg.CapacityOwner {
 			p.CoordinateQuota()
 		}
-		if s.leases != nil && ownerID == s.cfg.CapacityOwner && a.Label != core.DefaultAccountLabel {
+		if s.capacity != nil && ownerID == s.cfg.CapacityOwner && a.Label != core.DefaultAccountLabel {
 			return &leasedCodex{service: s, account: a, cli: p}, nil
 		}
 		return p, nil

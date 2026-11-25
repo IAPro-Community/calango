@@ -53,13 +53,16 @@ func writeProviderChain(ctx context.Context, tx *sql.Tx, a core.Agent) error {
 		return fmt.Errorf("clear provider chain of agent %s: %w", a.ID, err)
 	}
 	for i, p := range a.Providers {
-		var owner string
-		err := tx.QueryRowContext(ctx, `SELECT owner_id FROM provider_accounts WHERE id = ?`, p.AccountID).Scan(&owner)
+		var owner, kind, label string
+		err := tx.QueryRowContext(ctx, `SELECT owner_id, kind, label FROM provider_accounts WHERE id = ?`, p.AccountID).Scan(&owner, &kind, &label)
 		if errors.Is(err, sql.ErrNoRows) || (err == nil && owner != a.OwnerID) {
 			return fmt.Errorf("%w: providers[%d] account is not one of yours", core.ErrInvalidInput, i)
 		}
 		if err != nil {
 			return fmt.Errorf("read provider account %s: %w", p.AccountID, err)
+		}
+		if a.CapacityRouting && (kind != core.ProviderKindCodex || label == core.DefaultAccountLabel) {
+			return fmt.Errorf("%w: capacity routing requires dedicated Codex accounts", core.ErrInvalidInput)
 		}
 		if _, err := tx.ExecContext(ctx,
 			`INSERT INTO agent_providers (agent_id, position, account_id, model) VALUES (?, ?, ?, ?)`,

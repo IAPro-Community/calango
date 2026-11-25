@@ -6,6 +6,8 @@ package gateway
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"math/big"
@@ -54,7 +56,7 @@ type EffectsProvider interface {
 // AdmissionProvider holds an account reservation across dispatch and ledger
 // recording. On ambiguous failure, the adapter must retain its fence.
 type AdmissionProvider interface {
-	Admit(context.Context, Request) (func(error) error, error)
+	Admit(context.Context, *Request) (func(error) error, error)
 }
 
 // CapacityRoute is a host-only pre-dispatch decision. Never deserialize it
@@ -67,6 +69,7 @@ type CapacityRoute struct {
 	Scope      model.AccountScope
 	ExpiresAt  time.Time
 	SourceKey  string
+	SourceScope model.AccountScope
 	Reason     string
 }
 
@@ -98,8 +101,11 @@ type Request struct {
 	Tools           *ToolEndpoint
 	// CodexHome overrides the account home for an explicitly linked Maestro agent.
 	// Only the daemon sets this local execution option; it is not an API field.
-	CodexHome string
-	CapacityRoute *CapacityRoute
+	CodexHome      string
+	CapacityRoute  *CapacityRoute
+	AdmissionScope *model.AccountScope
+	AdmissionOwner string
+	CheckAdmission func(context.Context) error
 }
 
 // ToolEndpoint is the MCP endpoint of one turn. Token is the bearer token that
@@ -293,12 +299,16 @@ func (g *Gateway) Call(ctx context.Context, who Caller, req Request, stream func
 
 	var finishAdmission func(error) error
 	if admission, ok := provider.(AdmissionProvider); ok {
-		finishAdmission, err = admission.Admit(ctx, req)
+		finishAdmission, err = admission.Admit(ctx, &req)
 		if err != nil {
 			return Usage{}, err
 		}
-	} else if req.CapacityRoute != nil {
-		return Usage{}, errors.New("gateway: capacity route requires an admission-capable provider")
+	}
+	if req.CapacityRoute != nil && (finishAdmission == nil || req.AdmissionScope == nil || req.CheckAdmission == nil) {
+		if finishAdmission != nil {
+			_ = finishAdmission(errors.New("gateway: invalid capacity admission"))
+		}
+		return Usage{}, errors.New("gateway: capacity route requires a valid account admission")
 	}
 	usage, callErr := provider.Complete(ctx, req, stream)
 	switch {
@@ -410,6 +420,15 @@ func (g *Gateway) buildRecord(who Caller, req Request, usage Usage, at time.Time
 	if !ok {
 		// A missing price is unknown, never zero.
 		return rec, nil
+	}
+	if price.AccountIdentitySHA256 != "" {
+		if req.AdmissionScope == nil {
+			return rec, nil
+		}
+		digest := sha256.Sum256([]byte(req.AdmissionScope.AccountID))
+		if price.AccountIdentitySHA256 != hex.EncodeToString(digest[:]) {
+			return rec, nil
+		}
 	}
 	cost, err := price.cost(usage.TokensIn, usage.TokensOut)
 	if err != nil {
