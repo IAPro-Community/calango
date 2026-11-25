@@ -35,7 +35,7 @@ type Status struct {
 
 // Codex runs turns through the OpenAI Codex CLI (`codex exec`). It implements
 // gateway.Provider. Runs are isolated from the person's Codex configuration
-// and session history, and they cannot use any tools Codex brings with it.
+// and session history. Native CLI commands are not mediated by Calango.
 type Codex struct {
 	bin     string
 	workDir string
@@ -59,10 +59,10 @@ func NewCodex(bin, workDir, home string) (*Codex, error) {
 
 func (c *Codex) commandWithHome(ctx context.Context, home string, args ...string) *exec.Cmd {
 	cmd := exec.CommandContext(ctx, c.bin, args...)
+	cmd.Env = safeCLIEnv(os.Environ())
 	if home != "" {
-		// exec keeps the last value of a duplicated variable, so this overrides
-		// a CODEX_HOME inherited from the environment.
-		cmd.Env = append(os.Environ(), "CODEX_HOME="+home)
+		// The explicitly selected account overrides the default home.
+		cmd.Env = append(cmd.Env, "CODEX_HOME="+home)
 	}
 	return cmd
 }
@@ -145,9 +145,6 @@ func (c *Codex) Complete(ctx context.Context, req gateway.Request, stream func(g
 	args = append(args, "-")
 	cmd := c.commandWithHome(ctx, home, args...)
 	if req.Tools != nil {
-		if cmd.Env == nil {
-			cmd.Env = os.Environ()
-		}
 		cmd.Env = append(cmd.Env, mcpTokenEnv+"="+req.Tools.Token)
 	}
 	cmd.Stdin = strings.NewReader(req.Prompt)
