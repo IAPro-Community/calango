@@ -19,11 +19,11 @@ func TestLoadPriceTable(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	p, ok := table.lookup("anthropic/default", "m")
+	p, ok := table.Lookup("anthropic/default", "m")
 	if !ok || p.InputPerMillion != 1000000 || p.OutputPerMillion != 0 || table.Version != "test-v1" {
 		t.Fatalf("unexpected tariff: %+v", table)
 	}
-	if _, ok := table.lookup("anthropic/other", "m"); ok {
+	if _, ok := table.Lookup("anthropic/other", "m"); ok {
 		t.Fatal("tariff must not leak across accounts")
 	}
 }

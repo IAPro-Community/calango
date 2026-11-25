@@ -57,10 +57,10 @@ func TestZeroTariffRequiresAccountBinding(t *testing.T) {
 		"codex/other/m": {},
 		"codex/paid/m":  {InputPerMillion: 1, AccountIdentitySHA256: a},
 	}}
-	if !table.ConfirmedZeroTariff("codex/work", "m", a) ||
-		table.ConfirmedZeroTariff("codex/work", "m", b) ||
-		table.ConfirmedZeroTariff("codex/other", "m", a) ||
-		table.ConfirmedZeroTariff("codex/paid", "m", a) {
+	if !table.ConfirmedZero("codex/work", "m", a) ||
+		table.ConfirmedZero("codex/work", "m", b) ||
+		table.ConfirmedZero("codex/other", "m", a) ||
+		table.ConfirmedZero("codex/paid", "m", a) {
 		t.Fatal("incorrect automatic cost gate")
 	}
 }

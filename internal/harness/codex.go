@@ -16,6 +16,7 @@ import (
 
 	"github.com/IAPro-Community/IAPro-SDK/providers"
 	sdkcodex "github.com/IAPro-Community/IAPro-SDK/providers/codex"
+	"github.com/IAPro-Community/IAPro-SDK/providers/process"
 	sdkruntime "github.com/IAPro-Community/IAPro-SDK/runtime"
 )
 
@@ -30,7 +31,7 @@ var ErrNotInstalled = errors.New("harness: CLI is not installed or not on PATH")
 var ErrQuotaIdentityChanged = errors.New("harness: quota identity changed before dispatch")
 
 // ErrQuotaNotDispatched proves the model invocation was never started.
-var ErrQuotaNotDispatched = errors.New("harness: model invocation was not dispatched")
+var ErrQuotaNotDispatched = process.ErrNotDispatched
 
 // CodexName is the gateway provider name of the Codex CLI harness.
 const CodexName = core.ProviderKindCodex

@@ -259,7 +259,7 @@ func (m *capacityMonitor) refresh(ctx context.Context, a core.ProviderAccount) {
 			if idErr != nil {
 				return
 			}
-			key = accountLeaseKey(a.OwnerID, account.Scope)
+			key = lease.PhysicalKey(a.OwnerID, account.Scope)
 			reservation, err = s.leases.Acquire(ctx, key, holder, admissionTTL, 0)
 			if err != nil {
 				if errors.Is(err, lease.ErrReconcile) {

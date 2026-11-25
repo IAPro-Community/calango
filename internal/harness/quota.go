@@ -2,8 +2,6 @@ package harness
 
 import (
 	"context"
-	"crypto/sha256"
-	"encoding/hex"
 	"errors"
 	"io"
 	"os"
@@ -17,7 +15,6 @@ import (
 	"github.com/IAPro-Community/IAPro-SDK/model"
 	sdk "github.com/IAPro-Community/IAPro-SDK/providers"
 	sdkcodex "github.com/IAPro-Community/IAPro-SDK/providers/codex"
-	parser "github.com/IAPro-Community/IAPro-SDK/providers/parsers/codex"
 )
 
 // A dedicated home is coordinated inside this daemon. This is not an OS-wide
@@ -81,92 +78,91 @@ type QuotaAdapter struct {
 
 const maxQuotaAuthBytes = 4 * 1024 * 1024
 
-func (q QuotaAdapter) Identity(owner, profile string) (sdk.Account, error) {
-	if q.Codex == nil || q.Codex.home == "" || owner == "" || profile == "" {
-		return sdk.Account{}, sdk.ErrUnsupported
+func (q QuotaAdapter) shared() (*sdkcodex.DedicatedQuota, error) {
+	if q.Codex == nil || q.Codex.home == "" {
+		return nil, sdk.ErrUnsupported
+	}
+	now := q.Now
+	if now == nil {
+		now = time.Now
+	}
+	return sdkcodex.NewDedicatedQuota(sdkcodex.DedicatedQuotaConfig{
+		Home:     q.Codex.home,
+		ReadAuth: q.readAuth,
+		Lock: func(ctx context.Context) (func(), error) {
+			return lockQuotaHome(ctx, q.Codex.home)
+		},
+		Login: func(ctx context.Context) (*exec.Cmd, error) {
+			return q.Codex.commandWithHome(ctx, q.Codex.home, "login", "status"), nil
+		},
+		AppServer: func(ctx context.Context) (*exec.Cmd, error) {
+			cmd := q.Codex.commandWithHome(ctx, q.Codex.home, "app-server")
+			cmd.Dir = q.Codex.workDir
+			return cmd, nil
+		},
+		SameHome: sameQuotaHome,
+		Now:      now,
+	})
+}
+
+// readAuth enforces Calango's authorized profile filesystem boundary. The
+// returned owned buffer is wiped by the SDK identity adapter.
+func (q QuotaAdapter) readAuth(ctx context.Context) ([]byte, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
 	}
 	homeInfo, err := os.Lstat(q.Codex.home)
 	if err != nil || !homeInfo.IsDir() || homeInfo.Mode()&os.ModeSymlink != 0 {
-		return sdk.Account{}, sdk.ErrIdentityMismatch
+		return nil, sdk.ErrIdentityMismatch
 	}
 	resolved, err := filepath.EvalSymlinks(q.Codex.home)
 	if err != nil || !sameQuotaHome(resolved, q.Codex.home) {
-		return sdk.Account{}, sdk.ErrIdentityMismatch
+		return nil, sdk.ErrIdentityMismatch
 	}
 	path := filepath.Join(resolved, "auth.json")
 	info, err := os.Lstat(path)
 	if err != nil || !info.Mode().IsRegular() || info.Size() > maxQuotaAuthBytes {
-		return sdk.Account{}, sdk.ErrIdentityMismatch
+		return nil, sdk.ErrIdentityMismatch
 	}
 	f, err := os.Open(path)
 	if err != nil {
-		return sdk.Account{}, sdk.ErrIdentityMismatch
+		return nil, sdk.ErrIdentityMismatch
 	}
 	defer f.Close()
 	opened, err := f.Stat()
 	if err != nil || !os.SameFile(info, opened) {
-		return sdk.Account{}, sdk.ErrIdentityMismatch
+		return nil, sdk.ErrIdentityMismatch
 	}
 	raw, err := io.ReadAll(io.LimitReader(f, maxQuotaAuthBytes+1))
-	defer clear(raw)
 	if err != nil || len(raw) > maxQuotaAuthBytes {
-		return sdk.Account{}, sdk.ErrIdentityMismatch
+		clear(raw)
+		return nil, sdk.ErrIdentityMismatch
 	}
-	id, err := sdkcodex.ExternalAccountID(raw)
+	return raw, nil
+}
+
+func (q QuotaAdapter) Identity(owner, profile string) (sdk.Account, error) {
+	adapter, err := q.shared()
 	if err != nil {
-		return sdk.Account{}, sdk.ErrIdentityMismatch
+		return sdk.Account{}, err
 	}
-	generation := sha256.Sum256(raw)
-	return sdk.Account{OwnerID: owner, Scope: model.AccountScope{
-		ProviderID: string(model.ProviderCodex), ProfileID: profile, AccountID: id,
-		IdentityVersion: hex.EncodeToString(generation[:]), CredentialScope: "dedicated-codex-home",
-	}}, nil
+	return adapter.Identity(context.Background(), owner, profile)
 }
 
 func (q QuotaAdapter) InspectAuth(ctx context.Context, account sdk.Account) (sdk.Authentication, error) {
-	release, err := lockQuotaHome(ctx, q.Codex.home)
+	adapter, err := q.shared()
 	if err != nil {
 		return sdk.Authentication{}, err
 	}
-	defer release()
-	current, err := q.Identity(account.OwnerID, account.Scope.ProfileID)
-	if err != nil || current != account {
-		return sdk.Authentication{}, sdk.ErrIdentityMismatch
-	}
-	status, err := q.Codex.Available(ctx)
-	if err != nil || !status.Installed || !status.SignedIn {
-		return sdk.Authentication{}, sdk.ErrIdentityMismatch
-	}
-	return sdk.Authentication{Scope: account.Scope, Authenticated: true, ObservedAt: q.Now()}, nil
+	return adapter.InspectAuth(ctx, account)
 }
 
 func (q QuotaAdapter) GetUsage(ctx context.Context, account sdk.Account) (model.UsageSnapshot, error) {
-	release, err := lockQuotaHome(ctx, q.Codex.home)
+	adapter, err := q.shared()
 	if err != nil {
 		return model.UsageSnapshot{}, err
 	}
-	defer release()
-	current, err := q.Identity(account.OwnerID, account.Scope.ProfileID)
-	if err != nil || current != account {
-		return model.UsageSnapshot{}, sdk.ErrIdentityMismatch
-	}
-	rpc, err := sdkcodex.StartStdioRPC(ctx, func(runCtx context.Context) (*exec.Cmd, error) {
-		cmd := q.Codex.commandWithHome(runCtx, q.Codex.home, "app-server")
-		cmd.Dir = q.Codex.workDir
-		return cmd, nil
-	})
-	if err != nil {
-		return model.UsageSnapshot{}, err
-	}
-	snap, err := parser.Probe(ctx, rpc, account.Scope, account.Scope.AccountID, q.Codex.home, sameQuotaHome, q.Now)
-	if err != nil {
-		return model.UsageSnapshot{}, err
-	}
-	current, err = q.Identity(account.OwnerID, account.Scope.ProfileID)
-	if err != nil || current != account {
-		return model.UsageSnapshot{}, sdk.ErrIdentityMismatch
-	}
-	return snap, nil
+	return adapter.GetUsage(ctx, account)
 }
 
 func sameQuotaHome(a, b string) bool {
