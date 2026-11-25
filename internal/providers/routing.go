@@ -180,9 +180,9 @@ func (p *leasedCodex) Admit(ctx context.Context, req *gateway.Request) (func(err
 		return nil, errRouteUnavailable
 	}
 	key := accountLeaseKey(p.account.OwnerID, identity.Scope)
-	record, err := s.leases.Acquire(ctx, key, holder, admissionTTL, 0)
+	record, err := acquireAccountLease(ctx, s.leases, key, holder, req.CapacityRoute == nil)
 	if err != nil {
-		return nil, errRouteUnavailable
+		return nil, errors.Join(errRouteUnavailable, err)
 	}
 	release := func() error {
 		cleanup, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -234,15 +234,82 @@ func (p *leasedCodex) Admit(ctx context.Context, req *gateway.Request) (func(err
 	req.AdmissionScope = &identity.Scope
 	req.AdmissionOwner = p.account.OwnerID
 	req.CheckAdmission = check
+	runCtx, stopHeartbeat := startAdmissionHeartbeat(ctx, admissionTTL/3, func(renewCtx context.Context) error {
+		_, err := s.leases.Renew(renewCtx, key, record, admissionTTL)
+		return err
+	})
+	req.AdmissionContext = runCtx
 	return func(result error) error {
+		renewErr := stopHeartbeat()
 		s.capacity.invalidateIdentity(identity.Scope)
-		// Never release on unknown effects or an unsuccessful ledger write.
-		// An expired record cannot be acquired without reconciliation.
-		if result == nil || (!errors.Is(result, gateway.ErrLedger) &&
-			(errors.Is(result, harness.ErrNotInstalled) || errors.Is(result, harness.ErrSignedOut) ||
-				errors.Is(result, harness.ErrQuotaIdentityChanged))) {
+		// A failed heartbeat, ambiguous dispatch or failed ledger write must
+		// never authorize another holder without reconciliation.
+		if renewErr != nil {
+			return errors.Join(errRouteUnavailable, renewErr)
+		}
+		if canReleaseAdmission(result) {
 			return release()
 		}
-		return nil
+		return errRouteUnavailable
 	}, nil
+}
+
+// acquireAccountLease lets legacy turns wait for an active reservation instead
+// of failing merely because a probe or another turn is in progress. Strict
+// routing fails closed immediately; an expired fence is never taken over.
+func acquireAccountLease(ctx context.Context, leases *lease.Coordinator, key lease.Key, holder string, wait bool) (lease.Record, error) {
+	for {
+		record, err := leases.Acquire(ctx, key, holder, admissionTTL, 0)
+		if !wait || !errors.Is(err, lease.ErrBusy) {
+			return record, err
+		}
+		timer := time.NewTimer(250 * time.Millisecond)
+		select {
+		case <-ctx.Done():
+			timer.Stop()
+			return lease.Record{}, ctx.Err()
+		case <-timer.C:
+		}
+	}
+}
+
+func canReleaseAdmission(result error) bool {
+	return result == nil || (!errors.Is(result, gateway.ErrLedger) &&
+		(errors.Is(result, harness.ErrNotInstalled) || errors.Is(result, harness.ErrSignedOut) ||
+			errors.Is(result, harness.ErrQuotaIdentityChanged) || errors.Is(result, harness.ErrQuotaNotDispatched)))
+}
+
+// startAdmissionHeartbeat renews through dispatch and ledger recording, even
+// when the caller cancels. A failed renewal cancels the protected process;
+// the caller still retains the fence unless quiescence can be established.
+func startAdmissionHeartbeat(ctx context.Context, interval time.Duration, renew func(context.Context) error) (context.Context, func() error) {
+	runCtx, cancel := context.WithCancel(ctx)
+	stop := make(chan struct{})
+	done := make(chan error, 1)
+	go func() {
+		ticker := time.NewTicker(interval)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-stop:
+				done <- nil
+				return
+			case <-ticker.C:
+				renewCtx, finish := context.WithTimeout(context.Background(), 5*time.Second)
+				err := renew(renewCtx)
+				finish()
+				if err != nil {
+					cancel()
+					done <- err
+					return
+				}
+			}
+		}
+	}()
+	return runCtx, func() error {
+		close(stop)
+		err := <-done
+		cancel()
+		return err
+	}
 }
