@@ -34,6 +34,15 @@ type Config struct {
 
 // Load reads supported CALANGO_* environment variables and validates them.
 func Load() (Config, error) {
+	return load(true)
+}
+
+// LoadForPrintToken ignores daemon-only tariff configuration.
+func LoadForPrintToken() (Config, error) {
+	return load(false)
+}
+
+func load(withPrices bool) (Config, error) {
 	addr := os.Getenv("CALANGO_ADDR")
 	if addr == "" {
 		addr = defaultAddr
@@ -74,7 +83,9 @@ func Load() (Config, error) {
 		VaultKey: vaultKey, VaultKeyFile: vaultKeyFile, VaultKeyVersion: vaultKeyVersion,
 		VaultKeyPrevious: os.Getenv("CALANGO_VAULT_KEY_PREVIOUS"), VaultKeyPreviousFile: os.Getenv("CALANGO_VAULT_KEY_PREVIOUS_FILE"),
 		TrustedProxies: trustedProxies,
-		PriceTableFile: os.Getenv("CALANGO_PRICE_TABLE_FILE"),
+	}
+	if withPrices {
+		cfg.PriceTableFile = os.Getenv("CALANGO_PRICE_TABLE_FILE")
 	}
 	if err := cfg.Validate(); err != nil {
 		return Config{}, err
