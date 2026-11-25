@@ -37,6 +37,15 @@ type Config struct {
 
 // Load reads supported CALANGO_* environment variables and validates them.
 func Load() (Config, error) {
+	return load(true)
+}
+
+// LoadForPrintToken ignores daemon-only tariff and capacity configuration.
+func LoadForPrintToken() (Config, error) {
+	return load(false)
+}
+
+func load(withDaemonConfig bool) (Config, error) {
 	addr := os.Getenv("CALANGO_ADDR")
 	if addr == "" {
 		addr = defaultAddr
@@ -72,28 +81,26 @@ func Load() (Config, error) {
 	if err != nil {
 		return Config{}, err
 	}
-	var capacityInterval time.Duration
-	if raw := os.Getenv("CALANGO_CAPACITY_INTERVAL"); raw != "" {
-		capacityInterval, err = time.ParseDuration(raw)
-		if err != nil || capacityInterval < 30*time.Second || capacityInterval > time.Hour {
-			return Config{}, fmt.Errorf("CALANGO_CAPACITY_INTERVAL: must be a duration from 30s to 1h")
-		}
-	}
-	var capacityRouting bool
-	if raw := os.Getenv("CALANGO_CAPACITY_ROUTING_ALLOWED"); raw != "" {
-		capacityRouting, err = strconv.ParseBool(raw)
-		if err != nil {
-			return Config{}, fmt.Errorf("CALANGO_CAPACITY_ROUTING_ALLOWED: must be a boolean")
-		}
-	}
 	cfg := Config{
 		Addr: addr, DataDir: dataDir,
 		VaultKey: vaultKey, VaultKeyFile: vaultKeyFile, VaultKeyVersion: vaultKeyVersion,
 		VaultKeyPrevious: os.Getenv("CALANGO_VAULT_KEY_PREVIOUS"), VaultKeyPreviousFile: os.Getenv("CALANGO_VAULT_KEY_PREVIOUS_FILE"),
-		TrustedProxies:         trustedProxies,
-		PriceTableFile:         os.Getenv("CALANGO_PRICE_TABLE_FILE"),
-		CapacityInterval:       capacityInterval,
-		CapacityRoutingAllowed: capacityRouting,
+		TrustedProxies: trustedProxies,
+	}
+	if withDaemonConfig {
+		cfg.PriceTableFile = os.Getenv("CALANGO_PRICE_TABLE_FILE")
+		if raw := os.Getenv("CALANGO_CAPACITY_INTERVAL"); raw != "" {
+			cfg.CapacityInterval, err = time.ParseDuration(raw)
+			if err != nil || cfg.CapacityInterval < 30*time.Second || cfg.CapacityInterval > time.Hour {
+				return Config{}, fmt.Errorf("CALANGO_CAPACITY_INTERVAL: must be a duration from 30s to 1h")
+			}
+		}
+		if raw := os.Getenv("CALANGO_CAPACITY_ROUTING_ALLOWED"); raw != "" {
+			cfg.CapacityRoutingAllowed, err = strconv.ParseBool(raw)
+			if err != nil {
+				return Config{}, fmt.Errorf("CALANGO_CAPACITY_ROUTING_ALLOWED: must be a boolean")
+			}
+		}
 	}
 	if err := cfg.Validate(); err != nil {
 		return Config{}, err

@@ -35,10 +35,16 @@ type Harness interface {
 - A fake harness in tests covers streaming, errors and cancellation.
 - With the CLI signed out, the run ends in `failed/harness_signed_out` and the interface shows a sign-in button.
 
-## Integração SDK (issue #128)
+## SDK integration (issue #128)
 
-O primeiro recorte usa tipos canônicos de provider e classificação HTTP do IAPro-SDK, além do gate compartilhado de fallback da cadeia. Consulte [ADR 0020](../../ADR/0020-iapro-sdk.md). Autenticação, execução, quota real, continuidade, coordenação e HUD permanecem no roadmap de integração; não há execução automática fora da cadeia ou mudança de permissões.
+The first slice uses canonical provider types and HTTP classification from IAPro-SDK, together with the shared fallback gate for the chain. See [ADR 0020](../../ADR/0020-iapro-sdk.md). Authentication, execution, real quota, continuity, coordination and HUD remain on the integration roadmap; no automatic execution outside the chain or change in permissions.
 
-### Runtime Codex compartilhado (SDK, segundo recorte)
+### Shared Codex runtime (SDK, second slice)
 
-Execução JSONL via IAPro-SDK e launch controlado pelo Calango (ADR 0020). Mensagens completas são entregues progressivamente; contadores terminais medidos prevalecem, estimativas são explícitas e falhas sem contagem usam a reserva do gateway. CLI real e versões compatíveis exigem homologação autorizada. Sem mudança na política MCP, sem persistência de sessão ou seleção automática por quotas.
+JSONL execution through IAPro-SDK and launch controlled by Calango (ADR 0020). Complete messages are delivered progressively; measured terminal counters take precedence, estimates are explicit and failures without counts use the gateway reservation. Real CLI and compatible versions require authorized acceptance. No change to MCP policy, session persistence or automatic selection by quotas.
+
+### Upgrade compatibility
+
+The CLI environment allowlist deliberately excludes HTTP_PROXY, HTTPS_PROXY, NO_PROXY and ALL_PROXY (including lowercase variants): proxy URLs can contain credentials, and the daemon's environment is not an authorized credential source for the child. Corporate installations that rely exclusively on inherited proxy variables may lose connectivity. Configure an approved CLI/OS network path before upgrading; authenticated proxy delegation requires a separately reviewed mechanism.
+
+Pending connector write approvals created before the upgrade using the old name/tool target cannot be executed after the upgrade. Request a new approval; never replay the old target automatically. Command output and raw connector errors are intentionally omitted from user-facing diagnostics to avoid credential disclosure.

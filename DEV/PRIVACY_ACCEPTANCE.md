@@ -1,12 +1,12 @@
-# Privacidade: escopo e critérios de aceite (#46)
+# Privacy: scope and acceptance criteria (#46)
 
-Status: proposta para revisão do PO; não representa implementação de exportação ou eliminação integral.
+Status: proposed for PO review; does not represent a complete export or deletion implementation.
 
-- Exportação autenticada de agentes, configurações não secretas, memórias, conversas, rotinas, decisões, uso e metadados pertencentes ao titular. Formato JSON versionado, manifesto e limites de tamanho. Excluir tokens, chaves, envelopes criptográficos, credenciais MCP e conteúdo de outros titulares.
-- Eliminação: inventariar dependências, cancelar execuções, impedir novos trabalhos durante a operação, revogar sessões e validar exclusão transacional dos registros permitidos. Confirmar escopo de dispositivos, contas e conectores antes de remover. Não disponibilizar exclusão destrutiva enquanto retenção de auditoria e backups não estiver definida.
-- Auditoria append-only: decidir quais metadados mínimos devem ser retidos, justificativa, prazo e procedimento de pseudonimização que preserve integridade verificável. Não alterar eventos existentes silenciosamente.
-- Backups e logs: definir prazo, expiração, restauração sem reintroduzir dados eliminados e responsabilidade operacional. A exclusão local não implica apagar dados enviados a providers externos.
-- Primeiro uso: detectar node, modelos, harness, vault e conectores localmente; exibir somente disponibilidade e metadados autorizados, nunca segredos, prompts, resultados ou ambiente bruto. Não enviar telemetria sem consentimento.
-- Testes de aceitação: isolamento entre titulares e escopos, exportação sem segredos, eliminação idempotente, falha parcial e recuperação, revogação de tokens, restauração de backup, ausência de cache e inspeção de payloads/logs com fixtures sintéticas.
+- Authenticated export of agents, non-secret settings, memories, conversations, routines, decisions, usage and metadata belonging to the data subject. Versioned JSON format, manifest and size limits. Exclude tokens, keys, encrypted envelopes, MCP credentials and other subjects' content.
+- Deletion: inventory dependencies, cancel runs, prevent new work during the operation, revoke sessions and validate transactional deletion of permitted records. Confirm the scope of devices, accounts and connectors before removing them. Do not expose destructive deletion until audit retention and backups are defined.
+- Append-only audit: decide which minimum metadata must be retained, the justification, retention period and pseudonymization procedure preserving verifiable integrity. Do not silently modify existing events.
+- Backups and logs: define retention, expiration, restoration without reintroducing deleted data and operational responsibility. Local deletion does not imply deletion of data sent to external providers.
+- First use: detect node, models, harness, vault and connectors locally; show only availability and authorized metadata, never secrets, prompts, results or raw environment. Do not send telemetry without consent.
+- Acceptance tests: isolation between subjects and scopes, export without secrets, idempotent deletion, partial failure and recovery, token revocation, backup restoration, lack of caching and inspection of payloads/logs with synthetic fixtures.
 
-Entrega parcial deste PR: Cache-Control no-store em respostas autenticadas (inclusive falhas) e pareamento. O header não é garantia contra cópia pelo cliente. A exportação, eliminação integral e descoberta inicial continuam abertas e exigem aprovação de escopo e implementação.
+Partial delivery in this PR: Cache-Control no-store on authenticated responses (including failures) and pairing. The header does not guarantee that the client cannot copy data. Export, complete deletion and initial discovery remain open and require scope approval and implementation.

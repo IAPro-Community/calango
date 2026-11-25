@@ -1,29 +1,29 @@
-# ADR 0021 — Fronteira de execução dos harnesses
+# ADR 0021 — Harness execution boundary
 
-Status: proposto, revisão humana necessária · Refs #113, #53, #54, #57, #117, #128.
+Status: proposed, human review required · Refs #113, #53, #54, #57, #117, #128.
 
-## Matriz de garantias atuais
+## Current guarantees
 
-| Capacidade | Anthropic API direta | Codex CLI |
+| Capability | Direct Anthropic API | Codex CLI |
 |---|---|---|
-| Ferramentas MCP Calango | Não executa ferramentas | Gateway por turno; grants e aprovação de escrita |
-| Comandos nativos | Não executa | CLI e sandbox próprio; não passam pelo gateway |
-| Filesystem | Sem ferramenta local | workspace-write; leitura e isolamento dependem do CLI/OS |
-| Rede | HTTP ao provedor | Política do CLI/OS; não é controlada pelo MCP |
-| Orçamento | Reserva + max_tokens enviado | Reserva e ledger; limite rígido de saída não comprovado |
-| Cancelamento | Contexto da requisição | Cancela processo principal; árvore de processos não comprovada |
-| Credenciais | Chave de conta via vault | Login local e CODEX_HOME; ambiente deve ser explicitamente filtrado |
+| Calango MCP tools | Does not execute tools | Per-turn gateway; grants and write approval |
+| Native commands | Does not execute | CLI and its own sandbox; bypass the gateway |
+| Filesystem | No local tools | workspace-write; reads and isolation depend on CLI/OS |
+| Network | HTTP to provider | CLI/OS policy; not controlled by MCP |
+| Budget | Reservation + max_tokens sent | Reservation and ledger; hard output limit not proven |
+| Cancellation | Request context | Cancels main process; process-tree cleanup not proven |
+| Credentials | Account key through vault | Local login and CODEX_HOME; environment explicitly filtered |
 
-ReadOnlyHint é uma declaração do servidor MCP, não prova ausência de efeito. Conectores devem ser previamente confiáveis e autorizados. Ações externas de resultado ambíguo não podem ser repetidas automaticamente.
+ReadOnlyHint is an MCP server declaration, not proof of absence of side effects. Connectors must be trusted and authorized in advance. External actions with ambiguous outcomes must not be automatically replayed.
 
-## Proposta de política
+## Proposed policy
 
-- Ambiente de CLI por allowlist; nenhuma chave Calango, token de outro turno, chave de API ou token Git herdado. Token MCP atual é injetado exclusivamente para o turno. Login por conta configurada. Não aceitar credencial implícita de ambiente como identidade de conta.
-- O PR #135 deve preservar esta política quando migrar command factory ao SDK. Não criar segundo parser/runtime.
-- Não prometer autorização de todos os comandos nativos. Até prova de isolamento, execução autônoma irrestrita não está homologada. Definir perfil somente leitura e perfil workspace explicitamente consentido; validar flags e limites contra versões reais dos providers antes de ativar.
-- Não prometer limpeza de descendentes sem testes nativos. SDK deve ser autoridade de runtime comum; host Calango retém decisão de permissões, orçamento e auditoria.
-- Não prometer confidencialidade contra processo malicioso rodando como o mesmo usuário; ambiente filtrado não impede leitura de arquivos, sockets, credenciais ou outras capacidades acessíveis ao usuário do processo.
+- CLI environment allowlist; no inherited Calango key, other-turn token, API key or Git token. The current MCP token is injected exclusively for the turn. Login uses the configured account. Do not accept implicit environment credentials as account identity.
+- PR #135 must preserve this policy when migrating the command factory to the SDK. Do not create a second parser/runtime.
+- Do not promise authorization of all native commands. Until isolation is proven, unrestricted autonomous execution is not accepted. Define a read-only profile and an explicitly consented workspace profile; validate flags and limits against real provider versions before enabling them.
+- Do not promise descendant cleanup without native tests. The SDK is the common runtime authority; the Calango host retains permission, budget and audit decisions.
+- Do not promise confidentiality against malicious processes running as the same user; filtering the environment does not prevent reads of files, sockets, credentials or other capabilities available to that user.
 
-## Gates restantes
+## Remaining gates
 
-Fixtures: ambiente, segredo, isolamento de contas, revogação, cancelamento antes/durante output, ausência de recibo, política de fallback. Homologação Windows do processo e descendentes e Codex/Anthropic real com orçamento explícito. Linux/macOS antes de anunciar suporte. Aprovação dos perfis, comunicação dos limites na UI e documentação pública. Sem fechamento de #113/#41 apenas por CI verde.
+Fixtures: environment, secrets, account isolation, revocation, cancellation before/during output, missing receipts and fallback policy. Windows acceptance for processes and descendants, and real Codex/Anthropic with an explicit budget. Linux/macOS before announcing support. Profile approval, UI communication of limitations and public documentation. Do not close #113/#41 solely because CI is green.
