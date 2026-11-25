@@ -1,6 +1,6 @@
 # Handoff
 
-Updated: 2026-11-23.
+Updated: 2026-11-25.
 
 ## Confirmed state
 
@@ -42,7 +42,7 @@ Updated: 2026-11-23.
 4. Complete platform acceptance: Windows installer/signing and Windows/macOS keyring/login runtime. Linux startup toggle is verified; OS-level shortcut activation is not.
 - Owner blockers: D1b legal review, D5 written Tailscale clearance or alternate transport, site terms/prices/domain/copy, permission before deleting `/tmp/agenticos`, memory capture/retention design, and authorization for live provider/action checks.
 - Platform blockers: Windows/macOS keyring, login and signed installer/update; Docker bridge test; OS shortcut activation. GitHub run 45188079827 passed on `dee8efa`, but current uncommitted changes are not covered.
-- Remaining implementable engineering: Codex JSONL/other V1 harnesses, MCP connector credentials/built-ins/result durability, previous-binary and OS-keyring backup/restore acceptance, personal-data export/deletion, user docs, accessibility, reference-code review and site icon. The offline runbook and migration restore test exist.
+- Remaining implementable engineering: Codex JSONL/other V1 harnesses, MCP connector credentials/built-ins/result durability, previous-binary and OS-keyring backup/restore acceptance, personal-data export/deletion, user docs, accessibility, reference-code review, and tray/notification icons. The website favicon is simplified; publication remains blocked on Q27 domain/legal/pricing decisions. The offline runbook and migration restore test exist.
 - Phase 1 exit remains unmet; do not report V1 complete.
 - Resume steps, checks and launch commands: `DEV/TODO_V1.md`, section "Status and resume point (2026-11-23)".
 

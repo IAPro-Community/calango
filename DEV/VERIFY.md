@@ -527,3 +527,9 @@ Limits:
 - Throwaway CLI probe in `/tmp/mtest` (not in the repo; `@iapro/orquestrador-maestro-cli` 1.1.0 and 1.1.1 installed in `/tmp`, no owner files touched): reinstall into the same home and version swaps 1.1.0 → 1.1.1 → 1.1.0 kept `.codex/auth.json`; `verify` exit 0 each time; 38 skills; `~/.codex/AGENTS.md` mtime unchanged.
 - Not exercised: a real Codex session on the stable home; installed agents and skills loading under it; the owner's `~/.codex`; the migration of earlier per-version logins.
 - Changes are uncommitted in `internal/maestro/manager.go`, `internal/maestro/manager_test.go`, and the docs above. Not committed or pushed: AGENTS.md requires an explicit owner request.
+
+## 2026-11-25 — Small site favicon
+
+- Added `site/assets/favicon.svg` with the brand's moss lizard silhouette on post-it yellow and linked it as the SVG favicon, retaining the 64 px PNG fallback and 192 px Apple touch icon.
+- Rendered the SVG at 32 px in headless Chromium. A browser smoke of the site showed the expected title, fetched the favicon as `image/svg+xml` with HTTP 200, and reported zero browser errors.
+- The site has not been published. Domain, HTTPS, legal/contact details, pricing, and copy remain owner decisions under Q27; issue #49 stays open.
