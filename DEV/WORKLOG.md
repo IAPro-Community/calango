@@ -316,4 +316,4 @@
 - Worked on #49's icon scope: created a simplified SVG lizard silhouette in the brand's moss/post-it palette, linked it as the site favicon, and retained PNG fallback and Apple touch icon.
 - Updated `DEV/BRAND/BRAND.md`, TODO, handoff, context, and verification records. This does not publish the site or complete #49; Q27's domain/legal/pricing/HTTPS decisions remain open.
 - Verified a 32 px Chromium render and the built site serving the favicon with HTTP 200 (`image/svg+xml`); page title was present and browser errors were zero.
-- No issue was closed or assigned. No commit or push was made.
+- Issue #49 remains open; `feat/49-small-site-favicon` is committed as `cf341e301e` and published in draft PR #153. CI and review are pending.
