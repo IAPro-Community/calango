@@ -62,15 +62,15 @@ type AdmissionProvider interface {
 // CapacityRoute is a host-only pre-dispatch decision. Never deserialize it
 // from an API request or use it as a substitute for revalidation.
 type CapacityRoute struct {
-	OwnerID    string
-	RunID      string
-	AccountKey string
-	Model      string
-	Scope      model.AccountScope
-	ExpiresAt  time.Time
-	SourceKey  string
+	OwnerID     string
+	RunID       string
+	AccountKey  string
+	Model       string
+	Scope       model.AccountScope
+	ExpiresAt   time.Time
+	SourceKey   string
 	SourceScope model.AccountScope
-	Reason     string
+	Reason      string
 }
 
 type attemptError struct {

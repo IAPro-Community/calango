@@ -140,7 +140,8 @@ export function AgentsScreen({ client, t }: ScreenProps) {
                     {t(agent.paused ? 'agentStatusPaused' : 'agentStatusActive')}
                   </span>
                   <span className="muted">
-                    {t('routingOrder')}: {agent.providers.map((provider) => provider.account ?? provider.account_id).join(' → ')}
+                    {t('routingOrder')}:{' '}
+                    {agent.providers.map((provider) => provider.account ?? provider.account_id).join(' → ')}
                   </span>
                   {agent.capacity_routing && <span className="muted">{t('routingStrict')}</span>}
                   <button type="button" onClick={() => setEditingAgent(agent.id)}>
@@ -194,9 +195,7 @@ function AgentRoutingEditor({
   onClose: () => void;
   onSaved: () => void;
 }) {
-  const [chain, setChain] = useState(() =>
-    agent.providers.map(({ account_id, model }) => ({ account_id, model })),
-  );
+  const [chain, setChain] = useState(() => agent.providers.map(({ account_id, model }) => ({ account_id, model })));
   const [strict, setStrict] = useState(agent.capacity_routing === true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
