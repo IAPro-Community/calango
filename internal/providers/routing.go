@@ -182,12 +182,22 @@ func (p *leasedCodex) Admit(ctx context.Context, req *gateway.Request) (func(err
 	key := accountLeaseKey(p.account.OwnerID, identity.Scope)
 	record, err := acquireAccountLease(ctx, s.leases, key, holder, req.CapacityRoute == nil)
 	if err != nil {
-		return nil, errors.Join(errRouteUnavailable, err)
+		if errors.Is(err, lease.ErrReconcile) {
+			s.capacity.markLeaseFailure(p.account, "lease_reconciliation_required")
+		}
+		if ctx.Err() != nil {
+			return nil, ctx.Err()
+		}
+		return nil, errRouteUnavailable
 	}
 	release := func() error {
 		cleanup, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
-		return s.leases.Release(cleanup, key, record, true)
+		if err := s.leases.Release(cleanup, key, record, true); err != nil {
+			s.capacity.markLeaseFailure(p.account, "lease_release_failed")
+			return errRouteUnavailable
+		}
+		return nil
 	}
 	fail := func() (func(error) error, error) {
 		return nil, errors.Join(errRouteUnavailable, release())
@@ -245,11 +255,13 @@ func (p *leasedCodex) Admit(ctx context.Context, req *gateway.Request) (func(err
 		// A failed heartbeat, ambiguous dispatch or failed ledger write must
 		// never authorize another holder without reconciliation.
 		if renewErr != nil {
-			return errors.Join(errRouteUnavailable, renewErr)
+			s.capacity.markLeaseFailure(p.account, "lease_renewal_failed")
+			return errRouteUnavailable
 		}
 		if canReleaseAdmission(result) {
 			return release()
 		}
+		s.capacity.markLeaseFailure(p.account, "lease_reconciliation_required")
 		return errRouteUnavailable
 	}, nil
 }
