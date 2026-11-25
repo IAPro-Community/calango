@@ -310,3 +310,10 @@
 - Tests: `TestCodexHomeRequiresActiveVerifiedRelease` now expects the stable home; new `TestCodexHomeIsStableAcrossReleases` and `TestFailedReleaseVerificationNeverWritesActiveCodexHome`.
 - Linked agents already receive the stable home: `cmd/calango/main.go` passes `maestroManager.CodexHome` to the conversation service.
 - F1-T16 stays partial: no real Codex session has run against the stable home.
+
+## 2026-11-25 — Docker bridge validation
+
+- Worked on #45. Fixed the node image's data-volume contract: it now defaults to `/data` and makes that directory writable for its distroless non-root UID/GID; this addresses the observed startup failure with a named volume.
+- Documented the reproducible bridge smoke in `DEV/DEPLOYMENT.md`; updated TODO, handoff, context, and verification records.
+- Verified both Docker builds, site/node `/healthz`, Docker healthcheck, named-volume ownership/persistence across node container recreation, and no key in logs. Compose/Caddy/TLS remains unverified because Compose CLI is unavailable.
+- No issue was closed or assigned. No commit or push was made.

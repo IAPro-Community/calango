@@ -1,6 +1,6 @@
 # Handoff
 
-Updated: 2026-11-23.
+Updated: 2026-11-25.
 
 ## Confirmed state
 
@@ -26,7 +26,7 @@ Updated: 2026-11-23.
 - Desktop fake-provider E2E passes agent creation, pause/resume, visible chat reply, routine create/toggle and usage. Settings/audit UI and Linux startup-at-login were exercised in an isolated Electron profile; no real model, production data or actual provider cost was used.
 - The desktop was restarted with the same isolated profile/data directory already in use; `/healthz` on `127.0.0.1:7317` returned 200, CDP disabled. The default `~/.config/calango` database was not opened or modified.
 - Research and positioning: `DEV/COMPETITIVE_LANDSCAPE.md`. Technical delivery pipeline: `DEV/TECHNICAL_DELIVERY.md`. TODO: `DEV/TODO_V1.md`.
-- Docker: build and health check history in `DEV/VERIFY.md`; not revalidated because the sandbox denied access to the daemon. Bridge networking test still pending.
+- Docker: site and node images built and smoke-tested on a user-defined bridge. Both `/healthz` endpoints passed; `/data/calango.db` persisted through container recreation in a named volume. Caddy/TLS Compose and public VPS deployment remain unverified.
 - License AGPL-3.0 + commercial license (ADR 0010). CLA and contacts still need owner review before publication.
 - Publication: `main` pushed to `origin` on the owner's request on 2026-11-23 (`git log origin/main -1` gives the pushed head). The earlier note that the owner chose not to commit is superseded. `/tmp/agenticos` is kept until P1–P3 are done (owner, 2026-11-23).
 - AgenticOS port (ADR 0011): `third_party/agenticos/LICENSE` and `NOTICE` copied byte for byte; root `NOTICE` has the entry; port checklist is item 10 of ADR 0011. ADR 0011 is accepted by the owner (Q01); legal review (D1b) is still open.
@@ -41,7 +41,7 @@ Updated: 2026-11-23.
 3. Obtain owner authorization for a real Codex/MCP run and an external approval action; configure verified provider pricing only with authorization.
 4. Complete platform acceptance: Windows installer/signing and Windows/macOS keyring/login runtime. Linux startup toggle is verified; OS-level shortcut activation is not.
 - Owner blockers: D1b legal review, D5 written Tailscale clearance or alternate transport, site terms/prices/domain/copy, permission before deleting `/tmp/agenticos`, memory capture/retention design, and authorization for live provider/action checks.
-- Platform blockers: Windows/macOS keyring, login and signed installer/update; Docker bridge test; OS shortcut activation. GitHub run 45188079827 passed on `dee8efa`, but current uncommitted changes are not covered.
+- **Platform blockers:** Windows/macOS keyring; F1-T24 OS shortcut/tray and platform login; F1-T25 signed installer/update and platform verification; OS shortcut activation. GitHub run 45188079827 passed on `dee8efa`; it does not cover current changes.
 - Remaining implementable engineering: Codex JSONL/other V1 harnesses, MCP connector credentials/built-ins/result durability, previous-binary and OS-keyring backup/restore acceptance, personal-data export/deletion, user docs, accessibility, reference-code review and site icon. The offline runbook and migration restore test exist.
 - Phase 1 exit remains unmet; do not report V1 complete.
 - Resume steps, checks and launch commands: `DEV/TODO_V1.md`, section "Status and resume point (2026-11-23)".

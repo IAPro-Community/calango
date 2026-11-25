@@ -527,3 +527,12 @@ Limits:
 - Throwaway CLI probe in `/tmp/mtest` (not in the repo; `@iapro/orquestrador-maestro-cli` 1.1.0 and 1.1.1 installed in `/tmp`, no owner files touched): reinstall into the same home and version swaps 1.1.0 → 1.1.1 → 1.1.0 kept `.codex/auth.json`; `verify` exit 0 each time; 38 skills; `~/.codex/AGENTS.md` mtime unchanged.
 - Not exercised: a real Codex session on the stable home; installed agents and skills loading under it; the owner's `~/.codex`; the migration of earlier per-version logins.
 - Changes are uncommitted in `internal/maestro/manager.go`, `internal/maestro/manager_test.go`, and the docs above. Not committed or pushed: AGENTS.md requires an explicit owner request.
+
+## 2026-11-25 — Docker bridge validation
+
+- `docker build -t calango-site:issues .` and `docker build -f deploy/Dockerfile.node -t calango-node:issues .`: passed. Docker emitted a legacy-builder deprecation warning; both images completed successfully.
+- A disposable user-defined `bridge` network ran both images with loopback-published ports. Site `/healthz` returned `ok`; node `/healthz` returned `{"status":"ok"}`; the site container health check became `healthy`.
+- The node created `/data/calango.db` as UID/GID 65532 with mode `0600`. Recreating the node container with the same named volume preserved startup and `/healthz`. No vault key appeared in container logs; the base64 key, containers, network, and volume were disposable and removed.
+- The first runtime probe exposed a real image issue: `/data/calango.db` failed with `permission denied`, and the mounted data directory was not configured. `deploy/Dockerfile.node` now sets `CALANGO_DATA_DIR=/data` and provides `/data` owned by the distroless non-root UID/GID. A later smoke with a hex-formatted test key was rejected because vault keys must decode to 32 bytes; the final smoke used a temporary base64 key.
+- `deploy/docker-compose.yml` remains untested: neither the Docker Compose plugin nor the standalone `docker-compose` command is installed. The manual smoke does not validate Caddy/TLS or a public VPS.
+- The site container served its page in the 1280 px browser smoke; title was present and there were zero browser errors.
