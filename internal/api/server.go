@@ -129,7 +129,10 @@ func NewHandler(cfg Config) (http.Handler, error) {
 
 	root := http.NewServeMux()
 	root.HandleFunc("GET /healthz", healthz)
-	root.HandleFunc("POST /v1/pair", h.pair)
+	root.HandleFunc("POST /v1/pair", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Cache-Control", "no-store")
+		h.pair(w, r)
+	})
 	root.Handle("/", h.authenticate(v1))
 	return allowCORS(cfg.CORSOrigins, root), nil
 }
@@ -159,6 +162,7 @@ func principalOf(ctx context.Context) principal {
 // constant time and acts with full scope. Any other token must belong to an active device.
 func (h *handler) authenticate(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Cache-Control", "no-store")
 		token := bearerToken(r)
 		if token == "" {
 			unauthorized(w)
