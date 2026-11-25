@@ -204,6 +204,7 @@ func main() {
 	convSvc, err := conversations.NewService(conversations.Config{
 		Repo:        database,
 		Gateway:     gw,
+		Memory:      memorySvc,
 		Now:         time.Now,
 		NewID:       core.NewID,
 		Events:      hub,
