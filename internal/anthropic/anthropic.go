@@ -98,8 +98,8 @@ type message struct {
 }
 
 type usage struct {
-	InputTokens  int64 `json:"input_tokens"`
-	OutputTokens int64 `json:"output_tokens"`
+	InputTokens  *int64 `json:"input_tokens"`
+	OutputTokens *int64 `json:"output_tokens"`
 }
 
 // event is the subset of Messages streaming events Calango reads.
@@ -158,7 +158,7 @@ func (p *Provider) Complete(ctx context.Context, req gateway.Request, stream fun
 	if resp.StatusCode != http.StatusOK {
 		return gateway.Usage{}, httpError(resp)
 	}
-	return readStream(resp.Body, stream)
+	return readStream(resp.Body, req, stream)
 }
 
 // httpError describes a non-200 answer without echoing headers or the request.
@@ -181,12 +181,22 @@ func httpError(resp *http.Response) error {
 
 // readStream parses the SSE body. Only `data:` lines carry JSON; the `event:`
 // line repeats the type inside the JSON, so it is ignored.
-func readStream(body io.Reader, stream func(gateway.Chunk)) (gateway.Usage, error) {
+func readStream(body io.Reader, req gateway.Request, stream func(gateway.Chunk)) (gateway.Usage, error) {
 	var (
 		in, out       int64
 		sawStop       bool
 		sawIn, sawOut bool
 	)
+	result := func(complete bool) gateway.Usage {
+		input, output := in, out
+		if !sawIn {
+			input = int64((len(req.Prompt) + 3) / 4)
+		}
+		if !complete || !sawOut {
+			output = max(output, req.MaxOutputTokens)
+		}
+		return gateway.Usage{TokensIn: input, TokensOut: output, Estimated: !(complete && sawIn && sawOut)}
+	}
 	scanner := bufio.NewScanner(body)
 	scanner.Buffer(make([]byte, 64<<10), maxLine)
 	for scanner.Scan() {
@@ -196,16 +206,16 @@ func readStream(body io.Reader, stream func(gateway.Chunk)) (gateway.Usage, erro
 		}
 		var ev event
 		if err := json.Unmarshal([]byte(strings.TrimSpace(strings.TrimPrefix(line, "data:"))), &ev); err != nil {
-			return gateway.Usage{TokensIn: in, TokensOut: out}, fmt.Errorf("anthropic: malformed stream event: %w", err)
+			return result(false), fmt.Errorf("anthropic: malformed stream event: %w", err)
 		}
 		switch ev.Type {
 		case "message_start":
 			if ev.Message != nil {
-				if ev.Message.Usage.InputTokens > 0 {
-					in, sawIn = ev.Message.Usage.InputTokens, true
+				if ev.Message.Usage.InputTokens != nil && *ev.Message.Usage.InputTokens >= 0 {
+					in, sawIn = *ev.Message.Usage.InputTokens, true
 				}
-				if ev.Message.Usage.OutputTokens > 0 {
-					out, sawOut = ev.Message.Usage.OutputTokens, true
+				if ev.Message.Usage.OutputTokens != nil && *ev.Message.Usage.OutputTokens >= 0 {
+					out = *ev.Message.Usage.OutputTokens
 				}
 			}
 		case "content_block_delta":
@@ -215,30 +225,30 @@ func readStream(body io.Reader, stream func(gateway.Chunk)) (gateway.Usage, erro
 		case "message_delta":
 			// output_tokens here is cumulative for the whole message.
 			if ev.Usage != nil {
-				if ev.Usage.InputTokens > 0 {
-					in, sawIn = ev.Usage.InputTokens, true
+				if ev.Usage.InputTokens != nil && *ev.Usage.InputTokens >= 0 {
+					in, sawIn = *ev.Usage.InputTokens, true
 				}
-				if ev.Usage.OutputTokens > 0 {
-					out, sawOut = ev.Usage.OutputTokens, true
+				if ev.Usage.OutputTokens != nil && *ev.Usage.OutputTokens >= 0 {
+					out, sawOut = *ev.Usage.OutputTokens, true
 				}
 			}
 		case "message_stop":
 			sawStop = true
 		case "error":
 			if ev.Error != nil {
-				return gateway.Usage{TokensIn: in, TokensOut: out}, fmt.Errorf("%w: anthropic: stream error %s: %s", gateway.ErrUnavailable, ev.Error.Type, ev.Error.Message)
+				return result(false), fmt.Errorf("%w: anthropic: stream error %s: %s", gateway.ErrUnavailable, ev.Error.Type, ev.Error.Message)
 			}
-			return gateway.Usage{TokensIn: in, TokensOut: out}, fmt.Errorf("%w: anthropic: stream error", gateway.ErrUnavailable)
+			return result(false), fmt.Errorf("%w: anthropic: stream error", gateway.ErrUnavailable)
 		}
 		if sawStop {
 			break
 		}
 	}
 	if err := scanner.Err(); err != nil {
-		return gateway.Usage{TokensIn: in, TokensOut: out}, fmt.Errorf("%w: anthropic: read stream: %w", gateway.ErrUnavailable, err)
+		return result(false), fmt.Errorf("%w: anthropic: read stream: %w", gateway.ErrUnavailable, err)
 	}
 	if !sawStop {
-		return gateway.Usage{TokensIn: in, TokensOut: out}, fmt.Errorf("%w: anthropic: stream ended before message_stop", gateway.ErrUnavailable)
+		return result(false), fmt.Errorf("%w: anthropic: stream ended before message_stop", gateway.ErrUnavailable)
 	}
-	return gateway.Usage{TokensIn: in, TokensOut: out, Estimated: !(sawIn && sawOut)}, nil
+	return result(true), nil
 }
