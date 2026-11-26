@@ -47,6 +47,7 @@ flowchart LR
 | Token generation and drift check | Implemented for CSS and TypeScript/Dart constants; `--check` runs in CI. | `scripts/generate-tokens.mjs`, `packages/tokens/generated/`, `.github/workflows/ci.yml` |
 | SDK and i18n generation | TypeScript SDK and i18n catalog generators are implemented with drift checks; Dart SDK is phase 2. | `api/`, `packages/sdk-ts`, `packages/i18n`, `DEV/TODO_V1.md` |
 | Desktop install, signing, update and rollback | Electron beta exists and runs on Linux; signed installers, Windows/macOS acceptance and signed app updates remain open. | `apps/desktop`, `SPECS/modules/desktop-electron.md`, TODO V1 |
+| Linux desktop packages and license gate | `.deb` and AppImage x64 with the embedded daemon; `verify-desktop-package.mjs` fails if `LICENSE`, `NOTICE` or `third_party/` are missing or differ; CI job `desktop-linux-package` installs, upgrades, runs the daemon and the app (Xvfb) and purges in clean Debian 12 and Ubuntu 24.04 containers, without uploading artifacts. Unsigned; macOS DMG configured but waits for Apple credentials and notarization. | `apps/desktop/electron-builder.yml`, `scripts/test-linux-package.sh`, `DEV/PACOTE_DESKTOP_LINUX_MACOS.md` |
 
 ## V1 release pipeline
 
