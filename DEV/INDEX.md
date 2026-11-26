@@ -24,6 +24,7 @@
 | [PRODUCT_HYBRID.md](PRODUCT_HYBRID.md) | PC + VPS + phone model, connections |
 | [MONETIZATION.md](MONETIZATION.md) | plans, add-ons, billing |
 | [BRAND/BRAND.md](BRAND/BRAND.md) | logo, palette, typography, motion |
+| [DESIGN_SYSTEM_V1.md](DESIGN_SYSTEM_V1.md) | Figma V1 Design System, 21 screens and FigJam architecture/flows |
 
 ## Engineering
 
@@ -38,6 +39,7 @@
 | [BACKUP_RESTORE.md](BACKUP_RESTORE.md) | offline local data backup, vault-key requirements and restore-before-rollback procedure |
 | [../api/openapi.yaml](../api/openapi.yaml) | API contract (source of the TS and Dart SDKs) |
 | [../packages/tokens/tokens.json](../packages/tokens/tokens.json) | design tokens (source of CSS and ThemeData) |
+| [../packages/tokens/figma-manifest.json](../packages/tokens/figma-manifest.json) | Figma V1 collection, component and screen node IDs |
 | [../packages/i18n/messages.json](../packages/i18n/messages.json) | interface catalog in en/pt-BR/es, source of the TypeScript and ARB files |
 
 ## Decisions (ADR)
