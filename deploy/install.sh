@@ -8,15 +8,19 @@
 # O que faz: confere Docker e Compose, cria /opt/calango, gera a chave do cofre (uma vez só,
 # arquivo 0400 do uid 65532, nunca impressa), escreve .env, docker-compose.yml e Caddyfile,
 # baixa a imagem fixando o digest, sobe o nó atrás do Caddy (TLS automático) e espera o
-# /healthz. Rodar de novo atualiza a configuração e a imagem sem trocar a chave nem apagar
-# dados. Não instala Docker nem baixa scripts de terceiros. Detalhes em DEV/DEPLOYMENT.md.
+# /healthz. A variante padrão (maestro) traz Node.js e npm para o Orquestrador Maestro se
+# instalar e se atualizar sozinho; --variant minimal usa a imagem sem Node.js. Rodar de novo
+# atualiza a configuração e a imagem sem trocar a chave nem apagar dados. Não instala Docker nem baixa scripts de terceiros. Detalhes em DEV/DEPLOYMENT.md.
 set -eu
 
 DEFAULT_DIR=/opt/calango
 DEFAULT_REPO=ghcr.io/iapro-community/calango
 DEFAULT_SUBNET=172.30.117.0/24
-# Usuário não root da imagem distroless (nonroot), dono do volume de dados e da chave.
+# Usuário não root das duas variantes da imagem (nonroot), dono do volume de dados e da chave.
 NODE_UID=65532
+# maestro: imagem X.Y.Z-maestro, com Node.js LTS e npm (o Maestro instala e atualiza sozinho).
+# minimal: imagem X.Y.Z, distroless sem Node.js (o Maestro não instala).
+DEFAULT_VARIANT=maestro
 PROJECT=calango
 
 say() { printf '%s\n' "$*"; }
@@ -34,6 +38,8 @@ Uso: install.sh --domain DOMINIO --version vX.Y.Z [opções]
 Instalação (rodar de novo é seguro: mantém chave, dados e token):
   --domain DOMINIO   domínio público que aponta para este VPS (obrigatório na 1ª vez)
   --version VERSAO   versão publicada da imagem (ex.: v0.4.0); sem "latest"
+  --variant VARIANTE maestro (padrão: com Node.js e npm, o Maestro instala e atualiza
+                     sozinho) ou minimal (sem Node.js, sem Maestro); vale com --version
   --image REF        referência completa da imagem (substitui --version; espelhos e testes)
   --dir DIR          diretório de instalação (padrão: /opt/calango)
   --subnet CIDR      sub-rede interna do Compose (padrão: 172.30.117.0/24)
@@ -185,6 +191,14 @@ valid_image() {
 	printf '%s\n' "$1" | grep -Eq '^[a-z0-9][a-z0-9._/-]*(:[A-Za-z0-9._-]+)?(@sha256:[a-f0-9]{64})?$'
 }
 
+# image_for VERSAO VARIANTE: referência oficial da imagem dessa versão e variante.
+image_for() {
+	case "$2" in
+	maestro) printf '%s:%s-maestro\n' "$DEFAULT_REPO" "${1#v}" ;;
+	minimal) printf '%s:%s\n' "$DEFAULT_REPO" "${1#v}" ;;
+	esac
+}
+
 valid_subnet() {
 	printf '%s\n' "$1" | grep -Eq '^[0-9]{1,3}(\.[0-9]{1,3}){3}/[0-9]{1,2}$'
 }
@@ -325,11 +339,22 @@ install() {
 	[ -n "$DOMAIN" ] || die "informe --domain (ex.: --domain calango.exemplo.com)."
 	valid_domain "$DOMAIN" || die "domínio inválido: $DOMAIN"
 
+	if [ -n "$VARIANT" ]; then
+		[ -n "$VERSION" ] || [ -n "$IMAGE" ] || die "--variant precisa de --version (a imagem muda de tag)."
+	else
+		VARIANT=$(env_get "$envfile" CALANGO_VARIANT)
+		[ -n "$VARIANT" ] || VARIANT=$DEFAULT_VARIANT
+	fi
+	case "$VARIANT" in
+	maestro | minimal) ;;
+	*) die "variante inválida: $VARIANT (use maestro ou minimal)" ;;
+	esac
+
 	if [ -n "$IMAGE" ]; then
 		:
 	elif [ -n "$VERSION" ]; then
 		printf '%s\n' "$VERSION" | grep -Eq '^v?[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$' || die "versão inválida: $VERSION (use vX.Y.Z)"
-		IMAGE="$DEFAULT_REPO:${VERSION#v}"
+		IMAGE=$(image_for "$VERSION" "$VARIANT")
 	else
 		IMAGE=$(env_get "$envfile" CALANGO_SOURCE_IMAGE)
 		[ -n "$IMAGE" ] || die "informe --version vX.Y.Z (ou --image REF)."
@@ -348,9 +373,16 @@ install() {
 	ensure_vault_key
 
 	pinned=$(resolve_image "$IMAGE")
+	# A imagem declara a própria variante (LABEL calango.variant no Dockerfile.node); com --image
+	# ela vale mais que o padrão, para o .env e o aviso final dizerem a verdade.
+	actual=$(docker image inspect --format '{{index .Config.Labels "calango.variant"}}' "$pinned" 2>/dev/null || true)
+	case "$actual" in
+	maestro | minimal) VARIANT=$actual ;;
+	esac
 
 	write_file "$envfile" 600 <<EOF
 # Gerado por deploy/install.sh. Rode o instalador de novo para mudar; sem segredos aqui.
+CALANGO_VARIANT=$VARIANT
 CALANGO_SOURCE_IMAGE=$IMAGE
 CALANGO_IMAGE=$pinned
 CALANGO_DOMAIN=$DOMAIN
@@ -366,10 +398,20 @@ EOF
 	say "Nó saudável (/healthz)."
 	check_proxy
 
+	if [ "$actual" = maestro ]; then
+		maestro_note="O Orquestrador Maestro se instala sozinho em segundo plano (npm) e se atualiza uma vez por dia;
+desligue em Configurações > Maestro ou com PATCH /v1/maestro/settings {\"auto_update\": false}."
+	elif [ "$actual" = minimal ]; then
+		maestro_note="Variante minimal: sem Node.js, o Orquestrador Maestro não instala (use --variant maestro)."
+	else
+		maestro_note="A imagem não declara a variante (LABEL calango.variant); confira se ela tem Node.js para o Maestro."
+	fi
+
 	cat <<EOF
 
 Calango instalado em $DIR para https://$DOMAIN
-Imagem: $pinned
+Imagem: $pinned ($VARIANT)
+$maestro_note
 
 Token de acesso local (trate como senha; não cole em logs, issues nem chats):
   sudo docker compose -f $DIR/docker-compose.yml exec calango calango print-token
@@ -413,6 +455,7 @@ main() {
 	DIR=$DEFAULT_DIR
 	DOMAIN=""
 	VERSION=""
+	VARIANT=""
 	IMAGE=""
 	SUBNET=""
 	TLS=""
@@ -424,6 +467,7 @@ main() {
 		case "$1" in
 		--domain) [ $# -ge 2 ] || die "$1 precisa de valor"; DOMAIN=$2; shift ;;
 		--version) [ $# -ge 2 ] || die "$1 precisa de valor"; VERSION=$2; shift ;;
+		--variant) [ $# -ge 2 ] || die "$1 precisa de valor"; VARIANT=$2; shift ;;
 		--image) [ $# -ge 2 ] || die "$1 precisa de valor"; IMAGE=$2; shift ;;
 		--dir) [ $# -ge 2 ] || die "$1 precisa de valor"; DIR=$2; shift ;;
 		--subnet) [ $# -ge 2 ] || die "$1 precisa de valor"; SUBNET=$2; shift ;;
