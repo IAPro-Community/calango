@@ -59,6 +59,12 @@ func main() {
 		}
 		return
 	}
+	if len(os.Args) > 1 && os.Args[1] == "healthcheck" {
+		if err := healthcheck(ctx, cfg.Addr, &http.Client{}); err != nil {
+			log.Fatalf("healthcheck: %v", err)
+		}
+		return
+	}
 	database, err := store.Open(ctx, filepath.Join(cfg.DataDir, "calango.db"))
 	if err != nil {
 		log.Fatalf("open store: %v", err)
