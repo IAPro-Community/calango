@@ -748,7 +748,7 @@ function emitOperation(operation) {
   const assign = operation.response.kind === 'void' ? 'await' : 'final response = await';
   lines.push(`    ${assign} _transport.${call}(`);
   lines.push(`      ${dartString(operation.method)},`);
-  lines.push(`      '${routeExpr.replace(/'/g, "\\'")}',`);
+  lines.push(`      '${routeExpr.replace(/\\/g, '\\\\').replace(/'/g, "\\'")}',`);
   const query = operation.parameters.filter((entry) => entry.location === 'query');
   if (query.length > 0) {
     lines.push('      query: <String, String?>{');
