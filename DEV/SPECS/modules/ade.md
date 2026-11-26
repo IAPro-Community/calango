@@ -18,6 +18,10 @@ Work on separate projects with agents, on the PC or on the VPS.
 - The agent does not merge or publish/deploy without human approval tied to the exact action.
 - Import skills from Claude Code (`.claude/`) and Codex (`.codex/`).
 
+## Current implementation status
+
+- Preview (F4-T06, #87, foundation ahead of the F4 acceptance): the desktop detects local dev servers on loopback and opens them in the internal browser, in a preview profile separate from the agents and confined to the chosen origin. Details and limits in `browser.md` ("Project preview"). It does not depend on projects or worktrees yet; `openPreview(target, { projectId })` is the hook for #82/#83.
+
 ## Acceptance
 - Two tasks in the same project run in parallel in different worktrees and produce two PRs.
 - The person can review the diff and the test results without relying on the agent's final message.

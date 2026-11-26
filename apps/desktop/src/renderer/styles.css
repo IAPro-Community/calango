@@ -418,3 +418,61 @@ output.muted {
   align-items: center;
   justify-content: center;
 }
+
+.browser-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.browser-preview-row,
+.browser-preview-port,
+.browser-preview-reload,
+.browser-blocked {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.browser-preview-port input {
+  width: 160px;
+}
+
+.browser-preview-reload {
+  font-size: 13px;
+}
+
+.browser-servers {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.browser-servers li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 13px;
+}
+
+.browser-server-port {
+  font-variant-numeric: tabular-nums;
+  min-width: 48px;
+  font-weight: 600;
+}
+
+.browser-server-title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.browser-blocked code {
+  overflow-wrap: anywhere;
+}

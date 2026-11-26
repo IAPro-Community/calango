@@ -21,6 +21,10 @@ export const channels = {
   browserSetBounds: 'calango:browser-set-bounds',
   browserClearProfile: 'calango:browser-clear-profile',
   browserTabsChanged: 'calango:browser-tabs-changed',
+  browserDetectServers: 'calango:browser-detect-servers',
+  browserOpenPreview: 'calango:browser-open-preview',
+  browserOpenExternal: 'calango:browser-open-external',
+  browserPreviewBlocked: 'calango:browser-preview-blocked',
 } as const;
 
 export interface LoginItemSettings {
@@ -49,6 +53,33 @@ export interface BrowserTab {
   canGoBack: boolean;
   canGoForward: boolean;
   active: boolean;
+  /** Set on project preview tabs (F4-T06): the loopback origin the tab is confined to. */
+  preview?: { origin: string; autoReload: boolean };
+}
+
+/** Owner id of preview tabs in the browser bridge (never a valid agent id). */
+export const PREVIEW_OWNER = '@preview';
+
+/** A local dev server answering HTTP on a loopback port. */
+export interface DevServer {
+  port: number;
+  /** http://127.0.0.1:PORT or http://[::1]:PORT, whichever answered. */
+  origin: string;
+  status: number;
+  /** Page <title>, as plain text (page data, shown, never interpreted). */
+  title: string;
+  /** Best-effort guess: vite, next, angular, webpack, express, python or http. */
+  kind: string;
+}
+
+export interface PreviewOptions {
+  autoReload?: boolean;
+}
+
+/** A preview tab tried to leave its origin and was kept in place. */
+export interface PreviewBlockedEvent {
+  tabId: string;
+  url: string;
 }
 
 export interface BrowserTabsEvent {
@@ -78,6 +109,13 @@ export interface BrowserBridge {
   setBounds(bounds: BrowserBounds | null): Promise<void>;
   clearProfile(agentId: string): Promise<void>;
   onTabs(listener: (event: BrowserTabsEvent) => void): () => void;
+  /** Probes the short list of common dev ports on loopback only. */
+  detectServers(): Promise<DevServer[]>;
+  /** Opens a preview tab confined to a loopback origin: a port, localhost:PORT or URL. */
+  openPreview(target: string | number, options?: PreviewOptions): Promise<BrowserTab>;
+  /** Opens, in the system browser, a URL a preview tab was blocked from; the click is the confirmation. */
+  openExternal(url: string): Promise<boolean>;
+  onPreviewBlocked(listener: (event: PreviewBlockedEvent) => void): () => void;
 }
 
 export interface CalangoBridge {
