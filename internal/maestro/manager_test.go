@@ -331,6 +331,9 @@ func TestHelperProcess(t *testing.T) {
 	}
 	_, _ = os.Stdout.WriteString("\"1.1.1\"\n")
 	_, _ = os.Stderr.WriteString("npm notice New major version of npm available!\n")
+	if secret := os.Getenv("MAESTRO_HELPER_SECRET"); secret != "" {
+		_, _ = os.Stderr.WriteString("npm ERR! //registry.npmjs.org/:_authToken=" + secret + "\n")
+	}
 	if os.Getenv("MAESTRO_HELPER_FAIL") == "1" {
 		os.Exit(3)
 	}
@@ -346,9 +349,22 @@ func TestExecRunnerReturnsOnlyStdout(t *testing.T) {
 	if string(out) != "\"1.1.1\"\n" {
 		t.Fatalf("stdout=%q", out)
 	}
-	_, err = execRunner{}.Run(context.Background(), t.TempDir(), []string{"MAESTRO_HELPER_PROCESS=1", "MAESTRO_HELPER_FAIL=1"}, os.Args[0], helper...)
-	if err == nil || !strings.Contains(err.Error(), "npm notice") {
-		t.Fatalf("failure did not carry stderr: %v", err)
+	const secret = "npm_synthetic_secret_4f2c9a"
+	env := []string{"MAESTRO_HELPER_PROCESS=1", "MAESTRO_HELPER_FAIL=1", "MAESTRO_HELPER_SECRET=" + secret}
+	out, err = execRunner{}.Run(context.Background(), t.TempDir(), env, os.Args[0], helper...)
+	if err == nil {
+		t.Fatal("failing command returned no error")
+	}
+	if out != nil {
+		t.Fatalf("failure returned output %q", out)
+	}
+	for _, leaked := range []string{secret, "npm notice", "npm ERR!", "\"1.1.1\""} {
+		if strings.Contains(err.Error(), leaked) {
+			t.Fatalf("error carried command output %q: %v", leaked, err)
+		}
+	}
+	if !strings.Contains(err.Error(), "exit status 3") {
+		t.Fatalf("error lost the exit status: %v", err)
 	}
 }
 
