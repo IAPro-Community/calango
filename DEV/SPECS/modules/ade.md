@@ -20,7 +20,7 @@ Work on separate projects with agents, on the PC or on the VPS.
 
 ## Implemented: terminal (F4-T03, anticipated phase 4 foundation)
 
-Delivered ahead of the phase 4 gate as a foundation (issue #84, ADR 0022). Phase 4 itself (projects, worktrees, editor, diff, PR) is not started.
+Delivered ahead of the phase 4 gate as a foundation (issue #84, ADR 0023). Phase 4 itself (projects, worktrees, editor, diff, PR) is not started.
 
 - `internal/pty`: `Start` runs a program on a PTY (`creack/pty` on Unix; ConPTY through `golang.org/x/sys/windows` on Windows, inside a job object with `KILL_ON_JOB_CLOSE`). `Manager` keeps sessions in memory, at most 8 per node, closes a session with no client and no input after 30 minutes, and kills the whole process tree when a session ends or the daemon stops.
 - Routes (write scope, bearer header as `/v1/events`): `POST /v1/pty` (body `{cwd, cols, rows}`, all optional), `GET /v1/pty`, `GET /v1/pty/{id}` (WebSocket: binary = raw bytes both ways; text = `{"type":"resize"}` from the client, `{"type":"exit"}` from the server), `DELETE /v1/pty/{id}`. Sessions are bound to the creating device. One client per session; 64 KiB of scrollback is replayed on attach.

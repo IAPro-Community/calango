@@ -1,4 +1,4 @@
-# ADR 0022 — Integrated terminal: PTY in the daemon, socket in the Electron main process
+# ADR 0023 — Integrated terminal: PTY in the daemon, socket in the Electron main process
 
 Status: proposed · 2026-11-25 · implements F4-T03 (issue #84) as an anticipated phase 4 foundation · builds on ADR 0015 (WebSocket) and ADR 0019 (desktop token handoff).
 
