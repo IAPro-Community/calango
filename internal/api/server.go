@@ -56,6 +56,8 @@ type Config struct {
 	Vault VaultStore
 	// Audit reads the audit chain and exports.
 	Audit AuditLedger
+	// License reports the evaluated node license for GET /v1/license.
+	License LicenseReader
 	// Token is the live local bearer token; it acts with full scope.
 	Token *auth.LocalToken
 	// OwnerID scopes all reads and writes to one owner.
@@ -76,6 +78,7 @@ type handler struct {
 	devices       *devices.Service
 	usage         *usage.Service
 	audit         AuditLedger
+	license       LicenseReader
 	vault         VaultStore
 	conversations *conversations.Service
 	events        *events.Hub
@@ -92,8 +95,8 @@ type handler struct {
 // NewHandler validates cfg and returns the node's HTTP handler.
 func NewHandler(cfg Config) (http.Handler, error) {
 	switch {
-	case cfg.Agents == nil, cfg.Memories == nil, cfg.Approvals == nil, cfg.Devices == nil, cfg.Usage == nil, cfg.Vault == nil, cfg.Audit == nil, cfg.Conversations == nil, cfg.Events == nil, cfg.Accounts == nil, cfg.Routines == nil, cfg.Tools == nil:
-		return nil, errors.New("api: agents, memories, approvals, devices, usage, vault, audit, conversations, events, provider accounts, routines and tools services are required")
+	case cfg.Agents == nil, cfg.Memories == nil, cfg.Approvals == nil, cfg.Devices == nil, cfg.Usage == nil, cfg.Vault == nil, cfg.Audit == nil, cfg.Conversations == nil, cfg.Events == nil, cfg.Accounts == nil, cfg.Routines == nil, cfg.Tools == nil, cfg.License == nil:
+		return nil, errors.New("api: agents, memories, approvals, devices, usage, vault, audit, conversations, events, provider accounts, routines, tools and license services are required")
 	case cfg.Token == nil:
 		return nil, errors.New("api: bearer token is required")
 	case cfg.OwnerID == "", cfg.DeviceID == "":
@@ -103,7 +106,7 @@ func NewHandler(cfg Config) (http.Handler, error) {
 	h := &handler{
 		agents: cfg.Agents, memories: cfg.Memories, accounts: cfg.Accounts,
 		approvals: cfg.Approvals, devices: cfg.Devices, usage: cfg.Usage,
-		vault: cfg.Vault, audit: cfg.Audit, conversations: cfg.Conversations,
+		vault: cfg.Vault, audit: cfg.Audit, license: cfg.License, conversations: cfg.Conversations,
 		events: cfg.Events, routines: cfg.Routines, tools: cfg.Tools,
 		maestro: cfg.Maestro, localToken: cfg.Token, ownerID: cfg.OwnerID,
 		deviceID: cfg.DeviceID, pairLimit: newAttemptLimiter(pairAttemptsPerWindow, pairWindow, time.Now),
@@ -123,6 +126,7 @@ func NewHandler(cfg Config) (http.Handler, error) {
 	h.registerProviderAccounts(v1)
 	h.registerRoutines(v1)
 	h.registerTools(v1)
+	h.registerLicense(v1)
 	if h.maestro != nil {
 		h.registerMaestro(v1)
 	}
