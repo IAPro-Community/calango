@@ -9,10 +9,17 @@ export const channels = {
   getLoginItemSettings: 'calango:get-login-item-settings',
   setLaunchAtLogin: 'calango:set-launch-at-login',
   quickConversation: 'calango:quick-conversation',
+  nodeInfo: 'calango:node-info',
 } as const;
 
 export interface LoginItemSettings {
   openAtLogin: boolean;
+}
+
+// NodeInfo is what the pairing screen may show about this computer. It holds no secret.
+export interface NodeInfo {
+  /** Display label for the pairing QR `node` field; absent when the host name is unusable. */
+  label?: string;
 }
 
 export interface DaemonConnection {
@@ -32,6 +39,7 @@ export interface CalangoBridge {
   getState(): Promise<DaemonState>;
   getLoginItemSettings(): Promise<LoginItemSettings>;
   setLaunchAtLogin(enabled: boolean): Promise<LoginItemSettings>;
+  getNodeInfo(): Promise<NodeInfo>;
   onQuickConversation(listener: () => void): () => void;
   onState(listener: (state: DaemonState) => void): () => void;
 }

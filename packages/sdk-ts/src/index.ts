@@ -22,6 +22,9 @@ export type UsageRow = Schemas['UsageRow'];
 export type VaultItem = Schemas['VaultItem'];
 export type MaestroStatus = Schemas['MaestroStatus'];
 export type MaestroUpdateResult = Schemas['MaestroUpdateResult'];
+export type Device = Schemas['Device'];
+export type DeviceScope = Schemas['DeviceScope'];
+export type PairingCode = Schemas['PairingCode'];
 
 export interface ClientOptions {
   /** Base URL of the local daemon, for example http://127.0.0.1:7317. */
@@ -86,6 +89,13 @@ export interface CalangoClient {
   updateMaestro(): Promise<MaestroUpdateResult>;
   rollbackMaestro(): Promise<MaestroStatus>;
   setMaestroAutoUpdate(enabled: boolean): Promise<MaestroStatus>;
+
+  /** Issues a single-use pairing code (5 minutes). The code is returned only here. */
+  createPairingCode(scope: DeviceScope): Promise<PairingCode>;
+  /** Lists paired devices, revoked ones included. Token digests never leave the node. */
+  listDevices(): Promise<Device[]>;
+  /** Revokes a device token; its next call gets 401. */
+  revokeDevice(deviceId: string): Promise<void>;
 }
 
 export function createClient(options: ClientOptions): CalangoClient {
@@ -198,5 +208,9 @@ export function createClient(options: ClientOptions): CalangoClient {
     rollbackMaestro: () => request<MaestroStatus>('POST', '/v1/maestro/rollback'),
     setMaestroAutoUpdate: (enabled) =>
       request<MaestroStatus>('PATCH', '/v1/maestro/settings', { auto_update: enabled }),
+
+    createPairingCode: (scope) => request<PairingCode>('POST', '/v1/pairing-codes', { scope }),
+    listDevices: () => request<Device[]>('GET', '/v1/devices'),
+    revokeDevice: (deviceId) => request<void>('DELETE', `/v1/devices/${encodeURIComponent(deviceId)}`),
   };
 }

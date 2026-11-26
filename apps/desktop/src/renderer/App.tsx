@@ -11,8 +11,9 @@ import { RoutinesScreen } from './screens/RoutinesScreen';
 import { UsageScreen } from './screens/UsageScreen';
 import { AuditScreen } from './screens/AuditScreen';
 import { SettingsScreen } from './screens/SettingsScreen';
+import { DevicesScreen } from './screens/DevicesScreen';
 
-type Section = 'agents' | 'conversations' | 'approvals' | 'routines' | 'usage' | 'audit' | 'settings';
+type Section = 'agents' | 'conversations' | 'approvals' | 'routines' | 'usage' | 'audit' | 'devices' | 'settings';
 
 const SECTIONS: { id: Section; key: MessageKey }[] = [
   { id: 'agents', key: 'navAgents' },
@@ -21,6 +22,7 @@ const SECTIONS: { id: Section; key: MessageKey }[] = [
   { id: 'routines', key: 'navRoutines' },
   { id: 'usage', key: 'navUsage' },
   { id: 'audit', key: 'navAudit' },
+  { id: 'devices', key: 'navDevices' },
   { id: 'settings', key: 'navSettings' },
 ];
 
@@ -77,6 +79,8 @@ function SectionView({ section, client, t }: { section: Section; client: Calango
       return <UsageScreen client={client} t={t} />;
     case 'audit':
       return <AuditScreen client={client} t={t} />;
+    case 'devices':
+      return <DevicesScreen client={client} t={t} />;
     case 'settings':
       return <SettingsScreen client={client} t={t} />;
   }

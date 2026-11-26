@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron';
-import type { CalangoBridge, DaemonConnection, DaemonState } from '../shared/ipc';
+import type { CalangoBridge, DaemonConnection, DaemonState, NodeInfo } from '../shared/ipc';
 
 // Sandboxed preloads cannot require local modules, so the channel names repeat
 // the ones in ../shared/ipc.ts.
@@ -9,6 +9,7 @@ const STATE_CHANGED = 'calango:state-changed';
 const GET_LOGIN_ITEM_SETTINGS = 'calango:get-login-item-settings';
 const SET_LAUNCH_AT_LOGIN = 'calango:set-launch-at-login';
 const QUICK_CONVERSATION = 'calango:quick-conversation';
+const NODE_INFO = 'calango:node-info';
 const quickConversationListeners = new Set<() => void>();
 let quickConversationPending = false;
 
@@ -27,6 +28,7 @@ const bridge: CalangoBridge = {
   getState: () => ipcRenderer.invoke(STATE) as Promise<DaemonState>,
   getLoginItemSettings: () => ipcRenderer.invoke(GET_LOGIN_ITEM_SETTINGS),
   setLaunchAtLogin: (enabled) => ipcRenderer.invoke(SET_LAUNCH_AT_LOGIN, enabled),
+  getNodeInfo: () => ipcRenderer.invoke(NODE_INFO) as Promise<NodeInfo>,
   onQuickConversation: (listener) => {
     quickConversationListeners.add(listener);
     if (quickConversationPending) {

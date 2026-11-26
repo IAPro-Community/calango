@@ -10,8 +10,10 @@ import {
   type IpcMainInvokeEvent,
 } from 'electron';
 import { readFile } from 'node:fs/promises';
+import os from 'node:os';
 import path from 'node:path';
-import { channels, type DaemonState } from '../shared/ipc';
+import { channels, type DaemonState, type NodeInfo } from '../shared/ipc';
+import { nodeLabel } from '../shared/pairing';
 import { Daemon } from './daemon';
 import { messages, type Locale } from './trayMessages';
 import { linuxAutostartEnabled, linuxAutostartFilePath, setLinuxAutostart } from './startup';
@@ -133,6 +135,11 @@ function registerIpc(): void {
   ipcMain.handle(channels.connection, (event) => {
     assertTrusted(event);
     return daemon.connectionOrThrow();
+  });
+  ipcMain.handle(channels.nodeInfo, (event): NodeInfo => {
+    assertTrusted(event);
+    const label = nodeLabel(os.hostname());
+    return label === undefined ? {} : { label };
   });
   ipcMain.handle(channels.state, (event) => {
     assertTrusted(event);

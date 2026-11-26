@@ -43,4 +43,8 @@ Go modules reviewed so far (see go.mod)
   modernc.org/mathutil v1.7.1, BSD-3-Clause (Copyright 2014 The mathutil Authors)
   Other modules in go.sum are used only by tests or are not linked into the calango binary; they are not listed here.
 
+npm packages bundled in the desktop renderer (see apps/desktop/package.json)
+  qrcode-generator 2.0.4, MIT (Copyright (c) 2009 Kazuhiko Arase). https://github.com/kazuhikoarase/qrcode-generator
+  "QR Code" is a registered trademark of DENSO WAVE INCORPORATED.
+
 The trademarks and names of the projects mentioned belong to their owners.
