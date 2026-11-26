@@ -2,11 +2,11 @@
 package maestro
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -601,14 +601,31 @@ func (execRunner) Run(ctx context.Context, dir string, env []string, executable 
 		cmd.Env = append(cmd.Env, key+"="+value)
 	}
 	// Only stdout is returned: npm writes notices to stderr, and callers parse stdout as JSON.
-	var stderr bytes.Buffer
-	cmd.Stderr = &stderr
+	// Command output never reaches the error, since it can carry tokens or paths.
+	cmd.Stderr = io.Discard
 	out, err := cmd.Output()
 	if err != nil {
-		detail := strings.TrimSpace(strings.TrimSpace(string(out)) + "\n" + strings.TrimSpace(stderr.String()))
-		return out, fmt.Errorf("%s: %w: %s", filepath.Base(executable), err, detail)
+		return nil, fmt.Errorf("%s: %w", runnerOperation(executable, args), runnerFailure(err))
 	}
 	return out, nil
+}
+
+// runnerOperation names the command without its arguments beyond the subcommand.
+func runnerOperation(executable string, args []string) string {
+	name := strings.TrimSuffix(filepath.Base(executable), filepath.Ext(executable))
+	if len(args) > 0 && !strings.HasPrefix(args[0], "-") {
+		name += " " + args[0]
+	}
+	return name
+}
+
+// runnerFailure keeps only the exit status of a failed command.
+func runnerFailure(err error) error {
+	var exitErr *exec.ExitError
+	if errors.As(err, &exitErr) {
+		return fmt.Errorf("exit status %d", exitErr.ExitCode())
+	}
+	return err
 }
 
 type npmRegistry struct {
