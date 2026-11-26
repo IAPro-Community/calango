@@ -43,4 +43,15 @@ Go modules reviewed so far (see go.mod)
   modernc.org/mathutil v1.7.1, BSD-3-Clause (Copyright 2014 The mathutil Authors)
   Other modules in go.sum are used only by tests or are not linked into the calango binary; they are not listed here.
 
+Dart and Flutter packages (packages/sdk-dart, packages/theme-flutter; versions in each pubspec.lock)
+  http 1.6.0 and its runtime dependencies async 2.13.1, collection 1.19.1, http_parser 4.1.2,
+  meta 1.19.0, path 1.9.1, source_span 1.10.2, string_scanner 1.4.1, term_glyph 1.2.2,
+  typed_data 1.4.0, web 1.1.2: BSD-3-Clause (Copyright the Dart project authors)
+  Flutter SDK 3.47.9, characters 1.4.1, vector_math 2.4.4: BSD-3-Clause (Copyright the Flutter and Dart authors)
+  material_color_utilities 0.13.0 (Flutter dependency): Apache License 2.0 (Copyright Google LLC)
+  Development only, not linked: lints 6.1.0, flutter_lints 6.0.0, test 1.33.0, all BSD-3-Clause.
+
+npm packages used only to generate code (not shipped)
+  js-yaml 4.3.2, MIT (Copyright 2011-2015 Vitaly Puzrin), reads api/openapi.yaml for scripts/generate-sdk-dart.mjs.
+
 The trademarks and names of the projects mentioned belong to their owners.

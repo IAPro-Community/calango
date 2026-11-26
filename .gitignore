@@ -39,3 +39,7 @@ Thumbs.db
 # build do desktop e binário local (gerados por npm run build)
 /bin/
 apps/desktop/dist/
+
+# Dart/Flutter
+.dart_tool/
+build/
