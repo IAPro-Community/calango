@@ -82,12 +82,13 @@ class FakeWebContents extends EventEmitter {
   isDestroyed() {
     return this.destroyed;
   }
-  close() {
+  close(options) {
+    this.closeOptions = options;
     this.destroyed = true;
   }
 }
 
-function setup() {
+function setup(hostOverrides = {}) {
   const sessions = new Map();
   const views = [];
   const attached = new Set();
@@ -109,6 +110,7 @@ function setup() {
     host: {
       add: (view) => attached.add(view),
       remove: (view) => attached.delete(view),
+      ...hostOverrides,
     },
     onTabsChanged: (agentId, tabs) => changes.push({ agentId, tabs }),
   });
@@ -351,4 +353,40 @@ test('profile key is created once with owner-only permissions and reused', async
   if (process.platform !== 'win32') {
     assert.equal((await stat(file)).mode & 0o777, 0o600);
   }
+});
+
+test('dispose detaches views and closes every tab without waiting for beforeunload', () => {
+  const { manager, views, attached } = setup();
+  manager.focusAgent('agent_A');
+  manager.setBounds({ x: 0, y: 0, width: 100, height: 100 });
+  manager.openTab('agent_A', 'https://a.example');
+  manager.openTab('agent_B', 'https://b.example');
+  assert.equal(attached.size, 1);
+
+  manager.dispose();
+
+  assert.equal(attached.size, 0);
+  for (const view of views) {
+    assert.equal(view.webContents.destroyed, true);
+    assert.deepEqual(view.webContents.closeOptions, { waitForBeforeUnload: false });
+  }
+  assert.deepEqual(manager.listTabs('agent_A'), []);
+  manager.dispose();
+});
+
+test('dispose still closes tabs when the window is already destroyed (quit)', () => {
+  let windowDestroyed = false;
+  const { manager, views } = setup({
+    remove: () => {
+      if (windowDestroyed) throw new Error('Object has been destroyed');
+    },
+  });
+  manager.focusAgent('agent_A');
+  manager.setBounds({ x: 0, y: 0, width: 100, height: 100 });
+  manager.openTab('agent_A', 'https://a.example');
+  manager.openTab('agent_A', 'https://b.example');
+
+  windowDestroyed = true;
+  assert.doesNotThrow(() => manager.dispose());
+  assert.ok(views.every((view) => view.webContents.destroyed));
 });

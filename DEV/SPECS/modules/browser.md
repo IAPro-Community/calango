@@ -30,6 +30,7 @@ F5-T01 (#91) lands ahead of the F4 acceptance, as the issue allows, so the proje
 - **Permissions**: request, check, device and Bluetooth-pairing handlers deny everything (camera, microphone, notifications, geolocation, clipboard read, MIDI, HID, USB, serial...). No display-media handler is set, so screen capture is refused.
 - **Protocols**: only `http:` and `https:` with no embedded credentials, for typed addresses, `will-navigate` and main-frame `will-redirect`. Typed text without a scheme gets `https://` (`http://` for loopback hosts, for dev-server previews). There is no search fallback.
 - **Popups**: `setWindowOpenHandler` always denies a new window; an http(s) target opens as a new tab of the same agent, and it does not take over the panel when another agent is shown.
+- **Quit**: tabs are closed in `before-quit`, while the window still exists, with `close({ waitForBeforeUnload: false })`; a live tab WebContents would otherwise keep the process alive after quit.
 - **Downloads**: denied (`will-download` is cancelled). A controlled download flow (approval, target folder) is a later step.
 - **Renderer**: "Browser" screen with agent selector, tab strip, address bar and back/forward/reload, and a two-step "Clear profile". The renderer sends only the viewport rectangle and tab commands; page content never reaches it. Texts in `packages/i18n`.
 

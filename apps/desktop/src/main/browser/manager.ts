@@ -199,9 +199,12 @@ export class BrowserManager {
     return this.tabs.get(tabId)?.view.webContents ?? null;
   }
 
+  /** dispose closes every tab without waiting for pages. Safe to call more than once. */
   dispose(): void {
     for (const tab of [...this.tabs.values()]) this.destroy(tab);
     this.activeByAgent.clear();
+    this.focusedAgent = null;
+    this.bounds = null;
   }
 
   private show(tabId: string | null): void {
@@ -222,11 +225,17 @@ export class BrowserManager {
   private destroy(tab: Tab): void {
     this.tabs.delete(tab.id);
     if (this.shownTabId === tab.id) {
-      this.deps.host.remove(tab.view);
       this.shownTabId = null;
+      try {
+        this.deps.host.remove(tab.view);
+      } catch {
+        // The window may already be destroyed during quit; the WebContents still must close.
+      }
     }
     const contents = tab.view.webContents;
-    if (!contents.isDestroyed()) contents.close();
+    // A live tab WebContents keeps the app process alive after quit, and a page's
+    // beforeunload must not be able to delay closing it.
+    if (!contents.isDestroyed()) contents.close({ waitForBeforeUnload: false });
     for (const observer of this.observers) observer.tabClosed?.(tab.id, tab.agentId);
   }
 

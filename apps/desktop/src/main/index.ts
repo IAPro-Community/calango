@@ -119,8 +119,12 @@ function createBrowser(win: BrowserWindow, profileKey: Buffer): BrowserManager {
     fromPartition: (partition) => session.fromPartition(partition),
     createView: (options) => new WebContentsView(options),
     host: {
-      add: (view) => win.contentView.addChildView(view),
-      remove: (view) => win.contentView.removeChildView(view),
+      add: (view) => {
+        if (!win.isDestroyed()) win.contentView.addChildView(view);
+      },
+      remove: (view) => {
+        if (!win.isDestroyed()) win.contentView.removeChildView(view);
+      },
     },
     onTabsChanged: (agentId: string, tabs: BrowserTab[]) => {
       if (!win.isDestroyed()) {
@@ -340,6 +344,9 @@ if (!app.requestSingleInstanceLock()) {
     }
     shuttingDown = true;
     event.preventDefault();
+    // Close browser tabs while the window still exists; their WebContents would otherwise
+    // keep the process alive after quit.
+    browser?.dispose();
     void daemon.stop().finally(() => app.quit());
   });
 }
