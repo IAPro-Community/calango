@@ -29,7 +29,7 @@
 
 ## Dart
 
-- flutter analyze e dart format; SDK gerado packages/sdk-dart (CalangoClient + CalangoTransport); ThemeData de packages/theme-flutter (CalangoTheme.light/dark), composto só das constantes geradas de tokens.json. Sem chamadas HTTP manuais à API Calango nem cores avulsas. ADR 0021.
+- flutter analyze e dart format; SDK gerado packages/sdk-dart (CalangoClient + CalangoTransport); ThemeData de packages/theme-flutter (CalangoTheme.light/dark), composto só das constantes geradas de tokens.json. Sem chamadas HTTP manuais à API Calango nem cores avulsas. ADR 0024.
 
 ## API e banco
 

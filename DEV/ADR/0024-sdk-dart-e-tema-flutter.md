@@ -1,4 +1,4 @@
-# ADR 0021 — SDK Dart e tema Flutter gerados por scripts Node do repositório
+# ADR 0024 — SDK Dart e tema Flutter gerados por scripts Node do repositório
 
 Status: proposto · issue #66 (F2-T03) · fundação da fase 2 antecipada, antes do aceite da fase 1, para destravar #67.
 

@@ -16,7 +16,7 @@ Requisitos: Go 1.23, Node 22.12+ e Git. Rode npm ci antes dos checks. Os linters
 | npm test | Testes Go e desktop main. |
 | npm run quality | Agrega os checks locais e build desktop. |
 
-Biome cobre TS/TSX, JS, CSS e scripts selecionados; excluir SDK schema e trayMessages.ts gerados, dist e node_modules. Não editar artefatos gerados à mão. Não aplicar fixes inseguros automaticamente. Site HTML monolítico não está no escopo do Biome inicial; validar via smoke e issue própria se necessário. Pacotes Dart (packages/sdk-dart, packages/theme-flutter; ADR 0021): o job dart-packages do CI instala Flutter 3.47.9 do arquivo oficial com SHA-256 fixado e roda pub get --enforce-lockfile, dart format --output=none --set-exit-if-changed, dart/flutter analyze --fatal-infos e dart/flutter test. Arquivos gerados têm // dart format off. O app (apps/mobile, #67) entra nos mesmos gates. Go race é executado em runner Linux com CGO habilitado.
+Biome cobre TS/TSX, JS, CSS e scripts selecionados; excluir SDK schema e trayMessages.ts gerados, dist e node_modules. Não editar artefatos gerados à mão. Não aplicar fixes inseguros automaticamente. Site HTML monolítico não está no escopo do Biome inicial; validar via smoke e issue própria se necessário. Pacotes Dart (packages/sdk-dart, packages/theme-flutter; ADR 0024): o job dart-packages do CI instala Flutter 3.47.9 do arquivo oficial com SHA-256 fixado e roda pub get --enforce-lockfile, dart format --output=none --set-exit-if-changed, dart/flutter analyze --fatal-infos e dart/flutter test. Arquivos gerados têm // dart format off. O app (apps/mobile, #67) entra nos mesmos gates. Go race é executado em runner Linux com CGO habilitado.
 
 ## Adoção
 
