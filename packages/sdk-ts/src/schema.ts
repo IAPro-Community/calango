@@ -584,6 +584,53 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/pty": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the calling device's terminal sessions
+         * @description Needs write scope. Sessions are bound to the device that created them; others are not listed.
+         */
+        get: operations["listPtySessions"];
+        put?: never;
+        /**
+         * Start a shell on a pseudo-terminal
+         * @description Needs write scope. The daemon picks the shell (the person's login shell on Unix, PowerShell or cmd.exe on Windows); clients cannot choose the program. `cwd` must resolve, after symlinks, to the daemon workspace or a directory below it; anything else is `400 invalid_input`. The child gets an allowlisted environment: no `CALANGO_*` variable, provider key or token reaches it. At most 8 sessions run per node (`429 rate_limited`). A session with no client attached and no input for 30 minutes is closed. Ending a session kills its whole process tree. Open and close are audited (`terminal.opened`, `terminal.closed`) without terminal content.
+         */
+        post: operations["createPtySession"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/pty/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["Id"];
+            };
+            cookie?: never;
+        };
+        /**
+         * WebSocket attached to one terminal session
+         * @description Upgrade to a WebSocket with `Authorization: Bearer <token>` (same scheme as `/v1/events`: no cookies, no token in the URL). Needs write scope and the device that created the session; any other device gets 404. One client at a time: a second attach gets 409. Binary frames carry raw terminal bytes in both directions. Text frames carry JSON: the client sends `{"type":"resize","cols":N,"rows":N}`; the server sends `{"type":"exit","reason":"exited|terminated|idle|shutdown","exit_code":N}` (`exit_code` only when the shell exited by itself) and then closes with 1000. A malformed text frame closes the socket with 1003; the session keeps running. Up to 64 KiB of recent output is replayed on attach. Client frames are limited to 64 KiB. Closing the socket detaches without ending the session. The server pings every 25 s and drops clients silent for 60 s.
+         */
+        get: operations["attachPtySession"];
+        put?: never;
+        post?: never;
+        /** End a terminal session and kill its process tree */
+        delete: operations["deletePtySession"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/approvals": {
         parameters: {
             query?: never;
@@ -848,6 +895,27 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        PtySessionInput: {
+            /** @description Working directory, relative to the daemon workspace or absolute inside it. Empty means the workspace. */
+            cwd?: string;
+            /** @description Defaults to 80 when cols and rows are both omitted. */
+            cols?: number;
+            /** @description Defaults to 24 when cols and rows are both omitted. */
+            rows?: number;
+        };
+        PtySession: {
+            /** @description 256 random bits, URL-safe base64 without padding (43 characters). */
+            id: string;
+            /** @description Absolute working directory on the node. */
+            cwd: string;
+            /** @description Absolute path of the shell program. */
+            shell: string;
+            cols: number;
+            rows: number;
+            attached: boolean;
+            /** Format: date-time */
+            created_at: string;
+        };
         Error: {
             error: {
                 /** @enum {string} */
@@ -2084,6 +2152,103 @@ export interface operations {
             };
             401: components["responses"]["Error"];
             403: components["responses"]["Error"];
+        };
+    };
+    listPtySessions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PtySession"][];
+                };
+            };
+            401: components["responses"]["Error"];
+            403: components["responses"]["Error"];
+        };
+    };
+    createPtySession: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PtySessionInput"];
+            };
+        };
+        responses: {
+            /** @description Started */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PtySession"];
+                };
+            };
+            400: components["responses"]["Error"];
+            401: components["responses"]["Error"];
+            403: components["responses"]["Error"];
+            429: components["responses"]["Error"];
+        };
+    };
+    attachPtySession: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["Id"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Switching Protocols */
+            101: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Error"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+            409: components["responses"]["Error"];
+        };
+    };
+    deletePtySession: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["Id"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Ended */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Error"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
         };
     };
     listApprovals: {

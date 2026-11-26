@@ -158,5 +158,16 @@
   "auditExportCsv": "Baixar CSV",
   "auditExportError": "Não foi possível exportar a auditoria.",
   "auditExportEmpty": "A exportação está vazia.",
-  "auditEmptyChain": "A cadeia não contém entradas."
+  "auditEmptyChain": "A cadeia não contém entradas.",
+  "navTerminal": "Terminal",
+  "terminalNew": "Novo terminal",
+  "terminalEnd": "Encerrar sessão",
+  "terminalIntro": "Abre um shell na pasta de trabalho do Calango neste computador. Variáveis secretas do Calango não chegam ao terminal.",
+  "terminalEmpty": "Nenhuma sessão aberta.",
+  "terminalConnecting": "Conectando ao terminal...",
+  "terminalConnected": "Conectado",
+  "terminalEnded": "Sessão encerrada.",
+  "terminalExitCode": "Código de saída",
+  "terminalDisconnected": "Conexão com o terminal perdida.",
+  "terminalLimit": "Limite de sessões de terminal atingido. Encerre uma sessão para abrir outra."
 }

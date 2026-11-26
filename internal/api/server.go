@@ -25,6 +25,7 @@ import (
 	"calango/internal/maestro"
 	"calango/internal/memory"
 	"calango/internal/providers"
+	"calango/internal/pty"
 	"calango/internal/routines"
 	"calango/internal/tools"
 	"calango/internal/usage"
@@ -52,6 +53,8 @@ type Config struct {
 	Tools *tools.Service
 	// Maestro manages the isolated official CLI. Nil disables its API routes.
 	Maestro *maestro.Manager
+	// Terminal runs integrated terminal sessions for /v1/pty. Nil disables its routes.
+	Terminal *pty.Manager
 	// Vault stores secrets and never returns a secret value.
 	Vault VaultStore
 	// Audit reads the audit chain and exports.
@@ -82,6 +85,7 @@ type handler struct {
 	routines      *routines.Service
 	tools         *tools.Service
 	maestro       *maestro.Manager
+	terminal      *pty.Manager
 	localToken    *auth.LocalToken
 	ownerID       string
 	deviceID      string
@@ -105,7 +109,7 @@ func NewHandler(cfg Config) (http.Handler, error) {
 		approvals: cfg.Approvals, devices: cfg.Devices, usage: cfg.Usage,
 		vault: cfg.Vault, audit: cfg.Audit, conversations: cfg.Conversations,
 		events: cfg.Events, routines: cfg.Routines, tools: cfg.Tools,
-		maestro: cfg.Maestro, localToken: cfg.Token, ownerID: cfg.OwnerID,
+		maestro: cfg.Maestro, terminal: cfg.Terminal, localToken: cfg.Token, ownerID: cfg.OwnerID,
 		deviceID: cfg.DeviceID, pairLimit: newAttemptLimiter(pairAttemptsPerWindow, pairWindow, time.Now),
 		trusted: cfg.TrustedProxies,
 	}
@@ -125,6 +129,9 @@ func NewHandler(cfg Config) (http.Handler, error) {
 	h.registerTools(v1)
 	if h.maestro != nil {
 		h.registerMaestro(v1)
+	}
+	if h.terminal != nil {
+		h.registerPTY(v1)
 	}
 
 	root := http.NewServeMux()

@@ -31,6 +31,8 @@ tags:
     description: Model usage and costs.
   - name: vault
     description: Secret names and dates. Values are never returned.
+  - name: terminal
+    description: Integrated terminal sessions (PTY on Unix, ConPTY on Windows). Sessions live in memory only.
 paths:
   /healthz:
     get:
@@ -623,6 +625,81 @@ paths:
         "101": { description: Switching Protocols }
         "401": { $ref: "#/components/responses/Error" }
         "403": { $ref: "#/components/responses/Error" }
+  /v1/pty:
+    post:
+      operationId: createPtySession
+      tags: [terminal]
+      summary: Start a shell on a pseudo-terminal
+      description: >-
+        Needs write scope. The daemon picks the shell (the person's login shell on Unix, PowerShell or
+        cmd.exe on Windows); clients cannot choose the program. `cwd` must resolve, after symlinks, to the
+        daemon workspace or a directory below it; anything else is `400 invalid_input`. The child gets an
+        allowlisted environment: no `CALANGO_*` variable, provider key or token reaches it. At most 8
+        sessions run per node (`429 rate_limited`). A session with no client attached and no input for
+        30 minutes is closed. Ending a session kills its whole process tree. Open and close are audited
+        (`terminal.opened`, `terminal.closed`) without terminal content.
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PtySessionInput" }
+      responses:
+        "201":
+          description: Started
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PtySession" }
+        "400": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "429": { $ref: "#/components/responses/Error" }
+    get:
+      operationId: listPtySessions
+      tags: [terminal]
+      summary: List the calling device's terminal sessions
+      description: Needs write scope. Sessions are bound to the device that created them; others are not listed.
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/PtySession" }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+  /v1/pty/{id}:
+    parameters:
+      - $ref: "#/components/parameters/Id"
+    get:
+      operationId: attachPtySession
+      tags: [terminal]
+      summary: WebSocket attached to one terminal session
+      description: >-
+        Upgrade to a WebSocket with `Authorization: Bearer <token>` (same scheme as `/v1/events`: no
+        cookies, no token in the URL). Needs write scope and the device that created the session; any other
+        device gets 404. One client at a time: a second attach gets 409. Binary frames carry raw terminal
+        bytes in both directions. Text frames carry JSON: the client sends
+        `{"type":"resize","cols":N,"rows":N}`; the server sends `{"type":"exit","reason":"exited|terminated|idle|shutdown","exit_code":N}`
+        (`exit_code` only when the shell exited by itself) and then closes with 1000. A malformed text frame
+        closes the socket with 1003; the session keeps running. Up to 64 KiB of recent output is replayed on
+        attach. Client frames are limited to 64 KiB. Closing the socket detaches without ending the session.
+        The server pings every 25 s and drops clients silent for 60 s.
+      responses:
+        "101": { description: Switching Protocols }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+    delete:
+      operationId: deletePtySession
+      tags: [terminal]
+      summary: End a terminal session and kill its process tree
+      responses:
+        "204": { description: Ended }
+        "401": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
   /v1/approvals:
     get:
       operationId: listApprovals
@@ -957,6 +1034,26 @@ components:
         application/json:
           schema: { $ref: "#/components/schemas/Error" }
   schemas:
+    PtySessionInput:
+      type: object
+      additionalProperties: false
+      properties:
+        cwd:
+          type: string
+          description: Working directory, relative to the daemon workspace or absolute inside it. Empty means the workspace.
+        cols: { type: integer, minimum: 1, maximum: 1000, description: "Defaults to 80 when cols and rows are both omitted." }
+        rows: { type: integer, minimum: 1, maximum: 1000, description: "Defaults to 24 when cols and rows are both omitted." }
+    PtySession:
+      type: object
+      required: [id, cwd, shell, cols, rows, attached, created_at]
+      properties:
+        id: { type: string, description: "256 random bits, URL-safe base64 without padding (43 characters)." }
+        cwd: { type: string, description: Absolute working directory on the node. }
+        shell: { type: string, description: Absolute path of the shell program. }
+        cols: { type: integer }
+        rows: { type: integer }
+        attached: { type: boolean }
+        created_at: { type: string, format: date-time }
     Error:
       type: object
       required: [error]

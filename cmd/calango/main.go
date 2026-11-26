@@ -27,6 +27,7 @@ import (
 	"calango/internal/mcpgw"
 	"calango/internal/memory"
 	"calango/internal/providers"
+	"calango/internal/pty"
 	"calango/internal/routines"
 	"calango/internal/store"
 	"calango/internal/tools"
@@ -235,6 +236,13 @@ func main() {
 	go routinesSvc.Run(ctx, routineTick, func(err error) { log.Printf("routines: %v", err) })
 	go runMaestroScheduler(ctx, maestroManager, hub)
 
+	terminal, err := newTerminal(workDir, database)
+	if err != nil {
+		log.Fatalf("terminal: %v", err)
+	}
+	// Kills every terminal process tree before the store closes (defers run in reverse).
+	defer func() { _ = terminal.Close() }()
+
 	handler, err := api.NewHandler(api.Config{
 		Agents:         agentSvc,
 		Accounts:       providerSvc,
@@ -249,6 +257,7 @@ func main() {
 		Routines:       routinesSvc,
 		Maestro:        maestroManager,
 		Tools:          toolsSvc,
+		Terminal:       terminal,
 		Token:          localToken,
 		OwnerID:        localOwnerID,
 		DeviceID:       localDeviceID,
@@ -272,6 +281,8 @@ func main() {
 		<-ctx.Done()
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
+		// Hijacked WebSockets outlive Shutdown, so end the terminals first.
+		_ = terminal.Close()
 		_ = srv.Shutdown(shutdownCtx)
 	}()
 
@@ -325,4 +336,38 @@ func runMaestroScheduler(ctx context.Context, manager *maestro.Manager, hub *eve
 			check()
 		}
 	}
+}
+
+// newTerminal builds the integrated terminal (F4-T03). Shells start only inside the
+// daemon workspace, with a filtered environment, and every open and close is audited
+// without any terminal content.
+func newTerminal(workDir string, database *store.Store) (*pty.Manager, error) {
+	dirs, err := pty.NewRootDir(workDir)
+	if err != nil {
+		return nil, err
+	}
+	return pty.NewManager(pty.Config{
+		Dirs: dirs,
+		OnEvent: func(ev pty.Event) {
+			id, err := core.NewID(time.Now())
+			if err != nil {
+				log.Printf("terminal audit: %v", err)
+				return
+			}
+			facts := map[string]any{"session": ev.Info.ID[:8], "shell": filepath.Base(ev.Info.Shell)}
+			if rel, err := filepath.Rel(dirs.Root(), ev.Info.Dir); err == nil {
+				facts["cwd"] = filepath.ToSlash(rel)
+			}
+			if ev.Action == pty.ActionClosed {
+				facts["reason"] = ev.Reason
+				facts["exit_code"] = ev.ExitCode
+			}
+			if err := database.AppendAudit(context.Background(), core.AuditEvent{
+				ID: id, At: time.Now(), ActorKind: "device", ActorID: ev.Info.DeviceID,
+				Action: ev.Action, Subject: "terminal", Facts: facts,
+			}); err != nil {
+				log.Printf("terminal audit: %v", err)
+			}
+		},
+	})
 }

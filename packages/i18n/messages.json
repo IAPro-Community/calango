@@ -159,7 +159,18 @@
     "auditExportCsv": "Baixar CSV",
     "auditExportError": "Não foi possível exportar a auditoria.",
     "auditExportEmpty": "A exportação está vazia.",
-    "auditEmptyChain": "A cadeia não contém entradas."
+    "auditEmptyChain": "A cadeia não contém entradas.",
+    "navTerminal": "Terminal",
+    "terminalNew": "Novo terminal",
+    "terminalEnd": "Encerrar sessão",
+    "terminalIntro": "Abre um shell na pasta de trabalho do Calango neste computador. Variáveis secretas do Calango não chegam ao terminal.",
+    "terminalEmpty": "Nenhuma sessão aberta.",
+    "terminalConnecting": "Conectando ao terminal...",
+    "terminalConnected": "Conectado",
+    "terminalEnded": "Sessão encerrada.",
+    "terminalExitCode": "Código de saída",
+    "terminalDisconnected": "Conexão com o terminal perdida.",
+    "terminalLimit": "Limite de sessões de terminal atingido. Encerre uma sessão para abrir outra."
   },
   "en": {
     "appName": "Calango",
@@ -320,7 +331,18 @@
     "auditExportCsv": "Download CSV",
     "auditExportError": "Could not export the audit log.",
     "auditExportEmpty": "The export is empty.",
-    "auditEmptyChain": "The chain has no entries."
+    "auditEmptyChain": "The chain has no entries.",
+    "navTerminal": "Terminal",
+    "terminalNew": "New terminal",
+    "terminalEnd": "End session",
+    "terminalIntro": "Opens a shell in Calango's working folder on this computer. Calango's secret variables never reach the terminal.",
+    "terminalEmpty": "No open sessions.",
+    "terminalConnecting": "Connecting to the terminal...",
+    "terminalConnected": "Connected",
+    "terminalEnded": "Session ended.",
+    "terminalExitCode": "Exit code",
+    "terminalDisconnected": "Lost the connection to the terminal.",
+    "terminalLimit": "Terminal session limit reached. End a session to open another."
   },
   "es": {
     "appName": "Calango",
@@ -481,6 +503,17 @@
     "auditExportCsv": "Descargar CSV",
     "auditExportError": "No se pudo exportar la auditoría.",
     "auditExportEmpty": "La exportación está vacía.",
-    "auditEmptyChain": "La cadena no contiene entradas."
+    "auditEmptyChain": "La cadena no contiene entradas.",
+    "navTerminal": "Terminal",
+    "terminalNew": "Nueva terminal",
+    "terminalEnd": "Cerrar sesión",
+    "terminalIntro": "Abre un shell en la carpeta de trabajo de Calango en esta computadora. Las variables secretas de Calango no llegan a la terminal.",
+    "terminalEmpty": "No hay sesiones abiertas.",
+    "terminalConnecting": "Conectando a la terminal...",
+    "terminalConnected": "Conectada",
+    "terminalEnded": "Sesión finalizada.",
+    "terminalExitCode": "Código de salida",
+    "terminalDisconnected": "Se perdió la conexión con la terminal.",
+    "terminalLimit": "Se alcanzó el límite de sesiones de terminal. Cierra una sesión para abrir otra."
   }
 }

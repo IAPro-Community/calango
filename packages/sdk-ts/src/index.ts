@@ -22,6 +22,8 @@ export type UsageRow = Schemas['UsageRow'];
 export type VaultItem = Schemas['VaultItem'];
 export type MaestroStatus = Schemas['MaestroStatus'];
 export type MaestroUpdateResult = Schemas['MaestroUpdateResult'];
+export type PtySession = Schemas['PtySession'];
+export type PtySessionInput = Schemas['PtySessionInput'];
 
 export interface ClientOptions {
   /** Base URL of the local daemon, for example http://127.0.0.1:7317. */
@@ -86,6 +88,12 @@ export interface CalangoClient {
   updateMaestro(): Promise<MaestroUpdateResult>;
   rollbackMaestro(): Promise<MaestroStatus>;
   setMaestroAutoUpdate(enabled: boolean): Promise<MaestroStatus>;
+
+  /** Starts a shell in the daemon workspace. Terminal bytes flow over the WebSocket /v1/pty/{id}. */
+  createPtySession(input?: PtySessionInput): Promise<PtySession>;
+  listPtySessions(): Promise<PtySession[]>;
+  /** Ends the session and kills its whole process tree. */
+  deletePtySession(sessionId: string): Promise<void>;
 }
 
 export function createClient(options: ClientOptions): CalangoClient {
@@ -198,5 +206,8 @@ export function createClient(options: ClientOptions): CalangoClient {
     rollbackMaestro: () => request<MaestroStatus>('POST', '/v1/maestro/rollback'),
     setMaestroAutoUpdate: (enabled) =>
       request<MaestroStatus>('PATCH', '/v1/maestro/settings', { auto_update: enabled }),
+    createPtySession: (input = {}) => request<PtySession>('POST', '/v1/pty', input),
+    listPtySessions: () => request<PtySession[]>('GET', '/v1/pty'),
+    deletePtySession: (sessionId) => request<void>('DELETE', `/v1/pty/${encodeURIComponent(sessionId)}`),
   };
 }

@@ -342,3 +342,23 @@ output.muted {
     min-height: 100px;
   }
 }
+
+.terminal-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.terminal-status {
+  margin: 0;
+}
+
+.terminal-host {
+  height: calc(100vh - 260px);
+  min-height: 320px;
+  padding: 8px;
+  background: var(--calango-color-night);
+  border: 1px solid var(--calango-color-ink-soft);
+  border-radius: var(--calango-radius-sm);
+  overflow: hidden;
+}
