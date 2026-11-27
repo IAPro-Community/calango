@@ -1,4 +1,15 @@
-# Replace with your domain. Caddy obtains the TLS certificate automatically.
-calango.seudominio.com {
+# Calango atrás do Caddy. Gerado por deploy/install.sh (sh deploy/install.sh --print-caddyfile).
+# CALANGO_DOMAIN vem do .env. CALANGO_TLS=acme (padrão) pede o certificado público
+# automaticamente (portas 80 e 443 abertas, DNS apontando para o VPS); CALANGO_TLS=internal
+# usa a CA interna do Caddy, só para testes ou rede local.
+(calango_tls_acme) {
+}
+
+(calango_tls_internal) {
+	tls internal
+}
+
+{$CALANGO_DOMAIN} {
+	import calango_tls_{$CALANGO_TLS:acme}
 	reverse_proxy calango:7317
 }

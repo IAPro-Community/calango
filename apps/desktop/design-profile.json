@@ -6,10 +6,10 @@
     "description": "Local control panel for Calango; agent execution remains in the Go daemon."
   },
   "designSystem": {
-    "provider": "Calango local CSS and design tokens",
-    "packages": ["packages/tokens/tokens.json"],
+    "provider": "Calango UI kit (apps/desktop/src/lib, shadcn + Tailwind 4) over the design tokens",
+    "packages": ["packages/tokens/tokens.json", "apps/desktop/src/lib"],
     "themeDefault": "night",
-    "metadataSource": "DEV/BRAND/BRAND.md and packages/tokens/tokens.json"
+    "metadataSource": "DEV/BRAND/BRAND.md, packages/tokens/tokens.json and the Figma Design System V1 (DEV/ADR/0025-ui-kit-desktop.md)"
   },
   "design": {
     "creativity": "low",
@@ -27,8 +27,8 @@
     "viewports": [390, 768, 1280, 1440]
   },
   "implementation": {
-    "componentLibrary": "Local React components; no component library",
-    "styling": "css",
+    "componentLibrary": "Local UI kit in src/lib built on shadcn/ui; import from \"@\"",
+    "styling": "tailwind",
     "importStyle": "namespace"
   },
   "policy": {
