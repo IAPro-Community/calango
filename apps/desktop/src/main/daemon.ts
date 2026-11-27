@@ -18,6 +18,8 @@ export interface DaemonOptions {
   /** Loopback host:port the daemon listens on. */
   addr: string;
   onState: (state: DaemonState) => void;
+  /** Receives the daemon's stdout and stderr; defaults to this process's own streams. */
+  output?: NodeJS.WritableStream;
 }
 
 // readToken asks the binary for the local API token. The token leaves the process only
@@ -109,8 +111,8 @@ export class Daemon {
       stdio: ['ignore', 'pipe', 'pipe'],
     });
     this.child = child;
-    child.stdout?.pipe(process.stdout);
-    child.stderr?.pipe(process.stderr);
+    child.stdout?.pipe(this.opts.output ?? process.stdout, { end: false });
+    child.stderr?.pipe(this.opts.output ?? process.stderr, { end: false });
 
     let gone = false;
     const onGone = (reason: string): void => {

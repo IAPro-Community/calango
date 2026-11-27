@@ -1,6 +1,7 @@
 # binários e builds
 /calango
 /calango-cloud
+/calango-devlicense
 /out/
 /dist/
 *.exe
@@ -18,6 +19,7 @@ node_modules/
 !.env.example
 *.pem
 *.key
+*.license
 secrets/
 
 # dados locais do Calango (nunca versionar)
@@ -39,5 +41,11 @@ Thumbs.db
 # build do desktop e binário local (gerados por npm run build)
 /bin/
 apps/desktop/dist/
+
+# Dart/Flutter
+.dart_tool/
+build/
+# instalador interno do desktop (npm run desktop:package:win)
+apps/desktop/release/
 apps/desktop/e2e-results/
 apps/desktop/e2e-report/
