@@ -387,6 +387,20 @@ output.muted {
   gap: 8px;
   margin: 0 0 12px;
   padding: 8px 12px;
+.browser-screen {
+  height: calc(100vh - 48px);
+  min-height: 480px;
+.browser-agent {
+  align-items: center;
+  font-size: 13px;
+.browser-tabs {
+.browser-tablist {
+  flex: 1;
+  gap: 4px;
+  min-width: 0;
+  overflow-x: auto;
+.browser-tab {
+  max-width: 220px;
   border: 1px solid var(--calango-color-ink-soft);
   border-radius: var(--calango-radius-sm);
 }
@@ -402,48 +416,51 @@ output.muted {
   min-height: 18px;
   height: 18px;
   accent-color: var(--calango-color-postit-deep);
-}
-
 .pairing-code {
-  display: flex;
   flex-wrap: wrap;
-  align-items: center;
   gap: 24px;
   margin: 16px 0;
-}
-
 /* Dark modules on a light ground with a quiet zone, so phone cameras read it in any theme. */
 .qr {
   width: 264px;
   height: 264px;
   flex: 0 0 auto;
-}
-
 .qr-light {
   fill: var(--calango-color-paper);
-}
-
 .qr-dark {
   fill: var(--calango-color-ink);
-}
-
 .pairing-code-text {
   font-size: 28px;
   letter-spacing: 0.12em;
   user-select: all;
-}
-
 .table tr.revoked {
   opacity: 0.6;
-}
-
 .confirm p {
   margin: 0 0 8px;
-}
-
 fieldset.confirm {
   min-width: 0;
   margin: 0;
   padding: 0;
   border: 0;
+.browser-tab.active {
+  border-color: var(--calango-color-postit-deep);
+.browser-tab > button {
+  background: transparent;
+  color: inherit;
+  border-color: transparent;
+.browser-tab > button[role="tab"] {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+.browser-icon {
+  min-width: 44px;
+.browser-toolbar {
+.browser-toolbar input {
+  flex: 1;
+.browser-viewport {
+  min-height: 240px;
+  border: 1px solid var(--calango-color-ink-soft);
+  border-radius: var(--calango-radius-md);
+  background: var(--calango-color-night-card);
+  justify-content: center;
 }

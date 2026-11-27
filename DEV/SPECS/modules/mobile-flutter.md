@@ -17,7 +17,7 @@ Remote control of Calango on the phone: see, approve, chat, schedule.
 9. PC screen control (phase 5, paid).
 
 ## Rules
-- The client only via `packages/sdk-dart`. Theme only via generated tokens.
+- The client only via `packages/sdk-dart` (`CalangoClient`, generated from the OpenAPI). Theme only via `packages/theme-flutter` (`CalangoTheme.light()` / `dark()`, composed from generated tokens). Both exist since F2-T03 (ADR 0024); the WebSocket events client and font bundling belong to the app.
 - Token in the Keychain (iOS) / Keystore (Android).
 - A push opens directly on the item (approval, message).
 - Works with more than one node; selector at the top.

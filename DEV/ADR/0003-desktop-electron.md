@@ -16,3 +16,8 @@ Electron. The main process starts the `calango` binary as a child process, watch
 - Larger installer (~100 MB). Accepted.
 - Signed installers from the first public release (Windows code signing, macOS notarization).
 - `calango` must be packaged per platform together with the app.
+
+## Implementation addendum (2026-11-25, F5-T01)
+
+- Each agent gets one persistent partition named `persist:calango-agent-<HMAC-SHA256(per-install key, agent id), 32 hex>`; the key lives in the Electron user data folder (mode 0600). Tabs are `WebContentsView`s with no preload, sandboxed, and limited to http(s).
+- Web permissions and downloads are denied by default; popups become tabs of the same agent. Details in `DEV/SPECS/modules/browser.md`.

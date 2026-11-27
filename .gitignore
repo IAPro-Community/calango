@@ -42,6 +42,9 @@ Thumbs.db
 /bin/
 apps/desktop/dist/
 
+# Dart/Flutter
+.dart_tool/
+build/
 # instalador interno do desktop (npm run desktop:package:win)
 apps/desktop/release/
 apps/desktop/e2e-results/
