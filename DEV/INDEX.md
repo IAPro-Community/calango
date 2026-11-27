@@ -65,6 +65,7 @@
 | [0015](ADR/0015-websocket-gorilla.md) | WebSocket `/v1/events` uses `github.com/gorilla/websocket` v1.5.3 (BSD-2-Clause); header auth only; in-memory fan-out with no replay |
 | [0016](ADR/0016-cadeia-de-provedores.md) | Agent has an ordered provider chain with fallback before first output; provider accounts are named rows, secrets stay in the vault or isolated CLI homes |
 | [0017](ADR/0017-rotina-dispara-execucao.md) | A routine fires one agent run per attempt in one DM per routine; the agent's reply ends with a `ROUTINE:` control line for news and finish |
+| [0022](ADR/0022-importacao-de-skills.md) | Skill import reads only authorized roots, copies versions by hash into the data directory and keeps the index in a JSON file; `/v1/skill-imports` |
 
 ## Module specs (`SPECS/modules/`)
 
@@ -89,6 +90,7 @@
 | [licensing-billing](SPECS/modules/licensing-billing.md) | 3 |
 | [cloud](SPECS/modules/cloud.md) | 2–3 |
 | [ade](SPECS/modules/ade.md) | 4 |
+| [skills](SPECS/modules/skills.md) | 4 (F4-T07 foundation delivered early) |
 | [browser](SPECS/modules/browser.md) | 5 |
 | [computer-use](SPECS/modules/computer-use.md) | 5 |
 | [channels-teams](SPECS/modules/channels-teams.md) | 6 |

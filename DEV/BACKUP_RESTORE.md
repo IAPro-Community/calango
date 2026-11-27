@@ -2,7 +2,7 @@
 
 ## Scope and safety
 
-The `CALANGO_DATA_DIR` contains `calango.db`, provider account homes, Maestro installations/configuration and workspace files. It contains private conversations and other user data. Back it up only to encrypted, access-controlled storage.
+The `CALANGO_DATA_DIR` contains `calango.db`, provider account homes, Maestro installations/configuration, imported skills (`skills/`) and workspace files. It contains private conversations and other user data. Back it up only to encrypted, access-controlled storage.
 
 **Stop the Calango desktop app and daemon before copying or restoring.** SQLite uses WAL; copying a live data directory can omit committed writes. This runbook uses an offline whole-directory snapshot. Keep the archive outside the data directory.
 

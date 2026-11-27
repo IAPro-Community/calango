@@ -69,7 +69,8 @@ func newTestEnvWithApproval(t *testing.T, trusted []netip.Prefix) (http.Handler,
 	return newTestEnvWithGateway(t, trusted, gw, func() { close(gw.done) })
 }
 
-func newTestEnvWithGateway(t *testing.T, trusted []netip.Prefix, gw conversations.Gateway, releaseGateway func(), options ...func(*Config)) (http.Handler, *store.Store, *approvals.Service) {
+// newTestEnvWithGateway builds the handler; opts adjust the Config before it is used.
+func newTestEnvWithGateway(t *testing.T, trusted []netip.Prefix, gw conversations.Gateway, releaseGateway func(), opts ...func(*Config)) (http.Handler, *store.Store, *approvals.Service) {
 	t.Helper()
 	database, err := store.OpenMemory(context.Background())
 	if err != nil {
@@ -167,8 +168,8 @@ func newTestEnvWithGateway(t *testing.T, trusted []netip.Prefix, gw conversation
 		TrustedProxies: trusted,
 		CORSOrigins:    []string{testDesktopOrigin},
 	}
-	for _, option := range options {
-		option(&cfg)
+	for _, opt := range opts {
+		opt(&cfg)
 	}
 	h, err := NewHandler(cfg)
 	if err != nil {
