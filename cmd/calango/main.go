@@ -29,6 +29,7 @@ import (
 	"calango/internal/memory"
 	"calango/internal/providers"
 	"calango/internal/routines"
+	"calango/internal/skills"
 	"calango/internal/store"
 	"calango/internal/tools"
 	"calango/internal/usage"
@@ -58,6 +59,12 @@ func main() {
 	if len(os.Args) > 1 && os.Args[1] == "print-token" {
 		if err := printToken(ctx, cfg); err != nil {
 			log.Fatalf("print-token: %v", err)
+		}
+		return
+	}
+	if len(os.Args) > 1 && os.Args[1] == "healthcheck" {
+		if err := healthcheck(ctx, cfg.Addr, &http.Client{}); err != nil {
+			log.Fatalf("healthcheck: %v", err)
 		}
 		return
 	}
@@ -239,6 +246,8 @@ func main() {
 	licenseMgr := newLicenseManager(cfg)
 	go runLicenseWatch(ctx, licenseMgr)
 
+	skillLib := newSkillLibrary(cfg, database)
+
 	handler, err := api.NewHandler(api.Config{
 		Agents:         agentSvc,
 		Accounts:       providerSvc,
@@ -252,6 +261,7 @@ func main() {
 		Events:         hub,
 		Routines:       routinesSvc,
 		Maestro:        maestroManager,
+		Skills:         skillLib,
 		Tools:          toolsSvc,
 		License:        licenseMgr,
 		Token:          localToken,
@@ -288,6 +298,40 @@ func main() {
 
 // newLicenseManager builds the license reader. Nothing here stops the node: a bad key
 // or license only lowers the plan to Free.
+// newSkillLibrary opens the imported skills library under <data-dir>/skills. Discovery
+// reads only cfg.SkillRoots. A library that cannot open is logged and its routes stay
+// off, so a damaged index never blocks the daemon.
+func newSkillLibrary(cfg config.Config, database *store.Store) *skills.Library {
+	roots := make([]skills.Root, 0, len(cfg.SkillRoots))
+	for _, r := range cfg.SkillRoots {
+		roots = append(roots, skills.Root{Origin: skills.Origin(r.Origin), Path: r.Path})
+	}
+	lib, err := skills.New(skills.Config{
+		Dir:   filepath.Join(cfg.DataDir, "skills"),
+		Roots: roots,
+		Now:   time.Now,
+		Audit: func(ctx context.Context, action, subject string, facts map[string]any) error {
+			id, err := core.NewID(time.Now())
+			if err != nil {
+				return err
+			}
+			if err := database.AppendAudit(ctx, core.AuditEvent{
+				ID: id, At: time.Now(), ActorKind: "owner", ActorID: localOwnerID,
+				Action: action, Subject: subject, Facts: facts,
+			}); err != nil {
+				log.Printf("skills: audit %s: %v", action, err)
+				return err
+			}
+			return nil
+		},
+	})
+	if err != nil {
+		log.Printf("skills library disabled: %v", err)
+		return nil
+	}
+	return lib
+}
+
 func newLicenseManager(cfg config.Config) *license.Manager {
 	key, source, err := license.ResolvePublicKey(cfg.LicensePublicKey)
 	if err != nil {
