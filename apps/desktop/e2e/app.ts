@@ -165,7 +165,7 @@ export async function onboard(page: Page, agentName = 'Agente E2E'): Promise<voi
 /** startConversation opens a new conversation with the first agent. */
 export async function startConversation(page: Page, title: string): Promise<void> {
   await page.getByRole('button', { name: t('navConversations'), exact: true }).click();
-  await page.getByLabel(t('conversationPlaceholder')).fill(title);
+  await page.getByLabel(t('conversationTitleLabel')).fill(title);
   await page.getByRole('button', { name: t('actionNewConversation') }).click();
   await page.getByRole('button', { name: title }).waitFor();
 }

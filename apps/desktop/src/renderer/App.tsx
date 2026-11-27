@@ -10,15 +10,28 @@ import { ConversationsScreen } from './screens/ConversationsScreen';
 import { RoutinesScreen } from './screens/RoutinesScreen';
 import { UsageScreen } from './screens/UsageScreen';
 import { AuditScreen } from './screens/AuditScreen';
+import { BrowserScreen } from './screens/BrowserScreen';
 import { SettingsScreen } from './screens/SettingsScreen';
+import { SkillsScreen } from './screens/SkillsScreen';
 
-type Section = 'agents' | 'conversations' | 'approvals' | 'routines' | 'usage' | 'audit' | 'settings';
+type Section =
+  | 'agents'
+  | 'conversations'
+  | 'approvals'
+  | 'routines'
+  | 'browser'
+  | 'skills'
+  | 'usage'
+  | 'audit'
+  | 'settings';
 
 const SECTIONS: { id: Section; key: MessageKey }[] = [
   { id: 'agents', key: 'navAgents' },
   { id: 'conversations', key: 'navConversations' },
   { id: 'approvals', key: 'navApprovals' },
   { id: 'routines', key: 'navRoutines' },
+  { id: 'browser', key: 'navBrowser' },
+  { id: 'skills', key: 'navSkills' },
   { id: 'usage', key: 'navUsage' },
   { id: 'audit', key: 'navAudit' },
   { id: 'settings', key: 'navSettings' },
@@ -84,6 +97,10 @@ function SectionView({ section, client, t }: { section: Section; client: Calango
       return <ApprovalsScreen client={client} t={t} />;
     case 'routines':
       return <RoutinesScreen client={client} t={t} />;
+    case 'browser':
+      return <BrowserScreen client={client} t={t} />;
+    case 'skills':
+      return <SkillsScreen client={client} t={t} />;
     case 'usage':
       return <UsageScreen client={client} t={t} />;
     case 'audit':
