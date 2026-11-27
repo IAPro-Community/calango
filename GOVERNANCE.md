@@ -19,9 +19,9 @@ Qualquer colaborador pode propor mudanças. Alterações de escopo, licenciament
 
 GitHub Issues registra escopo; GitHub Projects organiza prioridades e status; milestones representam entregas; especificações e ADRs definem contratos. Uma issue por unidade de trabalho, um responsável humano e uma atividade principal por sessão. Dependências explícitas e sub-issues para entregas independentes.
 
-Branches temporárias a partir da develop, PR vinculado para develop, CI aprovada, revisão humana independente, conversas resolvidas e squash merge. Promoção develop → main por PR, com merge commit para preservar ancestralidade e evitar reapresentar commits; sincronizar correções da main de volta à develop por PR. Proibido push direto, force push, exclusão de main/develop e bypass permanente. Nunca excluir a develop após promoção. Exceções emergenciais exigem autorização, registro e restauração da política.
+Branches temporárias a partir da develop, PR vinculado para develop, quality-gate aprovado, conversas resolvidas e squash merge. A revisão humana é opcional na develop. Promoção develop → main por PR com quality-gate aprovado, revisão humana independente após o último push e merge commit para preservar ancestralidade e evitar reapresentar commits; sincronizar correções da main de volta à develop por PR. Proibido push direto, force push, exclusão de main/develop e bypass permanente. Nunca excluir a develop após promoção. Exceções emergenciais exigem autorização, registro e restauração da política.
 
-Ready: objetivo, escopo, critérios, dependências, prioridade e ausência de bloqueios. Done: evidência dos critérios, testes, CI, revisão, merge e validação pós-merge quando aplicável. Duplicatas são encerradas com motivo, sem contar como entregas.
+Ready: objetivo, escopo, critérios, dependências, prioridade e ausência de bloqueios. Done: evidência dos critérios, testes, CI, merge e validação pós-merge quando aplicável. A revisão humana independente é obrigatória para promover à main. Duplicatas são encerradas com motivo, sem contar como entregas.
 
 ## Registros retroativos
 
@@ -32,6 +32,8 @@ Trabalho anterior à governança recebe título [Retroativa], IDs legados, SHA d
 Após a integração inicial expressamente autorizada pelo PO, a main é congelada como referência de versão. Nenhuma alteração cotidiana ou promoção automática; apenas liberação explicitamente autorizada, mediante PR da develop e gates verificados. A develop permanece aberta à integração por PR. A configuração de proteção do GitHub deve ser comprovada separadamente; esta política não substitui ruleset.
 
 ## Releases e cadência
+
+A main recebe mudanças somente por PR de release com origem na develop. Siga o [guia de publicação](DEV/RELEASE.md) para promoção, tag e verificação dos artefatos.
 
 SemVer, tags v imutáveis, alpha/beta/rc quando necessário, commit rastreável da main, changelog, compatibilidade, limitações, instalação/atualização, artefatos e validação. Publicação autorizada por mantenedor. Triagem contínua, refinamento semanal quando útil, revisão de bloqueios, milestones e releases. Medir fluxo da equipe, não linhas de código individuais.
 

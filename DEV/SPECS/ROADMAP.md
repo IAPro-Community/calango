@@ -1,5 +1,7 @@
 # Roadmap with tasks
 
+A [sequência operacional por ondas](../ONDAS_DE_ENTREGA.md) define os gates vigentes. Na v0.2.0, styleguide e núcleo liberam Web (#188), Web libera Desktop Windows (#41) e Windows libera mobile (#71). As fases numeradas abaixo preservam a referência dos IDs originais.
+
 Each task has an ID (`F<phase>-T<nn>`), a module, dependencies and a done criterion. Mark `[x]` when finished and record it in `WORKLOG.md`. Do not start a phase before the previous one meets its exit criterion.
 
 ---

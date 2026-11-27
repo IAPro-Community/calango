@@ -1,5 +1,12 @@
 # Documentation index — Calango
 
+## Entrega e design
+
+- [Ondas de entrega e sprints](ONDAS_DE_ENTREGA.md)
+- [Styleguide e catálogo executável](STYLEGUIDE.md)
+- [Replicar o fluxo em outro projeto](REPLICAR_FLUXO.md)
+- [Como publicar uma release](RELEASE.md)
+
 ## Planejamento e histórico
 
 | File | Purpose |
