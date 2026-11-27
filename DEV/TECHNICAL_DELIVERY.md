@@ -40,6 +40,7 @@ flowchart LR
 |---|---|---|
 | `go vet ./...`, `go test ./...`, `gofmt` | Implemented in the workflow and run locally. | `.github/workflows/ci.yml`, `DEV/VERIFY.md` |
 | Cross-build of six targets | Workflow and six local builds verified; GitHub Actions run 45188079827 on `dee8efa` passed. Current uncommitted changes are not covered by that run. | `.github/workflows/ci.yml`, `DEV/VERIFY.md` |
+| Matriz nativa Linux, Windows e macOS | Workflow `ci-nativa` (issue #120): testes Go com `-race`, testes do desktop, smoke do daemon e gate `ci-nativa-gate`. Não homologa Linux/macOS; keyring real e assinatura ficam isolados. | `.github/workflows/ci-nativa.yml`, `DEV/CI_NATIVA.md` |
 | Site image build | Workflow builds the image; local run depends on access to the Docker daemon. | `Dockerfile`, `.github/workflows/ci.yml` |
 | Node image build | Workflow builds the image; missing an HTTP execution gate for the image in CI. | `deploy/Dockerfile.node`, `.github/workflows/ci.yml` |
 | OpenAPI semantic lint | Implemented in CI with Redocly CLI 2.81.0 pinned; current local lint is valid with one non-blocking warning. Run 45188079827 passed on `dee8efa`; current uncommitted changes need a later authorized push for CI coverage. | `api/openapi.yaml`, `.github/workflows/ci.yml` |
@@ -47,6 +48,7 @@ flowchart LR
 | Token generation and drift check | Implemented for CSS, TypeScript/Dart constants and the typed Flutter theme tokens; `--check` runs in CI. | `scripts/generate-tokens.mjs`, `packages/tokens/generated/`, `packages/theme-flutter/`, `.github/workflows/ci.yml` |
 | SDK and i18n generation | TypeScript SDK, Dart SDK (F2-T03, phase 2 foundation brought forward, ADR 0024) and i18n catalog generators are implemented with drift checks; the `dart-packages` CI job analyzes and tests the Dart packages with Flutter 3.47.9. | `api/`, `packages/sdk-ts`, `packages/sdk-dart`, `packages/i18n`, `scripts/generate-sdk-dart.mjs` |
 | Desktop install, signing, update and rollback | Electron beta exists and runs on Linux; signed installers, Windows/macOS acceptance and signed app updates remain open. | `apps/desktop`, `SPECS/modules/desktop-electron.md`, TODO V1 |
+| Linux desktop packages and license gate | `.deb` and AppImage x64 with the embedded daemon; `verify-desktop-package.mjs` fails if `LICENSE`, `NOTICE` or `third_party/` are missing or differ; CI job `desktop-linux-package` installs, upgrades, runs the daemon and the app (Xvfb) and purges in clean Debian 12 and Ubuntu 24.04 containers, without uploading artifacts. Unsigned; macOS DMG configured but waits for Apple credentials and notarization. | `apps/desktop/electron-builder.yml`, `scripts/test-linux-package.sh`, `DEV/PACOTE_DESKTOP_LINUX_MACOS.md` |
 
 ## V1 release pipeline
 

@@ -33,3 +33,4 @@ apps/desktop/
 - Agents, conversations, approvals, routines, usage, settings and audit screens are implemented. Fake-provider E2E covers chat, routine and usage; approval-card dispatch has a mocked renderer smoke.
 - Electron launches the local daemon, creates a tray menu and registers `CommandOrControl+Shift+Space`. On Linux, startup-at-login uses an XDG autostart entry; isolated UI smoke verified create/remove.
 - Tray creation and shortcut registration did not log errors, but OS-level shortcut activation and tray-menu interaction were not exercised. Windows/macOS login behavior, signing and installers remain unverified.
+- Internal browser foundation (F5-T01, #91): "Browser" screen with tabs as `WebContentsView` and one persistent partition per agent; rules and verification in `browser.md`.

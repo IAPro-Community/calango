@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/netip"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -21,6 +22,7 @@ import (
 	"calango/internal/devices"
 	"calango/internal/events"
 	"calango/internal/gateway"
+	"calango/internal/license"
 	"calango/internal/memory"
 	"calango/internal/providers"
 	"calango/internal/routines"
@@ -67,7 +69,8 @@ func newTestEnvWithApproval(t *testing.T, trusted []netip.Prefix) (http.Handler,
 	return newTestEnvWithGateway(t, trusted, gw, func() { close(gw.done) })
 }
 
-func newTestEnvWithGateway(t *testing.T, trusted []netip.Prefix, gw conversations.Gateway, releaseGateway func()) (http.Handler, *store.Store, *approvals.Service) {
+// newTestEnvWithGateway builds the handler; opts adjust the Config before it is used.
+func newTestEnvWithGateway(t *testing.T, trusted []netip.Prefix, gw conversations.Gateway, releaseGateway func(), opts ...func(*Config)) (http.Handler, *store.Store, *approvals.Service) {
 	t.Helper()
 	database, err := store.OpenMemory(context.Background())
 	if err != nil {
@@ -141,7 +144,11 @@ func newTestEnvWithGateway(t *testing.T, trusted []netip.Prefix, gw conversation
 	if releaseGateway != nil {
 		t.Cleanup(releaseGateway)
 	}
-	h, err := NewHandler(Config{
+	licenseMgr, err := license.NewManager(filepath.Join(t.TempDir(), "calango.license"), nil, now)
+	if err != nil {
+		t.Fatalf("license manager: %v", err)
+	}
+	cfg := Config{
 		Agents:         agentSvc,
 		Accounts:       providerSvc,
 		Memories:       memorySvc,
@@ -154,12 +161,17 @@ func newTestEnvWithGateway(t *testing.T, trusted []netip.Prefix, gw conversation
 		Events:         hub,
 		Routines:       routinesSvc,
 		Tools:          toolsSvc,
+		License:        licenseMgr,
 		Token:          localToken,
 		OwnerID:        testOwner,
 		DeviceID:       testDeviceID,
 		TrustedProxies: trusted,
 		CORSOrigins:    []string{testDesktopOrigin},
-	})
+	}
+	for _, opt := range opts {
+		opt(&cfg)
+	}
+	h, err := NewHandler(cfg)
 	if err != nil {
 		t.Fatalf("new handler: %v", err)
 	}
