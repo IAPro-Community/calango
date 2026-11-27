@@ -2,7 +2,7 @@
 
 ## Comandos na raiz
 
-Requisitos: Go 1.23, Node 22.12+ e Git. Rode npm ci antes dos checks. Os linters têm versão explícita; primeira execução pode baixar ferramentas. Não usar latest nem alterar o lockfile inadvertidamente.
+Requisitos: Go 1.25, Node 22.12+ e Git. Rode npm ci antes dos checks. Os linters têm versão explícita; primeira execução pode baixar ferramentas. Não usar latest nem alterar o lockfile inadvertidamente.
 
 | Comando | Efeito |
 |---|---|
