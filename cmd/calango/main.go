@@ -23,11 +23,13 @@ import (
 	"calango/internal/devices"
 	"calango/internal/events"
 	"calango/internal/gateway"
+	"calango/internal/license"
 	"calango/internal/maestro"
 	"calango/internal/mcpgw"
 	"calango/internal/memory"
 	"calango/internal/providers"
 	"calango/internal/routines"
+	"calango/internal/skills"
 	"calango/internal/store"
 	"calango/internal/tools"
 	"calango/internal/usage"
@@ -40,6 +42,7 @@ const (
 	approvalTTL          = 24 * time.Hour
 	routineTick          = 30 * time.Second
 	maestroCheckInterval = 24 * time.Hour
+	licenseCheckInterval = time.Hour
 )
 
 // desktopOrigin is the origin of the Electron desktop shell (apps/desktop, scheme app).
@@ -240,6 +243,10 @@ func main() {
 	}
 	go routinesSvc.Run(ctx, routineTick, func(err error) { log.Printf("routines: %v", err) })
 	go runMaestroScheduler(ctx, maestroManager, hub)
+	licenseMgr := newLicenseManager(cfg)
+	go runLicenseWatch(ctx, licenseMgr)
+
+	skillLib := newSkillLibrary(cfg, database)
 
 	handler, err := api.NewHandler(api.Config{
 		Agents:         agentSvc,
@@ -254,7 +261,9 @@ func main() {
 		Events:         hub,
 		Routines:       routinesSvc,
 		Maestro:        maestroManager,
+		Skills:         skillLib,
 		Tools:          toolsSvc,
+		License:        licenseMgr,
 		Token:          localToken,
 		OwnerID:        localOwnerID,
 		DeviceID:       localDeviceID,
@@ -284,6 +293,94 @@ func main() {
 	log.Printf("calango listening on %s (api token in the vault)", cfg.Addr)
 	if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		log.Fatal(err)
+	}
+}
+
+// newSkillLibrary opens the imported skills library under <data-dir>/skills. Discovery
+// reads only cfg.SkillRoots. A library that cannot open is logged and its routes stay
+// off, so a damaged index never blocks the daemon.
+func newSkillLibrary(cfg config.Config, database *store.Store) *skills.Library {
+	roots := make([]skills.Root, 0, len(cfg.SkillRoots))
+	for _, r := range cfg.SkillRoots {
+		roots = append(roots, skills.Root{Origin: skills.Origin(r.Origin), Path: r.Path})
+	}
+	lib, err := skills.New(skills.Config{
+		Dir:   filepath.Join(cfg.DataDir, "skills"),
+		Roots: roots,
+		Now:   time.Now,
+		Audit: func(ctx context.Context, action, subject string, facts map[string]any) error {
+			id, err := core.NewID(time.Now())
+			if err != nil {
+				return err
+			}
+			if err := database.AppendAudit(ctx, core.AuditEvent{
+				ID: id, At: time.Now(), ActorKind: "owner", ActorID: localOwnerID,
+				Action: action, Subject: subject, Facts: facts,
+			}); err != nil {
+				log.Printf("skills: audit %s: %v", action, err)
+				return err
+			}
+			return nil
+		},
+	})
+	if err != nil {
+		log.Printf("skills library disabled: %v", err)
+		return nil
+	}
+	return lib
+}
+
+func newLicenseManager(cfg config.Config) *license.Manager {
+	key, source, err := license.ResolvePublicKey(cfg.LicensePublicKey)
+	if err != nil {
+		log.Printf("license: public key unusable, running Free: %v", err)
+		key, source = nil, license.KeySourceNone
+	}
+	if source == license.KeySourceEmbedded && cfg.LicensePublicKey != "" {
+		log.Printf("license: CALANGO_LICENSE_PUBLIC_KEY ignored; this build embeds the license key")
+	}
+	mgr, err := license.NewManager(cfg.LicenseFile, key, time.Now)
+	if err != nil {
+		// Only a programming error reaches here: path and clock are always set.
+		log.Fatalf("license manager: %v", err)
+	}
+	return mgr
+}
+
+// runLicenseWatch logs the license state at startup and whenever it changes, so an
+// expiry or downgrade is visible in the node log. It never stops the node.
+func runLicenseWatch(ctx context.Context, mgr *license.Manager) {
+	var last license.State
+	check := func() {
+		st := mgr.Status()
+		if st.State == last {
+			return
+		}
+		last = st.State
+		switch st.State {
+		case license.StateActive:
+			log.Printf("license: %s plan active until %s", st.Plan, st.Claims.Expires().Format(time.RFC3339))
+		case license.StateGrace:
+			log.Printf("license: expired at %s; %s plan kept until %s, renew to avoid the Free plan",
+				st.Claims.Expires().Format(time.RFC3339), st.Plan, st.Claims.GraceEnds().Format(time.RFC3339))
+		case license.StateExpired:
+			log.Printf("license: tolerance ended at %s; running Free, no data was removed", st.Claims.GraceEnds().Format(time.RFC3339))
+		case license.StateInvalid:
+			log.Printf("license: %s refused (%s); running Free, no data was removed", mgr.Path(), st.Reason)
+		case license.StateNone:
+			log.Printf("license: none installed; running Free")
+		}
+	}
+	check()
+	ticker := time.NewTicker(licenseCheckInterval)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			check()
+		}
 	}
 }
 

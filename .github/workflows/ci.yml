@@ -38,6 +38,46 @@ jobs:
       - name: Test generated asset contracts
         run: node --test scripts/generate-assets.test.mjs
 
+  dart-packages:
+    runs-on: ubuntu-latest
+    env:
+      ELECTRON_SKIP_BINARY_DOWNLOAD: "1"
+      FLUTTER_VERSION: "3.47.9"
+      FLUTTER_SHA256: "25ed8c3c29d51a7353f2a944310b478af8214920639524b19c50a19e6c044c5a"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22.12.0"
+          cache: npm
+      - run: npm ci
+      - name: Check generated Dart SDK and Flutter tokens
+        run: |
+          node scripts/generate-sdk-dart.mjs --check
+          node scripts/generate-tokens.mjs --check
+      - name: Install Flutter from the official archive
+        run: |
+          archive="flutter_linux_${FLUTTER_VERSION}-stable.tar.xz"
+          curl -fsSLo "$RUNNER_TEMP/$archive" "https://storage.googleapis.com/flutter_infra_release/releases/stable/linux/$archive"
+          echo "$FLUTTER_SHA256  $RUNNER_TEMP/$archive" | sha256sum -c -
+          tar -xJf "$RUNNER_TEMP/$archive" -C "$RUNNER_TEMP"
+          echo "$RUNNER_TEMP/flutter/bin" >> "$GITHUB_PATH"
+      - run: flutter --version --suppress-analytics
+      - name: Dart SDK (format, analyze, test)
+        working-directory: packages/sdk-dart
+        run: |
+          dart pub get --enforce-lockfile
+          dart format --output=none --set-exit-if-changed .
+          dart analyze --fatal-infos
+          dart test
+      - name: Flutter theme (format, analyze, test)
+        working-directory: packages/theme-flutter
+        run: |
+          flutter pub get --enforce-lockfile
+          dart format --output=none --set-exit-if-changed .
+          flutter analyze --fatal-infos
+          flutter test
+
   go:
     runs-on: ubuntu-latest
     steps:
@@ -102,6 +142,24 @@ jobs:
           cmp third_party/iapro-sdk/LICENSE "$RUNNER_TEMP/iapro-sdk-license"
           cmp third_party/iapro-sdk/NOTICE "$RUNNER_TEMP/iapro-sdk-notice"
 
+  # Pacotes Linux do desktop (#40): gera .deb e AppImage, confere LICENSE/NOTICE/third_party no
+  # pacote e valida instalação, atualização, daemon instalado e remoção em contêineres limpos.
+  # Não publica nada: nenhum artefato é enviado.
+  desktop-linux-package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.23"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22.12.0"
+          cache: npm
+      - run: npm ci
+      - run: npm run desktop:package:linux
+      - run: sha256sum apps/desktop/release/Calango-*-linux-*
+      - run: npm run desktop:package:linux:test
   # Build nativo da imagem arm64 (sem push) e execução do binário com /healthz.
   node-image-arm64:
     runs-on: ubuntu-24.04-arm
@@ -257,14 +315,108 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run contracts:check
+      - name: Check third-party license texts and NOTICE
+        run: npm run licenses:check
       - run: npm run typecheck
       - run: npm run test:main -w apps/desktop
+      - run: npm run test:renderer -w apps/desktop
       - run: npm run desktop:build
+
+  # E2E do desktop com daemon real e provider fake (issue #119). Ainda fora do
+  # quality-gate até a revisão decidir se vira check obrigatório.
+  desktop-e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.23"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22.12.0"
+          cache: npm
+      - run: npm ci
+      - run: npm run desktop:build
+      - name: Run Playwright Electron E2E
+        run: xvfb-run -a npm run desktop:e2e
+      - name: Upload traces and screenshots of failures
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: desktop-e2e-falhas
+          path: |
+            apps/desktop/e2e-results/
+            apps/desktop/e2e-report/
+          retention-days: 7
+
+  # Instalador interno não assinado (#116). Instala em silêncio no runner descartável,
+  # sobe o daemon instalado, confere /healthz e que o log não contém o token, e desinstala.
+  desktop-windows-package:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.23"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22.12.0"
+          cache: npm
+      - run: npm ci
+      - run: npm run desktop:package:win
+      - name: Gerar checksum
+        shell: pwsh
+        run: |
+          $exe = Get-ChildItem apps/desktop/release -Filter 'Calango-*-interno-nao-assinado-x64.exe' | Select-Object -First 1
+          if (-not $exe) { throw 'instalador não encontrado' }
+          $hash = (Get-FileHash $exe.FullName -Algorithm SHA256).Hash.ToLower()
+          "$hash  $($exe.Name)" | Out-File -Encoding ascii "$($exe.FullName).sha256"
+          "INSTALLER=$($exe.FullName)" | Out-File -Append -Encoding utf8 $env:GITHUB_ENV
+          Get-Content "$($exe.FullName).sha256"
+      - name: Instalar, subir o daemon instalado e desinstalar
+        shell: pwsh
+        run: |
+          $dir = Join-Path $env:RUNNER_TEMP 'Calango'
+          Start-Process -Wait -FilePath $env:INSTALLER -ArgumentList '/S', "/D=$dir"
+          $daemon = Join-Path $dir 'resources\bin\calango.exe'
+          foreach ($f in 'Calango.exe', 'resources\bin\calango.exe', 'resources\legal\LICENSE', 'resources\legal\NOTICE', 'resources\legal\third_party\iapro-sdk\LICENSE', 'resources\legal\third_party\agenticos\LICENSE') {
+            if (-not (Test-Path (Join-Path $dir $f))) { throw "faltando no pacote instalado: $f" }
+          }
+          # Chave de teste descartável: o keyring do Windows fica fora deste smoke (#55).
+          $bytes = [byte[]]::new(32); [Security.Cryptography.RandomNumberGenerator]::Fill($bytes)
+          $env:CALANGO_VAULT_KEY = [Convert]::ToBase64String($bytes)
+          $env:CALANGO_DATA_DIR = Join-Path $env:RUNNER_TEMP 'calango-data'
+          $env:CALANGO_ADDR = '127.0.0.1:7317'
+          $out = Join-Path $env:RUNNER_TEMP 'daemon.out'; $err = Join-Path $env:RUNNER_TEMP 'daemon.err'
+          $proc = Start-Process -PassThru -NoNewWindow -FilePath $daemon -RedirectStandardOutput $out -RedirectStandardError $err
+          $ok = $false
+          for ($i = 0; $i -lt 30 -and -not $ok; $i++) {
+            try { $ok = (Invoke-WebRequest -UseBasicParsing http://127.0.0.1:7317/healthz).StatusCode -eq 200 } catch { Start-Sleep 1 }
+          }
+          $token = (& $daemon print-token).Trim()
+          Write-Output "::add-mask::$token"
+          Stop-Process -Id $proc.Id -Force
+          Get-Content $out, $err
+          if (-not $ok) { throw 'daemon instalado não respondeu /healthz' }
+          if ((Get-Content -Raw $out, $err) -match [regex]::Escape($token)) { throw 'log do daemon contém o token' }
+          Start-Process -Wait -FilePath (Join-Path $dir 'Uninstall Calango.exe') -ArgumentList '/S'
+          for ($i = 0; $i -lt 60 -and (Test-Path (Join-Path $dir 'Calango.exe')); $i++) { Start-Sleep 1 }
+          if (Test-Path (Join-Path $dir 'Calango.exe')) { throw 'desinstalação não removeu o aplicativo' }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: calango-windows-interno-nao-assinado
+          path: |
+            apps/desktop/release/Calango-*-interno-nao-assinado-x64.exe
+            apps/desktop/release/Calango-*-interno-nao-assinado-x64.exe.sha256
+            DEV/INSTALADOR_WINDOWS_INTERNO.md
+          retention-days: 14
+          if-no-files-found: error
 
   quality-gate:
     name: quality-gate
     if: ${{ always() }}
-    needs: [openapi, generated-contracts, go, cross-build, site-image, node-image, node-image-arm64, node-image-maestro, vps-installer, source-quality, desktop]
+    needs: [openapi, generated-contracts, dart-packages, go, cross-build, site-image, node-image, node-image-arm64, node-image-maestro, vps-installer, source-quality, desktop]
     runs-on: ubuntu-latest
     steps:
       - name: Exigir sucesso de todos os checks

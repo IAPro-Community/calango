@@ -1,6 +1,6 @@
 # Deployment — Calango on your VPS
 
-Status: design. The Dockerfiles were built on 2026-11-22 and the health checks passed with `--network host` (see `VERIFY.md`). Port mapping through bridge networking remains unvalidated. In this session the sandbox blocked access to the Docker daemon, so the images were not revalidated.
+Status: design. On 2026-11-25, the site and node images built and passed `/healthz` over a user-defined Docker bridge. The node database persisted in a named volume across container recreation. This smoke does not validate the Caddy/TLS Compose deployment, VPS security, or backup/restore.
 
 ## Model
 
@@ -116,6 +116,39 @@ For those who do not want to run a VPS, offer the same server hosted by us, with
 - `deploy/Dockerfile.node`: Go build stage plus two final targets, `minimal` (default, distroless) and `maestro` (Node.js + npm); non-root user. Site: `Dockerfile` at the root, nginx non-root.
 - `deploy/test/maestro-vps-e2e.sh` and `deploy/test/fake-npm-registry.mjs`: end-to-end Maestro validation on the VPS layout (test only).
 - `deploy/docker-compose.yml`: example with a data volume and a TLS proxy.
+
+## Container smoke validation
+
+The site and node images were built and run on a disposable bridge network. The node image defaults `CALANGO_DATA_DIR` to `/data`; its directory is owned by UID/GID 65532 for the `nonroot` user. Named volumes preserve this ownership on first mount. Bind-mounted host directories must also be writable by UID/GID 65532.
+
+Reproduce the smoke with Docker Engine:
+
+```sh
+docker build -t calango-site:smoke .
+docker build -f deploy/Dockerfile.node -t calango-node:smoke .
+docker network create --driver bridge calango-smoke
+docker volume create calango-smoke-data
+umask 077
+printf 'CALANGO_VAULT_KEY=%s\n' "$(openssl rand -base64 32 | tr -d '\n')" > /tmp/calango-smoke.env
+docker run -d --name calango-smoke-node --network calango-smoke \
+  -p 127.0.0.1:17317:7317 -v calango-smoke-data:/data \
+  --env-file /tmp/calango-smoke.env calango-node:smoke
+docker run -d --name calango-smoke-site --network calango-smoke \
+  -p 127.0.0.1:18088:8080 calango-site:smoke
+curl --fail http://127.0.0.1:18088/healthz
+curl --fail http://127.0.0.1:17317/healthz
+docker rm -f calango-smoke-node
+docker run -d --name calango-smoke-node --network calango-smoke \
+  -p 127.0.0.1:17317:7317 -v calango-smoke-data:/data \
+  --env-file /tmp/calango-smoke.env calango-node:smoke
+curl --fail http://127.0.0.1:17317/healthz
+docker rm -f calango-smoke-node calango-smoke-site
+docker volume rm calango-smoke-data
+docker network rm calango-smoke
+rm -f /tmp/calango-smoke.env
+```
+
+The vault key must decode to 32 bytes; use a disposable key only. This manual smoke does not exercise `deploy/docker-compose.yml`, Caddy/TLS, or a public VPS.
 
 ## Pending
 

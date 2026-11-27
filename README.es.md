@@ -88,6 +88,7 @@ node scripts/generate-i18n.mjs --check
 
 ## Documentación
 
+- [docs/guia](docs/guia/README.md): guía de uso en portugués de Brasil (primeros pasos, emparejamiento, VPS, Maestro y privacidad).
 - [AGENTS.md](AGENTS.md): punto de entrada para quien va a programar (persona o agente).
 - [DEV/INDEX.md](DEV/INDEX.md): mapa de toda la documentación.
 

@@ -88,7 +88,7 @@ Maestro:
 - [x] Q24 Maestro CLI behavior validated in a throwaway home; Calango manager/API/scheduler, agent linking, audit, update and rollback code now exist. F1-T16 stable Codex home (ADR 0014) is in code and fake-tested; linked agents use it. Real Codex session and the migration policy for earlier per-version logins remain open.
 
 Verification and site:
-- [ ] Q25 Docker bridge networking test on a compatible machine (only `--network host` verified).
+- [x] Q25 Docker bridge validation. Done 2026-11-25: site and node images built and ran on a user-defined bridge; both `/healthz` endpoints passed; the node database survived container recreation in a named volume. See `DEV/VERIFY.md`.
 - [x] Q26 Site reviewed at desktop 1440 px and phone 390 px, in light and dark themes; no horizontal overflow at 390 px. Review found future phone/cloud/team features presented in plan cards; reconcile copy before launch (Q27).
 - [ ] Q27 Owner site items: CLA legal name, contacts (`licenca@`, `seguranca@`, `conduta@`), Caddy domain, Terms link and real prices. Also decide how to label phone/cloud/team plan features that are still roadmap items.
 
@@ -137,7 +137,7 @@ Verification and site:
 - [x] F1-T12 MCP: connect a server, local MCP gateway per turn, scopes none/read/write. → `modules/tools-mcp.md`; connectors, per-turn gateway, grants and approval-gated writes are implemented (ADR 0018). Connector credentials, other built-in tools, result restart durability and live Codex validation remain open.
 - [x] F1-T13 API v1 and WebSocket routes are served and tested; approval request/HTTP decision integration uses a fake executor. Reconnect reloads persisted state through REST; WebSocket replay is intentionally omitted by ADR 0015.
 - [x] F1-T14 Local desktop token, stored in the vault. Done: token is the vault item `api-token`, created on first start; a legacy `DataDir/api-token` file is imported and removed; every `/v1` route requires it. Rotation done (Q30); there is no revocation route without a replacement, by design.
-- [ ] F1-T15 Device pairing and authentication (local version, no phone yet). → `modules/pairing-auth.md`. Partial: pairing codes, device tokens, device list, revocation and scopes served and tested; QR code, mobile app and VPS administrator password pending.
+- [ ] F1-T15 Device pairing and authentication (local version, no phone yet). → `modules/pairing-auth.md`. Partial: local live-daemon acceptance passed 2026-11-25 for code redemption, single use, token revocation, rate limit and `full`/`read`/`approve_only` scopes (see `DEV/VERIFY.md`, #58). Mobile QR, remote transport and the VPS administrator password remain phase-gated.
 - [ ] F1-T16 Maestro integration: manager, isolated install/verify, link/unlink, V1 update check, default auto-update, audit, rollback and status UI are implemented and fake-tested. The Codex home is the stable `<calango-home>/maestro/.codex` (ADR 0014): each release is verified in its staging home, then activated into the stable home, so sign-in survives updates and rollbacks. Partial: no real Codex session; earlier per-version logins are not migrated (owner policy pending).
 - [ ] F1-T17 Usage/cost panel per agent, routine, project, model and node; REST and desktop show known/estimated/unknown separately. Real provider pricing/cost remains unverified; project grouping has no projects table in V1.
 - [ ] F1-T18 Append-only audit: hash chain, verify/export API and desktop screen are implemented. Full remote-action and permission-event coverage remains unverified; no remote-node action is in Phase 1.
@@ -159,8 +159,8 @@ Verification and site:
 ## Remaining unchecked work — triage (2026-11-23)
 
 - **Owner-blocked:** Q03/D5 transport/legal clearance; Q06 permission to delete `/tmp/agenticos`; D1b/Q27 legal identity, terms, prices, domain and plan copy; Q17 memory capture/retention; Q18/F1-T17 verified pricing; live model/MCP and external approval authorization (F1-T04/T05/T08/T12); F1-T16 profile-migration policy; personal-data export/deletion scope; authorization for the next push.
-- **Platform-blocked:** Q13/F1-T10 Windows/macOS keyring; F1-T24 OS shortcut/tray and cross-platform login; F1-T25 signing/install/update credentials and platform verification; Q25 Docker bridge test; Q27 site hosting; F2-T07 store review.
-- **Implementable engineering:** F1-T05 JSONL usage parsing and other V1 harnesses; F1-T12 connector credentials, remaining built-ins and result durability; F1-T15 local QR; F1-T18 applicable audit coverage; database backup/restore; first-use/privacy/Maestro docs; desktop/site accessibility; reference-code/license review; site icon. These remain unchecked until implemented and verified.
+- **Platform-blocked:** Q13/F1-T10 Windows/macOS keyring; F1-T24 OS shortcut/tray and cross-platform login; F1-T25 signing/install/update credentials and platform verification; Q27 site hosting; F2-T07 store review.
+- **Implementable engineering:** F1-T05 JSONL usage parsing and other V1 harnesses; F1-T12 connector credentials, remaining built-ins and result durability; F1-T15 local QR; F1-T18 applicable audit coverage; database backup/restore; first-use/privacy/Maestro docs; desktop/site accessibility; reference-code/license review; tray/notification icon variants. The website favicon is simplified; publication still depends on Q27.
 - **Implementable but phase-gated:** F1-T15 mobile/VPS parts and F1-T17 project grouping; all F2–F6 tasks remain behind their preceding phase exit. F7 is post-V1. WebSocket replay is intentionally omitted; REST reload meets the reconnect contract (ADR 0015).
 
 ## Phase 2 — Phone

@@ -16,7 +16,7 @@ Work on separate projects with agents, on the PC or on the VPS.
 - When the task ends: offer PR, keep or discard the worktree.
 - Each run leaves an evidence package: diff, commands and exit codes, tests executed and artifacts produced. Failures and tests not run appear as such.
 - The agent does not merge or publish/deploy without human approval tied to the exact action.
-- Import skills from Claude Code (`.claude/`) and Codex (`.codex/`).
+- Import skills from Claude Code (`.claude/`) and Codex (`.codex/`). Foundation delivered early (F4-T07, issue #88): discovery and versioned import in `internal/skills`, see `SPECS/modules/skills.md` and ADR 0022. Project roots are configured by hand (`CALANGO_SKILL_DIRS`) until the `projects` table exists; imported skills are not given to runs yet.
 
 ## Acceptance
 - Two tasks in the same project run in parallel in different worktrees and produce two PRs.
