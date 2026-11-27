@@ -212,6 +212,40 @@ function createFakeBridge() {
       stateListeners.add(listener);
       return () => stateListeners.delete(listener);
     },
+    getNodeInfo: vi.fn(async () => ({ label: 'test-node' })),
+    // Terminal and browser bridges: screens under test that use them stub what they need.
+    ptyAttach: vi.fn(async () => {}),
+    ptyInput: vi.fn(),
+    ptyResize: vi.fn(),
+    ptyDetach: vi.fn(),
+    onPtyOutput: () => () => {},
+    onPtyClosed: () => () => {},
+    browser: {
+      listTabs: vi.fn(async () => []),
+      focusAgent: vi.fn(async () => []),
+      openTab: vi.fn(async () => {
+        throw new Error('browser.openTab not stubbed');
+      }),
+      closeTab: vi.fn(async () => {}),
+      activate: vi.fn(async () => {
+        throw new Error('browser.activate not stubbed');
+      }),
+      navigate: vi.fn(async () => {
+        throw new Error('browser.navigate not stubbed');
+      }),
+      back: vi.fn(async () => {}),
+      forward: vi.fn(async () => {}),
+      reload: vi.fn(async () => {}),
+      setBounds: vi.fn(async () => {}),
+      clearProfile: vi.fn(async () => {}),
+      onTabs: () => () => {},
+      detectServers: vi.fn(async () => []),
+      openPreview: vi.fn(async () => {
+        throw new Error('browser.openPreview not stubbed');
+      }),
+      openExternal: vi.fn(async () => false),
+      onPreviewBlocked: () => () => {},
+    },
   };
 
   return {
