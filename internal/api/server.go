@@ -25,6 +25,7 @@ import (
 	"calango/internal/maestro"
 	"calango/internal/memory"
 	"calango/internal/providers"
+	"calango/internal/pty"
 	"calango/internal/routines"
 	"calango/internal/skills"
 	"calango/internal/tools"
@@ -53,6 +54,8 @@ type Config struct {
 	Tools *tools.Service
 	// Maestro manages the isolated official CLI. Nil disables its API routes.
 	Maestro *maestro.Manager
+	// Terminal runs integrated terminal sessions for /v1/pty. Nil disables its routes.
+	Terminal *pty.Manager
 	// Skills discovers and imports Claude Code and Codex skills. Nil disables its routes.
 	Skills *skills.Library
 	// Vault stores secrets and never returns a secret value.
@@ -88,6 +91,7 @@ type handler struct {
 	routines      *routines.Service
 	tools         *tools.Service
 	maestro       *maestro.Manager
+	terminal      *pty.Manager
 	skills        *skills.Library
 	localToken    *auth.LocalToken
 	ownerID       string
@@ -112,7 +116,7 @@ func NewHandler(cfg Config) (http.Handler, error) {
 		approvals: cfg.Approvals, devices: cfg.Devices, usage: cfg.Usage,
 		vault: cfg.Vault, audit: cfg.Audit, license: cfg.License, conversations: cfg.Conversations,
 		events: cfg.Events, routines: cfg.Routines, tools: cfg.Tools,
-		maestro: cfg.Maestro, skills: cfg.Skills, localToken: cfg.Token, ownerID: cfg.OwnerID,
+		maestro: cfg.Maestro, terminal: cfg.Terminal, skills: cfg.Skills, localToken: cfg.Token, ownerID: cfg.OwnerID,
 		deviceID: cfg.DeviceID, pairLimit: newAttemptLimiter(pairAttemptsPerWindow, pairWindow, time.Now),
 		trusted: cfg.TrustedProxies,
 	}
@@ -134,6 +138,9 @@ func NewHandler(cfg Config) (http.Handler, error) {
 	h.registerLicense(v1)
 	if h.maestro != nil {
 		h.registerMaestro(v1)
+	}
+	if h.terminal != nil {
+		h.registerPTY(v1)
 	}
 	if h.skills != nil {
 		h.registerSkills(v1)

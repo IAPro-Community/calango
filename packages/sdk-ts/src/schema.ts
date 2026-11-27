@@ -218,6 +218,30 @@ export interface paths {
         patch: operations["updateMaestroSettings"];
         trace?: never;
     };
+    "/v1/pty": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the calling device's terminal sessions
+         * @description Needs write scope. Sessions are bound to the device that created them; others are not listed.
+         */
+        get: operations["listPtySessions"];
+        put?: never;
+        /**
+         * Start a shell on a pseudo-terminal
+         * @description Needs write scope. The daemon picks the shell (the person's login shell on Unix, PowerShell or cmd.exe on Windows); clients cannot choose the program. `cwd` must resolve, after symlinks, to the daemon workspace or a directory below it; anything else is `400 invalid_input`. The child gets an allowlisted environment: no `CALANGO_*` variable, provider key or token reaches it. At most 8 sessions run per node (`429 rate_limited`). A session with no client attached and no input for 30 minutes is closed. Ending a session kills its whole process tree. Open and close are audited (`terminal.opened`, `terminal.closed`) without terminal content.
+         */
+        post: operations["createPtySession"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/skill-imports/discover": {
         parameters: {
             query?: never;
@@ -1018,6 +1042,27 @@ export interface components {
         };
         /** @enum {string} */
         RunOn: "pc" | "vps" | "auto";
+        PtySessionInput: {
+            /** @description Working directory, relative to the daemon workspace or absolute inside it. Empty means the workspace. */
+            cwd?: string;
+            /** @description Defaults to 80 when cols and rows are both omitted. */
+            cols?: number;
+            /** @description Defaults to 24 when cols and rows are both omitted. */
+            rows?: number;
+        };
+        PtySession: {
+            /** @description 256 random bits, URL-safe base64 without padding (43 characters). */
+            id: string;
+            /** @description Absolute working directory on the node. */
+            cwd: string;
+            /** @description Absolute path of the shell program. */
+            shell: string;
+            cols: number;
+            rows: number;
+            attached: boolean;
+            /** Format: date-time */
+            created_at: string;
+        };
         ProviderAccountInput: {
             /** @enum {string} */
             kind: "codex" | "anthropic";
@@ -1752,6 +1797,56 @@ export interface operations {
                 };
             };
             400: components["responses"]["Error"];
+        };
+    };
+    listPtySessions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PtySession"][];
+                };
+            };
+            401: components["responses"]["Error"];
+            403: components["responses"]["Error"];
+        };
+    };
+    createPtySession: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PtySessionInput"];
+            };
+        };
+        responses: {
+            /** @description Started */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PtySession"];
+                };
+            };
+            400: components["responses"]["Error"];
+            401: components["responses"]["Error"];
+            403: components["responses"]["Error"];
+            429: components["responses"]["Error"];
         };
     };
     discoverSkills: {

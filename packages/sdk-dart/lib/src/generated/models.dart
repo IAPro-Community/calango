@@ -221,6 +221,92 @@ final class AgentTool {
   }
 }
 
+final class PtySessionInput {
+  const PtySessionInput({
+    this.cwd,
+    this.cols,
+    this.rows,
+  });
+
+  factory PtySessionInput.fromJson(Map<String, Object?> json) {
+    return PtySessionInput(
+      cwd: json['cwd'] as String?,
+      cols: json['cols'] as int?,
+      rows: json['rows'] as int?,
+    );
+  }
+
+  /// Working directory, relative to the daemon workspace or absolute inside it. Empty means the workspace.
+  final String? cwd;
+
+  /// Defaults to 80 when cols and rows are both omitted.
+  final int? cols;
+
+  /// Defaults to 24 when cols and rows are both omitted.
+  final int? rows;
+
+  Map<String, Object?> toJson() {
+    return <String, Object?>{
+      'cwd': ?cwd,
+      'cols': ?cols,
+      'rows': ?rows,
+    };
+  }
+}
+
+final class PtySession {
+  const PtySession({
+    required this.id,
+    required this.cwd,
+    required this.shell,
+    required this.cols,
+    required this.rows,
+    required this.attached,
+    required this.createdAt,
+  });
+
+  factory PtySession.fromJson(Map<String, Object?> json) {
+    return PtySession(
+      id: json['id'] as String,
+      cwd: json['cwd'] as String,
+      shell: json['shell'] as String,
+      cols: json['cols'] as int,
+      rows: json['rows'] as int,
+      attached: json['attached'] as bool,
+      createdAt: DateTime.parse(json['created_at'] as String),
+    );
+  }
+
+  /// 256 random bits, URL-safe base64 without padding (43 characters).
+  final String id;
+
+  /// Absolute working directory on the node.
+  final String cwd;
+
+  /// Absolute path of the shell program.
+  final String shell;
+
+  final int cols;
+
+  final int rows;
+
+  final bool attached;
+
+  final DateTime createdAt;
+
+  Map<String, Object?> toJson() {
+    return <String, Object?>{
+      'id': id,
+      'cwd': cwd,
+      'shell': shell,
+      'cols': cols,
+      'rows': rows,
+      'attached': attached,
+      'created_at': createdAt.toUtc().toIso8601String(),
+    };
+  }
+}
+
 final class ProviderAccountInput {
   const ProviderAccountInput({
     required this.kind,
