@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 	"time"
 
 	"calango/internal/anthropic"
@@ -19,6 +18,7 @@ import (
 	"calango/internal/harness"
 
 	"github.com/IAPro-Community/IAPro-SDK/lease"
+	sdk "github.com/IAPro-Community/IAPro-SDK/providers"
 )
 
 // Repository is the persistence the service needs. The SQLite store implements it.
@@ -56,7 +56,10 @@ type Service struct {
 	cfg      Config
 	capacity *capacityMonitor
 	leases   *lease.Coordinator
+	manager  *sdk.AccountManager[providerFactory]
 }
+
+type providerFactory func(context.Context, core.ProviderAccount) (gateway.Provider, error)
 
 // NewService validates cfg and returns a Service.
 func NewService(cfg Config) (*Service, error) {
@@ -69,7 +72,13 @@ func NewService(cfg Config) (*Service, error) {
 	if cfg.CodexWorkDir == "" || cfg.AccountsDir == "" {
 		return nil, errors.New("providers service needs the codex work directory and the accounts directory")
 	}
-	s := &Service{cfg: cfg}
+	s := &Service{cfg: cfg, manager: sdk.NewAccountManager[providerFactory]()}
+	if err := s.manager.Register(core.ProviderKindCodex, s.resolveCodex); err != nil {
+		return nil, err
+	}
+	if err := s.manager.Register(core.ProviderKindAnthropic, s.resolveAnthropic); err != nil {
+		return nil, err
+	}
 	if cfg.CapacityInterval > 0 && cfg.CapacityOwner != "" {
 		s.capacity = newCapacityMonitor(s)
 	}
@@ -176,35 +185,37 @@ func (s *Service) Delete(ctx context.Context, ownerID, id string) error {
 // "<kind>/<label>". The gateway calls it for each request, so a deleted account
 // stops resolving at once.
 func (s *Service) Resolve(ctx context.Context, ownerID, key string) (gateway.Provider, error) {
-	kind, label, ok := strings.Cut(key, "/")
-	if !ok {
+	kind, label, err := sdk.ParseAccountKey(key)
+	if err != nil {
 		return nil, fmt.Errorf("%w: provider key %q", core.ErrInvalidInput, key)
 	}
 	a, err := s.cfg.Repo.GetProviderAccountByName(ctx, ownerID, kind, label)
 	if err != nil {
 		return nil, err
 	}
-	switch a.Kind {
-	case core.ProviderKindCodex:
-		p, err := harness.NewCodex(s.cfg.CodexBin, s.cfg.CodexWorkDir, s.codexHome(a))
-		if err != nil {
-			return nil, err
-		}
-		if s.capacity != nil && ownerID == s.cfg.CapacityOwner {
-			p.CoordinateQuota()
-		}
-		if s.capacity != nil && ownerID == s.cfg.CapacityOwner && a.Label != core.DefaultAccountLabel {
-			return &leasedCodex{service: s, account: a, cli: p}, nil
-		}
-		return p, nil
-	case core.ProviderKindAnthropic:
-		p, err := anthropic.NewAccount(s.cfg.Secrets, keyItem(a), s.cfg.AnthropicBaseURL)
-		if err != nil {
-			return nil, err
-		}
-		return p, nil
+	factory, ok := s.manager.Lookup(a.Kind)
+	if !ok {
+		return nil, fmt.Errorf("providers: unknown kind %q", a.Kind)
 	}
-	return nil, fmt.Errorf("providers: unknown kind %q", a.Kind)
+	return factory(ctx, a)
+}
+
+func (s *Service) resolveCodex(_ context.Context, a core.ProviderAccount) (gateway.Provider, error) {
+	p, err := harness.NewCodex(s.cfg.CodexBin, s.cfg.CodexWorkDir, s.codexHome(a))
+	if err != nil {
+		return nil, err
+	}
+	if s.capacity != nil && a.OwnerID == s.cfg.CapacityOwner {
+		p.CoordinateQuota()
+	}
+	if s.capacity != nil && a.OwnerID == s.cfg.CapacityOwner && a.Label != core.DefaultAccountLabel {
+		return &leasedCodex{service: s, account: a, cli: p}, nil
+	}
+	return p, nil
+}
+
+func (s *Service) resolveAnthropic(_ context.Context, a core.ProviderAccount) (gateway.Provider, error) {
+	return anthropic.NewAccount(s.cfg.Secrets, keyItem(a), s.cfg.AnthropicBaseURL)
 }
 
 // codexHome returns the CODEX_HOME of a Codex account, or "" for the default
