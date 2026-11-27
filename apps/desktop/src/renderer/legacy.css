@@ -1,3 +1,0 @@
-/* The renderer styles sit in the "legacy" cascade layer, below the UI kit utilities (src/lib),
-   until every screen uses the kit (ADR 0025). */
-@import "./styles.css" layer(legacy);

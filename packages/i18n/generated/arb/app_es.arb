@@ -336,5 +336,17 @@
   "browserPreviewOutside": "La vista previa solo abre direcciones de este servidor local.",
   "browserPreviewEmpty": "No hay vista previa abierta. Detecta un servidor local o indica su puerto.",
   "browserClearPreviewConfirm": "¿Borrar las cookies y los datos de navegación de la vista previa? Se cerrarán sus pestañas.",
-  "browserPreviewCleared": "Perfil de la vista previa borrado."
+  "browserPreviewCleared": "Perfil de la vista previa borrado.",
+  "brandSubtitle": "ejecución local",
+  "navGroupMain": "Principal",
+  "navGroupManage": "Gestión y datos",
+  "navGroupTools": "Herramientas",
+  "navGroupNodes": "Dónde se ejecuta",
+  "nodeThisComputer": "Tu computadora",
+  "nodeStateOnline": "encendido",
+  "nodeStateStarting": "iniciando",
+  "nodeStateOffline": "apagado",
+  "approvalPendingEyebrow": "Aprobación pendiente",
+  "usageTokensTotal": "Tokens en el período",
+  "usageUnknownHint": "filas sin precio conocido"
 }

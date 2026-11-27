@@ -336,5 +336,17 @@
   "browserPreviewOutside": "The preview only opens addresses of this local server.",
   "browserPreviewEmpty": "No preview open. Detect a local server or enter its port.",
   "browserClearPreviewConfirm": "Erase the preview's cookies and browsing data? Preview tabs will be closed.",
-  "browserPreviewCleared": "Preview profile cleared."
+  "browserPreviewCleared": "Preview profile cleared.",
+  "brandSubtitle": "runs locally",
+  "navGroupMain": "Main",
+  "navGroupManage": "Management and data",
+  "navGroupTools": "Tools",
+  "navGroupNodes": "Where it runs",
+  "nodeThisComputer": "Your computer",
+  "nodeStateOnline": "on",
+  "nodeStateStarting": "starting",
+  "nodeStateOffline": "off",
+  "approvalPendingEyebrow": "Pending approval",
+  "usageTokensTotal": "Tokens in period",
+  "usageUnknownHint": "rows without a known price"
 }
