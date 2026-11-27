@@ -59,6 +59,25 @@ export interface WebContentsHooks {
   openTab(url: string): void;
   /** A navigation was refused by the protocol gate. */
   blocked?(url: string): void;
+  /**
+   * Extra containment on top of the protocol gate (preview tabs, F4-T06): an http(s) URL
+   * for which this returns false is not loaded in the tab, and leftOrigin is told instead.
+   */
+  allowNavigation?(url: string): boolean;
+  leftOrigin?(url: string): void;
+}
+
+/** gate applies the protocol gate, then the optional containment; true means "go ahead". */
+function gate(url: string, hooks: WebContentsHooks): boolean {
+  if (!isNavigableUrl(url)) {
+    hooks.blocked?.(url);
+    return false;
+  }
+  if (hooks.allowNavigation !== undefined && !hooks.allowNavigation(url)) {
+    hooks.leftOrigin?.(url);
+    return false;
+  }
+  return true;
 }
 
 /**
@@ -68,23 +87,17 @@ export interface WebContentsHooks {
 export function hardenWebContents(contents: WebContents, hooks: WebContentsHooks): void {
   contents.setWindowOpenHandler((details) => {
     if (decideWindowOpen(details.url) === 'tab') {
-      hooks.openTab(details.url);
+      if (gate(details.url, hooks)) hooks.openTab(details.url);
     } else {
       hooks.blocked?.(details.url);
     }
     return { action: 'deny' };
   });
   contents.on('will-navigate', (event) => {
-    if (!isNavigableUrl(event.url)) {
-      event.preventDefault();
-      hooks.blocked?.(event.url);
-    }
+    if (!gate(event.url, hooks)) event.preventDefault();
   });
   contents.on('will-redirect', (event) => {
-    if (event.isMainFrame && !isNavigableUrl(event.url)) {
-      event.preventDefault();
-      hooks.blocked?.(event.url);
-    }
+    if (event.isMainFrame && !gate(event.url, hooks)) event.preventDefault();
   });
   contents.on('will-attach-webview', (event) => {
     event.preventDefault();

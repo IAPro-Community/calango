@@ -60,3 +60,22 @@ Probed in a temp directory with `--home-path` and a temp `HOME`. Not wired into 
 - `internal/maestro` installs verified V1 packages under per-version directories, exposes status/install/update/rollback/settings APIs, links agents, audits switches, checks for updates daily and defaults automatic updates on. Tests use fake npm/registry/Codex executables; no real Codex session was run.
 - Current `CodexHome` is `<calango-home>/maestro/versions/<version>/home/.codex`. This differs from ADR 0014's stable `<calango-home>/maestro/.codex`; each release has a separate login, so auto-update can switch to a signed-out profile. No real user login is copied. Resolve the path/design gap before calling F1-T16 complete.
 - The settings screen states the per-version profile behavior and requires separate sign-in; rollback is offered only when a previous verified version exists.
+
+## VPS validation (F3-T08, issue #79, 2026-11-25)
+
+Reuses `internal/maestro` unchanged except for the npm query fix of PR #159 (cherry-picked for the test). Runtime: the `maestro` image variant (`deploy/Dockerfile.node --target maestro`, Node.js 24 LTS + npm 11, uid 65532), installed with `deploy/install.sh`; see `DEPLOYMENT.md`, "Image variants". Script: `deploy/test/maestro-vps-e2e.sh` (real npm registry for phase A; a test-only fake registry in front of npm for phase B, which publishes 1.1.2 = 1.1.1 repacked and 1.1.3 with `verify` forced to fail, because npm has no stable V1 release after 1.1.1 to roll back from).
+
+Result, amd64, 18/18 checks:
+- New data volume: the daemon's startup check installs 1.1.1 by itself (`auto_update: true` by default), audit `"" → 1.1.1, auto, success`, no `maestro automatic update failed` in the log. `verify --home-path /data/maestro` exits 0.
+- `POST /v1/maestro/update` with nothing newer: `200`, `updated: false`.
+- Opt-out: after `PATCH /v1/maestro/settings {auto_update:false}` a new 1.1.2 only shows in `update_available`; restart keeps the preference and the version.
+- Manual update to 1.1.2 verifies and switches; `Reverter versão` (`POST /v1/maestro/rollback`) returns to 1.1.1, `verify` passes, audit `rollback`.
+- 1.1.3 failing `verify` (automatic and manual): the active 1.1.2 stays, audit `verify_failed`, manual update answers `500 maestro_operation_failed`.
+- Only `/data/maestro` is written (`docker diff` of the container is empty apart from the secret mount and Node's compile cache in `/tmp`); the container `$HOME` stays empty; no host `~/.codex` is mounted. Restarts and re-running the installer keep the installation without reinstalling.
+- The `minimal` (distroless) image logs `maestro automatic update failed` at startup and daily: no `npm`.
+
+Observed, not changed (owner decision):
+- With `auto_update` on, the next daily check reinstalls the newest release even if the owner just rolled back from it (seen in the test: rollback to 1.1.1, restart, back on 1.1.2). Rollback is undone within a day unless auto update is turned off.
+- A release that fails `verify` keeps its unverified `versions/<v>` directory until the next successful switch runs the cleanup.
+- The scheduler logs only `maestro automatic update failed`, without the cause; the cause is in the audit result (`verify_failed`) or must be reproduced with `POST /v1/maestro/update`.
+- npm caches the registry metadata for 5 minutes, so a release published minutes before the daily check may be seen only the next day.
