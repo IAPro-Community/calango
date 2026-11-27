@@ -121,6 +121,7 @@ func NewHandler(cfg Config) (http.Handler, error) {
 	h.registerConversations(v1)
 	h.registerEvents(v1)
 	h.registerProviderAccounts(v1)
+	h.registerProviderModels(v1)
 	h.registerRoutines(v1)
 	h.registerTools(v1)
 	if h.maestro != nil {

@@ -1,19 +1,10 @@
-import {
-  app,
-  BrowserWindow,
-  globalShortcut,
-  ipcMain,
-  Menu,
-  nativeImage,
-  protocol,
-  Tray,
-  type IpcMainInvokeEvent,
-} from 'electron';
+import { app, BrowserWindow, globalShortcut, ipcMain, Menu, protocol, Tray, type IpcMainInvokeEvent } from 'electron';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { channels, type DaemonState } from '../shared/ipc';
 import { Daemon } from './daemon';
 import { messages, type Locale } from './trayMessages';
+import { fallbackTrayIcon, loadTrayIcon, TRAY_ICON_PNG } from './trayIcon';
 import { linuxAutostartEnabled, linuxAutostartFilePath, setLinuxAutostart } from './startup';
 
 const APP_SCHEME = 'app';
@@ -181,11 +172,14 @@ function localeForApp(): Locale {
 }
 
 function createTray(): void {
-  const icon = nativeImage.createFromDataURL(
-    `data:image/svg+xml;charset=utf-8,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32"><rect width="32" height="32" rx="7" fill="#FDD838"/><path d="M7 21c2-3 5-4 8-4 1-4 4-7 9-7l3 2-3 2c1 2 2 4 3 6l-3 2-3-3-5 1-3 5-3-1 2-5-4 2z" fill="#42912E" stroke="#22180F" stroke-width="1.2" stroke-linejoin="round"/><circle cx="23" cy="12" r="1" fill="#22180F"/></svg>')}`,
-  );
+  // Tray needs a raster image on Windows and macOS; SVG data URLs only render
+  // on Linux. Missing PNG falls back to the SVG so a dev run still shows a tray.
+  const icon = loadTrayIcon({ pngPath: path.join(__dirname, '..', 'renderer', TRAY_ICON_PNG) });
+  if (icon === null) {
+    console.warn('Calango tray icon asset missing; using the SVG fallback');
+  }
   const t = messages[localeForApp()];
-  tray = new Tray(icon);
+  tray = new Tray(icon ?? fallbackTrayIcon());
   tray.setToolTip('Calango');
   tray.setContextMenu(
     Menu.buildFromTemplate([
@@ -199,10 +193,25 @@ function createTray(): void {
   tray.on('double-click', () => showWindow());
 }
 
+// notifyShortcutUnavailable tells the user the accelerator is taken. It must
+// not block start-up: the window is created and the daemon started regardless.
+function notifyShortcutUnavailable(): void {
+  if (mainWindow === null || mainWindow.isDestroyed() || !mainWindow.isVisible()) {
+    showWindow();
+  }
+  const t = messages[localeForApp()];
+  if (mainWindow !== null && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send(channels.shortcutUnavailable, t.trayShortcutUnavailable);
+  }
+}
+
 function registerQuickConversationShortcut(): void {
   const registered = globalShortcut.register('CommandOrControl+Shift+Space', () => showWindow('conversations'));
   if (!registered) {
+    // The shortcut is an accelerator, not a feature: keep the app usable and
+    // tell the user instead of failing silently.
     console.warn('Calango could not register the quick conversation shortcut');
+    notifyShortcutUnavailable();
   }
 }
 

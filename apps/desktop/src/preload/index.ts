@@ -9,6 +9,19 @@ const STATE_CHANGED = 'calango:state-changed';
 const GET_LOGIN_ITEM_SETTINGS = 'calango:get-login-item-settings';
 const SET_LAUNCH_AT_LOGIN = 'calango:set-launch-at-login';
 const QUICK_CONVERSATION = 'calango:quick-conversation';
+const SHORTCUT_UNAVAILABLE = 'calango:shortcut-unavailable';
+const shortcutListeners = new Set<(message: string) => void>();
+let shortcutPending: string | null = null;
+
+ipcRenderer.on(SHORTCUT_UNAVAILABLE, (_event: unknown, message: string) => {
+  if (shortcutListeners.size === 0) {
+    shortcutPending = message;
+    return;
+  }
+  for (const listener of shortcutListeners) {
+    listener(message);
+  }
+});
 const quickConversationListeners = new Set<() => void>();
 let quickConversationPending = false;
 
@@ -35,6 +48,17 @@ const bridge: CalangoBridge = {
     }
     return () => {
       quickConversationListeners.delete(listener);
+    };
+  },
+  onShortcutUnavailable: (listener) => {
+    shortcutListeners.add(listener);
+    if (shortcutPending !== null) {
+      const pending = shortcutPending;
+      shortcutPending = null;
+      listener(pending);
+    }
+    return () => {
+      shortcutListeners.delete(listener);
     };
   },
   onState: (listener) => {

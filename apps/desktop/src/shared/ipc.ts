@@ -9,6 +9,7 @@ export const channels = {
   getLoginItemSettings: 'calango:get-login-item-settings',
   setLaunchAtLogin: 'calango:set-launch-at-login',
   quickConversation: 'calango:quick-conversation',
+  shortcutUnavailable: 'calango:shortcut-unavailable',
 } as const;
 
 export interface LoginItemSettings {
@@ -33,5 +34,6 @@ export interface CalangoBridge {
   getLoginItemSettings(): Promise<LoginItemSettings>;
   setLaunchAtLogin(enabled: boolean): Promise<LoginItemSettings>;
   onQuickConversation(listener: () => void): () => void;
+  onShortcutUnavailable(listener: (message: string) => void): () => void;
   onState(listener: (state: DaemonState) => void): () => void;
 }

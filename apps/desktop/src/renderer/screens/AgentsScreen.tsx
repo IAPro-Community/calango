@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
-import type { Agent, ProviderAccount } from '@calango/sdk-ts';
+import type { Agent, ProviderAccount, ProviderModel } from '@calango/sdk-ts';
 import { usePoll } from '../usePoll';
 import type { ScreenProps } from './props';
 
@@ -217,6 +217,7 @@ function AgentForm({
   const [maestroEnabled, setMaestroEnabled] = useState(false);
   const [busy, setBusy] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const [models, setModels] = useState<ProviderModel[]>([]);
 
   useEffect(() => {
     if (accountId === '' && accounts[0]) {
@@ -224,6 +225,39 @@ function AgentForm({
     }
   }, [accountId, accounts]);
   const selectedAccount = accounts.find((account) => account.id === accountId);
+
+  // The catalog is the provider CLI's own list. An empty answer keeps the free
+  // field so accounts without a catalog (or an offline probe) still work.
+  useEffect(() => {
+    let active = true;
+    setModels([]);
+    if (!accountId) {
+      return () => {
+        active = false;
+      };
+    }
+    client
+      .listProviderModels(accountId)
+      .then((list) => {
+        if (active) {
+          setModels(list);
+        }
+      })
+      .catch(() => {
+        if (active) {
+          setModels([]);
+        }
+      });
+    return () => {
+      active = false;
+    };
+  }, [accountId, client]);
+
+  useEffect(() => {
+    if (models.length > 0 && !models.some((entry) => entry.id === model)) {
+      setModel(models[0]?.id ?? '');
+    }
+  }, [models, model]);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -283,10 +317,24 @@ function AgentForm({
           ))}
         </select>
       </label>
-      <label>
-        {t('agentModel')}
-        <input value={model} onChange={(event) => setModel(event.target.value)} required />
-      </label>
+      {models.length > 0 ? (
+        <label>
+          {t('agentModel')}
+          <select value={model} onChange={(event) => setModel(event.target.value)} required>
+            {models.map((entry) => (
+              <option key={entry.id} value={entry.id}>
+                {entry.label || entry.id}
+              </option>
+            ))}
+          </select>
+        </label>
+      ) : (
+        <label>
+          {t('agentModel')}
+          <input value={model} onChange={(event) => setModel(event.target.value)} required />
+          <small>{t('agentModelManual')}</small>
+        </label>
+      )}
       <label>
         {t('agentTokenLimit')}
         <input

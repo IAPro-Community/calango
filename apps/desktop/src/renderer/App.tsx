@@ -29,6 +29,10 @@ export function App() {
   const t = useMemo(() => translator(locale), [locale]);
   const [section, setSection] = useState<Section>('agents');
   useEffect(() => bridge.onQuickConversation(() => setSection('conversations')), []);
+  // The accelerator is registered by the OS, so a conflict can only be reported
+  // from the main process. The banner keeps the failure visible instead of a log.
+  const [notice, setNotice] = useState<string | null>(null);
+  useEffect(() => bridge.onShortcutUnavailable((message) => setNotice(message)), []);
   const { state, connection } = useDaemon();
 
   const client = useMemo(
@@ -53,6 +57,14 @@ export function App() {
         ))}
       </nav>
       <main className="content">
+        {notice !== null ? (
+          <output className="notice">
+            {notice}
+            <button type="button" onClick={() => setNotice(null)} aria-label={t('commonCancel')}>
+              ×
+            </button>
+          </output>
+        ) : null}
         {client === null ? (
           <DaemonStatusView state={state} t={t} />
         ) : (

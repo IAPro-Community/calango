@@ -318,6 +318,28 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/provider-accounts/{id}/models": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["Id"];
+            };
+            cookie?: never;
+        };
+        /**
+         * List the models one provider account can use
+         * @description Read-only probe of the provider CLI's own catalog. The daemon runs it with the account's isolated home. Accounts without a catalog (Anthropic) return an empty list, so the client keeps a free-form field.
+         */
+        get: operations["listProviderModels"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/provider-accounts/{id}": {
         parameters: {
             query?: never;
@@ -915,6 +937,14 @@ export interface components {
             created_at: string;
             /** Format: date-time */
             updated_at: string;
+        };
+        ProviderModel: {
+            /** @description Model slug accepted by the provider CLI. */
+            id: string;
+            /** @description Display name from the provider catalog. */
+            label: string;
+            /** @description Default reasoning effort declared by the provider */
+            default_reasoning?: string;
         };
         ProviderRef: {
             /** @description Id of a provider account of the same owner. */
@@ -1685,6 +1715,29 @@ export interface operations {
             };
             400: components["responses"]["Error"];
             409: components["responses"]["Error"];
+        };
+    };
+    listProviderModels: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["Id"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProviderModel"][];
+                };
+            };
+            404: components["responses"]["Error"];
         };
     };
     deleteProviderAccount: {
