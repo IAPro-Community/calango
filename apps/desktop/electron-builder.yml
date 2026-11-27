@@ -1,5 +1,10 @@
-# Pacote interno de testes do desktop (issue #116). Não é distribuição pública:
-# o instalador não é assinado e não tem atualização automática (ver #39).
+# Pacotes do desktop com o daemon calango embutido.
+# - Windows: instalador interno de testes (issue #116), não assinado e sem atualização automática (ver #39).
+# - Linux: .deb e AppImage x64 (issue #40), sem assinatura e sem atualização automática.
+# - macOS: DMG configurado, mas PENDENTE de credenciais Apple; assinatura e notarização ficam
+#   desligadas até existir identidade Developer ID e conta de notarização (issue #40).
+# Todo pacote leva resources/legal com LICENSE, NOTICE e third_party/ (inclui iapro-sdk e agenticos);
+# scripts/verify-desktop-package.mjs falha se algum deles faltar ou divergir do repositório.
 appId: io.github.iapro-community.calango
 productName: Calango
 copyright: Copyright © Calango contributors
@@ -37,4 +42,60 @@ nsis:
   deleteAppDataOnUninstall: false
   license: ../../LICENSE
   artifactName: Calango-${version}-interno-nao-assinado-${arch}.${ext}
+linux:
+  extraResources:
+    - from: ../../bin/linux-x64/calango
+      to: bin/calango
+  target:
+    - target: deb
+      arch: [x64]
+    - target: AppImage
+      arch: [x64]
+  # O executável do Electron não se chama "calango" para não confundir com o daemon (CLI).
+  executableName: calango-desktop
+  syncDesktopName: true
+  icon: ../../site/assets/logo-512.png
+  category: Utility
+  synopsis: Assistente pessoal com execução local
+  description: Desktop do Calango. Controla o daemon calango local, que roda agentes, rotinas e o gateway de modelos.
+  maintainer: Calango contributors <calango@users.noreply.github.com>
+  vendor: Calango contributors
+  artifactName: Calango-${version}-linux-${arch}.${ext}
+deb:
+  packageName: calango-desktop
+  priority: optional
+  # Padrão do electron-builder mais ALSA e libgbm1: sem elas o Electron 45 não carrega
+  # (achado do teste em contêiner limpo, scripts/test-linux-package.sh). A ALSA pede a versão
+  # para que o apt não escolha liboss4-salsa-asound2, que declara libasound2 sem versão e quebra
+  # o Electron no Ubuntu 24.04 (libasound2t64).
+  depends:
+    - libgtk-3-0
+    - libnotify4
+    - libnss3
+    - libxss1
+    - libxtst6
+    - xdg-utils
+    - libatspi2.0-0
+    - libuuid1
+    - libsecret-1-0
+    - libasound2t64 | libasound2 (>= 1.0.17)
+    - libgbm1
+  # O campo license do package.json do desktop não é usado para não alterar o lockfile.
+  fpm: ['--license', 'AGPL-3.0']
+mac:
+  extraResources:
+    - from: ../../bin/darwin-${arch}/calango
+      to: bin/calango
+  target:
+    - target: dmg
+      arch: [x64, arm64]
+  icon: ../../site/assets/logo-512.png
+  category: public.app-category.productivity
+  hardenedRuntime: true
+  # Pendente de credenciais (#40): sem identidade Developer ID e sem notarização. Não troque
+  # para assinar aqui; a assinatura vive só no ambiente protegido de release.
+  identity: null
+  notarize: false
+dmg:
+  artifactName: Calango-${version}-mac-${arch}-nao-assinado.${ext}
 publish: null

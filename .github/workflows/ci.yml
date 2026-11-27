@@ -102,6 +102,24 @@ jobs:
           cmp third_party/iapro-sdk/LICENSE "$RUNNER_TEMP/iapro-sdk-license"
           cmp third_party/iapro-sdk/NOTICE "$RUNNER_TEMP/iapro-sdk-notice"
 
+  # Pacotes Linux do desktop (#40): gera .deb e AppImage, confere LICENSE/NOTICE/third_party no
+  # pacote e valida instalação, atualização, daemon instalado e remoção em contêineres limpos.
+  # Não publica nada: nenhum artefato é enviado.
+  desktop-linux-package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.23"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22.12.0"
+          cache: npm
+      - run: npm ci
+      - run: npm run desktop:package:linux
+      - run: sha256sum apps/desktop/release/Calango-*-linux-*
+      - run: npm run desktop:package:linux:test
   # Build nativo da imagem arm64 (sem push) e execução do binário com /healthz.
   node-image-arm64:
     runs-on: ubuntu-24.04-arm

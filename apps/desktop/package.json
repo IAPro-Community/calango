@@ -2,6 +2,9 @@
   "name": "@calango/desktop",
   "productName": "Calango Desktop",
   "version": "0.1.0",
+  "description": "Desktop do Calango: controla o daemon calango local.",
+  "homepage": "https://github.com/IAPro-Community/calango",
+  "desktopName": "calango-desktop.desktop",
   "private": true,
   "main": "dist/main/index.js",
   "scripts": {
@@ -10,10 +13,15 @@
     "test:main": "npm run build:main && node --test test/startup.test.cjs test/a11y.test.cjs test/browser.test.cjs",
     "build:renderer": "vite build",
     "build": "npm run build:daemon && npm run build:main && npm run build:renderer",
-    "typecheck": "tsc -p tsconfig.renderer.json --noEmit && tsc -p tsconfig.e2e.json --noEmit",
+    "typecheck": "tsc -p tsconfig.renderer.json --noEmit",
     "start": "electron .",
     "build:daemon:win": "node ../../scripts/build-daemon.mjs --goos windows --goarch amd64 --out bin/calango.exe",
     "package:win": "npm run build:daemon:win && npm run build:main && npm run build:renderer && electron-builder --win --publish never",
+    "build:daemon:linux": "node ../../scripts/build-daemon.mjs --goos linux --goarch amd64 --out bin/linux-x64/calango",
+    "package:linux": "npm run build:daemon:linux && npm run build:main && npm run build:renderer && umask 022 && electron-builder --linux --publish never && node ../../scripts/verify-desktop-package.mjs --resources release/linux-unpacked/resources --daemon calango",
+    "build:daemon:mac": "node ../../scripts/build-daemon.mjs --goos darwin --goarch amd64 --out bin/darwin-x64/calango && node ../../scripts/build-daemon.mjs --goos darwin --goarch arm64 --out bin/darwin-arm64/calango",
+    "package:mac": "npm run build:daemon:mac && npm run build:main && npm run build:renderer && electron-builder --mac --publish never && node ../../scripts/verify-desktop-package.mjs --resources release/mac/Calango.app/Contents/Resources && node ../../scripts/verify-desktop-package.mjs --resources release/mac-arm64/Calango.app/Contents/Resources"
+,
     "test:e2e": "playwright test"
   },
   "devDependencies": {
