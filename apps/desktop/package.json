@@ -9,8 +9,9 @@
     "test:main": "npm run build:main && node --test test/startup.test.cjs test/a11y.test.cjs",
     "build:renderer": "vite build",
     "build": "npm run build:daemon && npm run build:main && npm run build:renderer",
-    "typecheck": "tsc -p tsconfig.renderer.json --noEmit",
-    "start": "electron ."
+    "typecheck": "tsc -p tsconfig.renderer.json --noEmit && tsc -p tsconfig.e2e.json --noEmit",
+    "start": "electron .",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@calango/sdk-ts": "0.1.0",
@@ -18,6 +19,7 @@
     "react-dom": "19.2.0"
   },
   "devDependencies": {
+    "@playwright/test": "1.65.0",
     "@types/node": "24.10.1",
     "@types/react": "19.2.2",
     "@types/react-dom": "19.2.2",
