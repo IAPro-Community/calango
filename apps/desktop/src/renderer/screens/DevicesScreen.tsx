@@ -216,7 +216,7 @@ export function DevicesScreen({ client, t }: ScreenProps) {
             </div>
           </div>
         )}
-        {expired && <p className="error">{t('pairingExpired')}</p>}
+        {expired && <p className="error" role="alert">{t('pairingExpired')}</p>}
         <p className="muted">{t('pairingTransportNote')}</p>
       </section>
 
