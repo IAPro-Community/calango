@@ -4,7 +4,6 @@ import {
   globalShortcut,
   ipcMain,
   Menu,
-  nativeImage,
   protocol,
   session,
   shell,

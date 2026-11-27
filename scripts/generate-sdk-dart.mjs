@@ -78,9 +78,9 @@ function identifier(text, where) {
 }
 
 // enumMember maps an OpenAPI enum value to a Dart identifier, escaping reserved words.
-function enumMember(value, where) {
+function enumMember(value) {
   const name = camel(value);
-  if (!dartReserved.has(name)) return name;
+  if (!dartReserved.has(name) && !enumMemberReserved.has(name)) return name;
   return `${name}Value`;
 }
 
@@ -164,7 +164,7 @@ function enumValues(schema, where) {
   }
   const members = schema.enum.map((value) => {
     if (typeof value !== 'string') unsupported(where, 'enum values must be strings');
-    return { value, member: enumMember(value, where) };
+    return { value, member: enumMember(value) };
   });
   if (new Set(members.map((entry) => entry.member)).size !== members.length) {
     unsupported(where, 'enum values collide after conversion to Dart names');
