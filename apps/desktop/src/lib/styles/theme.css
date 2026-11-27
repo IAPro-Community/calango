@@ -18,7 +18,7 @@
 @import "@fontsource-variable/instrument-sans";
 @import "@fontsource-variable/jetbrains-mono";
 
-/* Only the kit is scanned, so class names in the renderer never turn into utilities. */
+/* Only the kit is scanned here; an app that uses the kit adds its own @source. */
 @source "../";
 
 :root,

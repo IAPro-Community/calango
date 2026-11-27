@@ -12,7 +12,8 @@
       "scripts/*.mjs",
       "!packages/sdk-ts/src/schema.ts",
       "!apps/desktop/src/main/trayMessages.ts",
-      "!apps/desktop/src/lib/styles/theme.css"
+      "!apps/desktop/src/lib/styles/theme.css",
+      "!apps/desktop/src/renderer/app.css"
     ]
   },
   "formatter": {

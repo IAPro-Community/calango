@@ -308,7 +308,19 @@
     "pairingOneMinuteLeft": "Falta 1 minuto para o código expirar.",
     "pairingExpired": "O código expirou. Gere outro para parear.",
     "pairingPaired": "Novo dispositivo pareado.",
-    "pairingTransportNote": "O acesso remoto entre celular e computador ainda está em desenvolvimento; por enquanto o celular só alcança o Calango em redes de teste."
+    "pairingTransportNote": "O acesso remoto entre celular e computador ainda está em desenvolvimento; por enquanto o celular só alcança o Calango em redes de teste.",
+    "brandSubtitle": "execução local",
+    "navGroupMain": "Principal",
+    "navGroupManage": "Gestão e dados",
+    "navGroupTools": "Ferramentas",
+    "navGroupNodes": "Onde roda",
+    "nodeThisComputer": "Seu computador",
+    "nodeStateOnline": "ligado",
+    "nodeStateStarting": "iniciando",
+    "nodeStateOffline": "desligado",
+    "approvalPendingEyebrow": "Aprovação pendente",
+    "usageTokensTotal": "Tokens no período",
+    "usageUnknownHint": "linhas sem preço conhecido"
   },
   "en": {
     "appName": "Calango",
@@ -618,7 +630,19 @@
     "pairingOneMinuteLeft": "1 minute left before the code expires.",
     "pairingExpired": "The code expired. Generate another one to pair.",
     "pairingPaired": "New device paired.",
-    "pairingTransportNote": "Remote access between phone and computer is still in development; for now the phone reaches Calango only on test networks."
+    "pairingTransportNote": "Remote access between phone and computer is still in development; for now the phone reaches Calango only on test networks.",
+    "brandSubtitle": "runs locally",
+    "navGroupMain": "Main",
+    "navGroupManage": "Management and data",
+    "navGroupTools": "Tools",
+    "navGroupNodes": "Where it runs",
+    "nodeThisComputer": "Your computer",
+    "nodeStateOnline": "on",
+    "nodeStateStarting": "starting",
+    "nodeStateOffline": "off",
+    "approvalPendingEyebrow": "Pending approval",
+    "usageTokensTotal": "Tokens in period",
+    "usageUnknownHint": "rows without a known price"
   },
   "es": {
     "appName": "Calango",
@@ -928,6 +952,18 @@
     "pairingOneMinuteLeft": "Falta 1 minuto para que caduque el código.",
     "pairingExpired": "El código caducó. Genera otro para emparejar.",
     "pairingPaired": "Nuevo dispositivo emparejado.",
-    "pairingTransportNote": "El acceso remoto entre teléfono y computadora aún está en desarrollo; por ahora el teléfono solo llega a Calango en redes de prueba."
+    "pairingTransportNote": "El acceso remoto entre teléfono y computadora aún está en desarrollo; por ahora el teléfono solo llega a Calango en redes de prueba.",
+    "brandSubtitle": "ejecución local",
+    "navGroupMain": "Principal",
+    "navGroupManage": "Gestión y datos",
+    "navGroupTools": "Herramientas",
+    "navGroupNodes": "Dónde se ejecuta",
+    "nodeThisComputer": "Tu computadora",
+    "nodeStateOnline": "encendido",
+    "nodeStateStarting": "iniciando",
+    "nodeStateOffline": "apagado",
+    "approvalPendingEyebrow": "Aprobación pendiente",
+    "usageTokensTotal": "Tokens en el período",
+    "usageUnknownHint": "filas sin precio conocido"
   }
 }

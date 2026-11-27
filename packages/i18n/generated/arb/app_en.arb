@@ -307,5 +307,17 @@
   "pairingOneMinuteLeft": "1 minute left before the code expires.",
   "pairingExpired": "The code expired. Generate another one to pair.",
   "pairingPaired": "New device paired.",
-  "pairingTransportNote": "Remote access between phone and computer is still in development; for now the phone reaches Calango only on test networks."
+  "pairingTransportNote": "Remote access between phone and computer is still in development; for now the phone reaches Calango only on test networks.",
+  "brandSubtitle": "runs locally",
+  "navGroupMain": "Main",
+  "navGroupManage": "Management and data",
+  "navGroupTools": "Tools",
+  "navGroupNodes": "Where it runs",
+  "nodeThisComputer": "Your computer",
+  "nodeStateOnline": "on",
+  "nodeStateStarting": "starting",
+  "nodeStateOffline": "off",
+  "approvalPendingEyebrow": "Pending approval",
+  "usageTokensTotal": "Tokens in period",
+  "usageUnknownHint": "rows without a known price"
 }

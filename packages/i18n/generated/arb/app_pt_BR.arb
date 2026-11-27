@@ -307,5 +307,17 @@
   "pairingOneMinuteLeft": "Falta 1 minuto para o código expirar.",
   "pairingExpired": "O código expirou. Gere outro para parear.",
   "pairingPaired": "Novo dispositivo pareado.",
-  "pairingTransportNote": "O acesso remoto entre celular e computador ainda está em desenvolvimento; por enquanto o celular só alcança o Calango em redes de teste."
+  "pairingTransportNote": "O acesso remoto entre celular e computador ainda está em desenvolvimento; por enquanto o celular só alcança o Calango em redes de teste.",
+  "brandSubtitle": "execução local",
+  "navGroupMain": "Principal",
+  "navGroupManage": "Gestão e dados",
+  "navGroupTools": "Ferramentas",
+  "navGroupNodes": "Onde roda",
+  "nodeThisComputer": "Seu computador",
+  "nodeStateOnline": "ligado",
+  "nodeStateStarting": "iniciando",
+  "nodeStateOffline": "desligado",
+  "approvalPendingEyebrow": "Aprovação pendente",
+  "usageTokensTotal": "Tokens no período",
+  "usageUnknownHint": "linhas sem preço conhecido"
 }

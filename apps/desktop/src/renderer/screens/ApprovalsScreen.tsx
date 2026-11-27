@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react';
 import type { Approval } from '@calango/sdk-ts';
+import { ApprovalCard, Button, Card, PageHeader } from '@';
 import { usePoll } from '../usePoll';
 import type { ScreenProps } from './props';
 
@@ -20,10 +21,8 @@ export function ApprovalsScreen({ client, t }: ScreenProps) {
 
   const approvals = data ?? [];
   return (
-    <section className="screen">
-      <header className="screen-header">
-        <h1>{t('approvalTitle')}</h1>
-      </header>
+    <section className="flex flex-col gap-md">
+      <PageHeader title={t('approvalTitle')} />
       {error && (
         <p className="error" role="alert">
           {error}
@@ -34,35 +33,44 @@ export function ApprovalsScreen({ client, t }: ScreenProps) {
           {actionError}
         </p>
       )}
-      <div className="card">
-        {approvals.length === 0 ? (
+      {approvals.length === 0 ? (
+        <Card>
           <p className="muted">{t('approvalEmpty')}</p>
-        ) : (
-          <ul className="list">
-            {approvals.map((approval) => (
-              <li key={approval.id} className="approval">
-                <div>
-                  <strong>{approval.action}</strong>
-                  <div className="muted">
-                    {t('approvalTarget')}: {approval.target}
-                  </div>
-                </div>
-                <div className="actions">
-                  <button type="button" onClick={() => void decide(approval, 'approve', false)}>
-                    {t('actionApprove')}
-                  </button>
-                  <button type="button" onClick={() => void decide(approval, 'approve', true)}>
-                    {t('actionAlwaysAllow')}
-                  </button>
-                  <button type="button" className="danger" onClick={() => void decide(approval, 'deny', false)}>
-                    {t('actionDeny')}
-                  </button>
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
+        </Card>
+      ) : (
+        <ul className="m-0 flex max-w-[720px] list-none flex-col gap-sm p-0">
+          {approvals.map((approval) => (
+            <li key={approval.id}>
+              <ApprovalCard
+                state="pending"
+                eyebrow={t('approvalPendingEyebrow')}
+                title={approval.action}
+                detail={
+                  <>
+                    <div>
+                      {t('approvalTarget')}: {approval.target}
+                    </div>
+                    {approval.args !== undefined && Object.keys(approval.args).length > 0 && (
+                      <pre className="m-0 mt-2xs whitespace-pre-wrap">{JSON.stringify(approval.args, null, 2)}</pre>
+                    )}
+                  </>
+                }
+                actions={
+                  <>
+                    <Button onClick={() => void decide(approval, 'approve', false)}>{t('actionApprove')}</Button>
+                    <Button variant="ghost" onClick={() => void decide(approval, 'approve', true)}>
+                      {t('actionAlwaysAllow')}
+                    </Button>
+                    <Button variant="danger" onClick={() => void decide(approval, 'deny', false)}>
+                      {t('actionDeny')}
+                    </Button>
+                  </>
+                }
+              />
+            </li>
+          ))}
+        </ul>
+      )}
     </section>
   );
 }
