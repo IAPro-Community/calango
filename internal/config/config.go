@@ -9,9 +9,14 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+
+	"calango/internal/license"
 )
 
 const defaultAddr = "127.0.0.1:7317"
+
+// DefaultLicenseFileName is the license file inside DataDir when CALANGO_LICENSE_FILE is unset.
+const DefaultLicenseFileName = "calango.license"
 
 type Config struct {
 	Addr    string
@@ -28,6 +33,11 @@ type Config struct {
 	VaultKeyPreviousFile string
 	// TrustedProxies are the peers whose X-Forwarded-For header counts toward the pairing limit.
 	TrustedProxies []netip.Prefix
+	// LicenseFile is the signed license token the node reads; missing means Free.
+	LicenseFile string
+	// LicensePublicKey verifies licenses in builds without an embedded key (base64 Ed25519).
+	// It is public, not a secret; release builds ignore it in favour of the embedded key.
+	LicensePublicKey string
 }
 
 // Load reads supported CALANGO_* environment variables and validates them.
@@ -67,11 +77,16 @@ func Load() (Config, error) {
 	if err != nil {
 		return Config{}, err
 	}
+	licenseFile := os.Getenv("CALANGO_LICENSE_FILE")
+	if licenseFile == "" {
+		licenseFile = filepath.Join(dataDir, DefaultLicenseFileName)
+	}
 	cfg := Config{
 		Addr: addr, DataDir: dataDir,
 		VaultKey: vaultKey, VaultKeyFile: vaultKeyFile, VaultKeyVersion: vaultKeyVersion,
 		VaultKeyPrevious: os.Getenv("CALANGO_VAULT_KEY_PREVIOUS"), VaultKeyPreviousFile: os.Getenv("CALANGO_VAULT_KEY_PREVIOUS_FILE"),
 		TrustedProxies: trustedProxies,
+		LicenseFile:    licenseFile, LicensePublicKey: strings.TrimSpace(os.Getenv("CALANGO_LICENSE_PUBLIC_KEY")),
 	}
 	if err := cfg.Validate(); err != nil {
 		return Config{}, err
@@ -120,6 +135,14 @@ func (c Config) Validate() error {
 	}
 	if err := c.validateVaultKeys(); err != nil {
 		return err
+	}
+	if c.LicenseFile != "" && (strings.TrimSpace(c.LicenseFile) != c.LicenseFile || strings.ContainsRune(c.LicenseFile, 0) || !filepath.IsAbs(c.LicenseFile)) {
+		return fmt.Errorf("CALANGO_LICENSE_FILE: must be an absolute path without surrounding whitespace or NUL")
+	}
+	if c.LicensePublicKey != "" {
+		if _, err := license.ParsePublicKey(c.LicensePublicKey); err != nil {
+			return fmt.Errorf("CALANGO_LICENSE_PUBLIC_KEY: must be a base64 Ed25519 public key (32 bytes)")
+		}
 	}
 	return nil
 }
