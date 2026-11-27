@@ -195,6 +195,8 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run contracts:check
+      - name: Check third-party license texts and NOTICE
+        run: npm run licenses:check
       - run: npm run typecheck
       - run: npm run test:main -w apps/desktop
       - run: npm run desktop:build
