@@ -444,6 +444,7 @@ output.muted {
   align-items: center;
   justify-content: center;
 }
+
 .browser-preview {
   display: flex;
   flex-direction: column;
