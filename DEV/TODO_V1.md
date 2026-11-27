@@ -160,7 +160,7 @@ Verification and site:
 
 - **Owner-blocked:** Q03/D5 transport/legal clearance; Q06 permission to delete `/tmp/agenticos`; D1b/Q27 legal identity, terms, prices, domain and plan copy; Q17 memory capture/retention; Q18/F1-T17 verified pricing; live model/MCP and external approval authorization (F1-T04/T05/T08/T12); F1-T16 profile-migration policy; personal-data export/deletion scope; authorization for the next push.
 - **Platform-blocked:** Q13/F1-T10 Windows/macOS keyring; F1-T24 OS shortcut/tray and cross-platform login; F1-T25 signing/install/update credentials and platform verification; Q25 Docker bridge test; Q27 site hosting; F2-T07 store review.
-- **Implementable engineering:** F1-T05 JSONL usage parsing and other V1 harnesses; F1-T12 connector credentials, remaining built-ins and result durability; F1-T15 local QR; F1-T18 applicable audit coverage; database backup/restore; first-use/privacy/Maestro docs; desktop/site accessibility; reference-code/license review; site icon. These remain unchecked until implemented and verified.
+- **Implementable engineering:** F1-T05 JSONL usage parsing and other V1 harnesses; F1-T12 connector credentials, remaining built-ins and result durability; F1-T15 local QR; F1-T18 applicable audit coverage; database backup/restore; first-use/privacy/Maestro docs; desktop/site accessibility; reference-code/license review; tray/notification icon variants. The website favicon is simplified; publication still depends on Q27.
 - **Implementable but phase-gated:** F1-T15 mobile/VPS parts and F1-T17 project grouping; all F2–F6 tasks remain behind their preceding phase exit. F7 is post-V1. WebSocket replay is intentionally omitted; REST reload meets the reconnect contract (ADR 0015).
 
 ## Phase 2 — Phone
