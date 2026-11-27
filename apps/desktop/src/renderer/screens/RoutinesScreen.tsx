@@ -28,8 +28,16 @@ export function RoutinesScreen({ client, t }: ScreenProps) {
       <header className="screen-header">
         <h1>{t('navRoutines')}</h1>
       </header>
-      {error && <p className="error">{error}</p>}
-      {actionError && <p className="error">{actionError}</p>}
+      {error && (
+        <p className="error" role="alert">
+          {error}
+        </p>
+      )}
+      {actionError && (
+        <p className="error" role="alert">
+          {actionError}
+        </p>
+      )}
       <div className="grid">
         <div className="card">
           <h2>{t('routineCreate')}</h2>
@@ -143,7 +151,11 @@ function RoutineForm({ client, t, agents, onCreated }: ScreenProps & { agents: A
           <option value="failure">{t('notifyFailure')}</option>
         </select>
       </label>
-      {formError && <p className="error">{formError}</p>}
+      {formError && (
+        <p className="error" role="alert">
+          {formError}
+        </p>
+      )}
       <button type="submit">{t('routineCreate')}</button>
     </form>
   );
