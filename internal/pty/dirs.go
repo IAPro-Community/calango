@@ -3,6 +3,7 @@ package pty
 import (
 	"context"
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
@@ -71,7 +72,11 @@ func (d *RootDir) ResolveDir(_ context.Context, _ string, requested string) (str
 	if !within(rootClean, real) {
 		return "", fmt.Errorf("%w: directory is outside the terminal workspace", ErrInvalidInput)
 	}
-	st, err := os.Stat(real)
+	rel, err := filepath.Rel(rootClean, real)
+	if err != nil {
+		return "", fmt.Errorf("%w: directory is outside the terminal workspace", ErrInvalidInput)
+	}
+	st, err := fs.Stat(os.DirFS(rootClean), filepath.ToSlash(rel))
 	if err != nil || !st.IsDir() {
 		return "", fmt.Errorf("%w: not a directory", ErrInvalidInput)
 	}
