@@ -247,6 +247,69 @@ jobs:
             apps/desktop/e2e-report/
           retention-days: 7
 
+  # Instalador interno não assinado (#116). Instala em silêncio no runner descartável,
+  # sobe o daemon instalado, confere /healthz e que o log não contém o token, e desinstala.
+  desktop-windows-package:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.23"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22.12.0"
+          cache: npm
+      - run: npm ci
+      - run: npm run desktop:package:win
+      - name: Gerar checksum
+        shell: pwsh
+        run: |
+          $exe = Get-ChildItem apps/desktop/release -Filter 'Calango-*-interno-nao-assinado-x64.exe' | Select-Object -First 1
+          if (-not $exe) { throw 'instalador não encontrado' }
+          $hash = (Get-FileHash $exe.FullName -Algorithm SHA256).Hash.ToLower()
+          "$hash  $($exe.Name)" | Out-File -Encoding ascii "$($exe.FullName).sha256"
+          "INSTALLER=$($exe.FullName)" | Out-File -Append -Encoding utf8 $env:GITHUB_ENV
+          Get-Content "$($exe.FullName).sha256"
+      - name: Instalar, subir o daemon instalado e desinstalar
+        shell: pwsh
+        run: |
+          $dir = Join-Path $env:RUNNER_TEMP 'Calango'
+          Start-Process -Wait -FilePath $env:INSTALLER -ArgumentList '/S', "/D=$dir"
+          $daemon = Join-Path $dir 'resources\bin\calango.exe'
+          foreach ($f in 'Calango.exe', 'resources\bin\calango.exe', 'resources\legal\LICENSE', 'resources\legal\NOTICE', 'resources\legal\third_party\iapro-sdk\LICENSE', 'resources\legal\third_party\agenticos\LICENSE') {
+            if (-not (Test-Path (Join-Path $dir $f))) { throw "faltando no pacote instalado: $f" }
+          }
+          # Chave de teste descartável: o keyring do Windows fica fora deste smoke (#55).
+          $bytes = [byte[]]::new(32); [Security.Cryptography.RandomNumberGenerator]::Fill($bytes)
+          $env:CALANGO_VAULT_KEY = [Convert]::ToBase64String($bytes)
+          $env:CALANGO_DATA_DIR = Join-Path $env:RUNNER_TEMP 'calango-data'
+          $env:CALANGO_ADDR = '127.0.0.1:7317'
+          $out = Join-Path $env:RUNNER_TEMP 'daemon.out'; $err = Join-Path $env:RUNNER_TEMP 'daemon.err'
+          $proc = Start-Process -PassThru -NoNewWindow -FilePath $daemon -RedirectStandardOutput $out -RedirectStandardError $err
+          $ok = $false
+          for ($i = 0; $i -lt 30 -and -not $ok; $i++) {
+            try { $ok = (Invoke-WebRequest -UseBasicParsing http://127.0.0.1:7317/healthz).StatusCode -eq 200 } catch { Start-Sleep 1 }
+          }
+          $token = (& $daemon print-token).Trim()
+          Write-Output "::add-mask::$token"
+          Stop-Process -Id $proc.Id -Force
+          Get-Content $out, $err
+          if (-not $ok) { throw 'daemon instalado não respondeu /healthz' }
+          if ((Get-Content -Raw $out, $err) -match [regex]::Escape($token)) { throw 'log do daemon contém o token' }
+          Start-Process -Wait -FilePath (Join-Path $dir 'Uninstall Calango.exe') -ArgumentList '/S'
+          for ($i = 0; $i -lt 60 -and (Test-Path (Join-Path $dir 'Calango.exe')); $i++) { Start-Sleep 1 }
+          if (Test-Path (Join-Path $dir 'Calango.exe')) { throw 'desinstalação não removeu o aplicativo' }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: calango-windows-interno-nao-assinado
+          path: |
+            apps/desktop/release/Calango-*-interno-nao-assinado-x64.exe
+            apps/desktop/release/Calango-*-interno-nao-assinado-x64.exe.sha256
+            DEV/INSTALADOR_WINDOWS_INTERNO.md
+          retention-days: 14
+          if-no-files-found: error
+
   quality-gate:
     name: quality-gate
     if: ${{ always() }}

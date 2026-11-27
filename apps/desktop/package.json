@@ -21,6 +21,8 @@
     "package:linux": "npm run build:daemon:linux && npm run build:main && npm run build:renderer && umask 022 && electron-builder --linux --publish never && node ../../scripts/verify-desktop-package.mjs --resources release/linux-unpacked/resources --daemon calango",
     "build:daemon:mac": "node ../../scripts/build-daemon.mjs --goos darwin --goarch amd64 --out bin/darwin-x64/calango && node ../../scripts/build-daemon.mjs --goos darwin --goarch arm64 --out bin/darwin-arm64/calango",
     "package:mac": "npm run build:daemon:mac && npm run build:main && npm run build:renderer && electron-builder --mac --publish never && node ../../scripts/verify-desktop-package.mjs --resources release/mac/Calango.app/Contents/Resources && node ../../scripts/verify-desktop-package.mjs --resources release/mac-arm64/Calango.app/Contents/Resources"
+,
+    "test:e2e": "playwright test"
   },
   "devDependencies": {
     "@calango/sdk-ts": "0.1.0",
