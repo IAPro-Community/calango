@@ -39,3 +39,5 @@ Thumbs.db
 # build do desktop e binário local (gerados por npm run build)
 /bin/
 apps/desktop/dist/
+apps/desktop/e2e-results/
+apps/desktop/e2e-report/
