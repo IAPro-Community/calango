@@ -247,5 +247,21 @@
   "browserLoading": "Cargando página",
   "browserClearProfile": "Borrar perfil",
   "browserClearProfileConfirm": "¿Borrar las cookies, los inicios de sesión y los datos de navegación de este agente? Sus pestañas se cerrarán.",
-  "browserProfileCleared": "Perfil del agente borrado."
+  "browserProfileCleared": "Perfil del agente borrado.",
+  "browserPreviewOption": "Vista previa del proyecto",
+  "browserPreviewNote": "La vista previa abre solo servidores locales de este equipo (localhost), en un perfil separado de los agentes. Los enlaces a otras direcciones quedan bloqueados.",
+  "browserDetectServers": "Detectar servidores locales",
+  "browserDetecting": "Buscando servidores locales...",
+  "browserNoServers": "Ningún servidor local respondió en los puertos comunes.",
+  "browserServerUntitled": "Sin título",
+  "browserOpenPreview": "Abrir vista previa",
+  "browserPortLabel": "Puerto local",
+  "browserInvalidPort": "Usa un puerto local (1 a 65535), localhost:PUERTO o http://127.0.0.1:PUERTO.",
+  "browserAutoReload": "Recargar cuando el servidor vuelva",
+  "browserPreviewBlocked": "Se bloqueó un enlace que salía de la vista previa:",
+  "browserOpenInSystem": "Abrir en el navegador del sistema",
+  "browserPreviewOutside": "La vista previa solo abre direcciones de este servidor local.",
+  "browserPreviewEmpty": "No hay vista previa abierta. Detecta un servidor local o indica su puerto.",
+  "browserClearPreviewConfirm": "¿Borrar las cookies y los datos de navegación de la vista previa? Se cerrarán sus pestañas.",
+  "browserPreviewCleared": "Perfil de la vista previa borrado."
 }
