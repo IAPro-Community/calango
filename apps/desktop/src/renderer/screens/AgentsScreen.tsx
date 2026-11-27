@@ -366,6 +366,8 @@ function AccountCapacity({ account, t }: { account: ProviderAccount; t: ScreenPr
       {capacity.reason === 'monitor_disabled' && <p className="muted">{t('capacityDisabled')}</p>}
       {capacity.reason === 'shared_home' && <p className="muted">{t('capacitySharedHome')}</p>}
       {capacity.reason === 'identity_unverified' && <p className="muted">{t('capacityIdentity')}</p>}
+      {capacity.reason === 'auth_required' && <p className="muted">{t('capacityAuthRequired')}</p>}
+      {capacity.reason === 'lease_reconciliation_required' && <p className="muted">{t('capacityReconcile')}</p>}
       {capacity.observed_at && (
         <p className="muted">
           {t('capacityUpdated')}: {new Date(capacity.observed_at).toLocaleString()} · {capacity.source}

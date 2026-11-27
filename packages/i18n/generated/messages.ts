@@ -356,7 +356,9 @@ export const messages = {
     "settingsThemeDark": "Escuro",
     "settingsThemeLight": "Claro solar",
     "settingsThemeSystem": "Seguir o sistema",
-    "settingsThemeHint": "Vale só para este computador."
+    "settingsThemeHint": "Vale só para este computador.",
+    "capacityAuthRequired": "Autenticação precisa ser verificada ou renovada no provedor.",
+    "capacityReconcile": "Conta bloqueada para recuperação segura. Procure o administrador."
   },
   "en": {
     "appName": "Calango",
@@ -714,7 +716,9 @@ export const messages = {
     "settingsThemeDark": "Dark",
     "settingsThemeLight": "Solar light",
     "settingsThemeSystem": "Follow the system",
-    "settingsThemeHint": "Applies to this computer only."
+    "settingsThemeHint": "Applies to this computer only.",
+    "capacityAuthRequired": "Provider authentication needs verification or renewal.",
+    "capacityReconcile": "Account blocked for safe recovery. Contact the administrator."
   },
   "es": {
     "appName": "Calango",
@@ -1072,7 +1076,9 @@ export const messages = {
     "settingsThemeDark": "Oscuro",
     "settingsThemeLight": "Claro solar",
     "settingsThemeSystem": "Seguir el sistema",
-    "settingsThemeHint": "Solo se aplica a este equipo."
+    "settingsThemeHint": "Solo se aplica a este equipo.",
+    "capacityAuthRequired": "La autenticación del proveedor requiere verificación o renovación.",
+    "capacityReconcile": "Cuenta bloqueada para recuperación segura. Contacte al administrador."
   }
 } as const;
 

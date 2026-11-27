@@ -355,5 +355,7 @@
   "settingsThemeDark": "Escuro",
   "settingsThemeLight": "Claro solar",
   "settingsThemeSystem": "Seguir o sistema",
-  "settingsThemeHint": "Vale só para este computador."
+  "settingsThemeHint": "Vale só para este computador.",
+  "capacityAuthRequired": "Autenticação precisa ser verificada ou renovada no provedor.",
+  "capacityReconcile": "Conta bloqueada para recuperação segura. Procure o administrador."
 }
