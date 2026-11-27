@@ -1,27 +1,25 @@
-# ADR 0020 — IAPro-SDK as a shared library
+# ADR 0020 — IAPro-SDK como biblioteca compartilhada
 
-Status: proposed · issue #128 · first slice for human review.
+Status: proposto · issue #128 · primeiro recorte para revisão humana.
 
-## Decision
+## Decisão
 
-Consume the public module `github.com/IAPro-Community/IAPro-SDK` at the immutable revision `v0.0.0-20261124230439-ece304ad4225`, with checksums obtained by Go in SDK CI (run 45506771570). MIT: the license and NOTICE are preserved in the upstream repository; Calango's AGPL remains unchanged. Full provenance review and the legal gate remain pending. Do not copy modules between products.
+Consumir o módulo público `github.com/IAPro-Community/IAPro-SDK` na revisão imutável `v0.0.0-20261124230439-ece304ad4225`, com checksums obtidos pelo Go em CI do SDK (run 45506771570). MIT: licença e NOTICE preservados no repositório de origem; AGPL do Calango não muda. Revisão de procedência completa e gate jurídico ainda pendentes. Não copiar módulos entre produtos.
 
-The SDK provides HTTP status classification and the decision to advance within the agent's explicit chain. Calango's gateway remains the authority for budgets, audit, persistence and approval. Codex provider identity is canonical in the SDK. The SDK does not decide credentials, authorization, commercial policy, storage or execution. The configured chain is the existing fallback authorization; no provider outside it is selected. The CLI is not replayed after ambiguous failure. If tool or CLI side effects are possible, fallback proceeds only for pre-dispatch failures (not installed/signed out). Direct Anthropic does not execute tools; it preserves fallback before text is emitted.
+O SDK fornece a classificação de status HTTP e a decisão de avançar na cadeia explícita do agente. O gateway do Calango permanece autoridade de orçamento, auditoria, persistência e aprovação. Identidade de provider Codex é canônica no SDK. O SDK não decide credenciais, autorização, política comercial, storage ou execução. A cadeia já configurada é a autorização de fallback existente; nenhum provider externo à cadeia é selecionado. O CLI não é reexecutado após falha ambígua. Se houver possibilidade de ação de ferramenta ou CLI, o fallback só prossegue quando a falha ocorreu antes do dispatch (não instalado/signed out). Anthropic direto não executa ferramentas; preserva comportamento de fallback antes de texto emitido.
 
-Do not migrate authentication, quota probes, handoff, agent coordination, UI or subprocess runtime without evidence and dedicated integration. The SDK is not a mandatory daemon. Do not change CODEX_HOME, MCP, sandbox flags or OpenAPI contracts in this slice. Do not enable automatic selection based on missing quota evidence.
+Não migrar autenticação, probes de quotas, handoff, coordenação de agentes, UI ou runtime de subprocesso sem evidência real e integração específica. O SDK não é um daemon obrigatório. Não alterar CODEX_HOME, MCP, flags de sandbox ou contratos OpenAPI nesta etapa. Não habilitar seleção automática baseada em quota ausente.
 
-## Verification
+## Validação
 
-Existing chain and harness tests, new TestSDKChainSafety, Anthropic tests and quality-gate. SDK and consumer CI must pass at the exact SHA; human review and integration follow GOVERNANCE.md. Real-provider acceptance and epic parity remain open. Rollback: revert the PR and associated pin. Do not declare v0.1 stable or close #128 before the remaining criteria are satisfied.
+Testes da cadeia e harness existentes, novo TestSDKChainSafety, testes Anthropic e quality-gate. CI do SDK e consumidores deve passar no SHA exato; revisão humana e integração conforme GOVERNANCE.md. Homologação real e paridade do épico permanecem abertas. Rollback: reverter PR e pin correspondente. Não declarar v0.1 estável nem encerrar #128 antes dos demais critérios.
 
-## Security review
 
-The gateway allocates the usage identifier before dispatch; identifier, ledger or cost-calculation failures prevent fallback through ErrLedger. The adapter declares MayHaveSideEffects; absence of this capability is treated as possible side effects. The decision uses the resolved adapter's evidence rather than its name. Chain tests verify that backup is blocked without output when effects are possible and on ID failure. The complete MIT license and SDK NOTICE accompany the node image; future desktop installers must include them and verify the contents before publication (#39, #40, #116).
+## Revisão de segurança
 
-## Second slice — Codex runtime
+O gateway aloca o identificador de uso antes do dispatch; falhas de ID, contabilização ou cálculo de custo bloqueiam o fallback via ErrLedger. O adapter declara MayHaveSideEffects; ausência da capacidade é tratada como efeitos possíveis. A decisão usa a evidência do adapter efetivamente resolvido, não o nome. Testes de cadeia verificam bloqueio de backup sem output quando há efeitos possíveis e falha de ID. Licença MIT integral e NOTICE do SDK acompanham a imagem de node; os futuros instaladores desktop devem incluí-los e verificar o conteúdo antes da publicação (#39, #40, #116).
 
-Update the pin to `v0.0.0-20261125011527-b93285109b30`, with checksums and six successful jobs in SDK run 45524394245. `providers/codex.RunExec` and `CheckLoginStatus` replace local execution and decoding. The host retains existing sandbox/ephemeral flags, workspace, CODEX_HOME, MCP configuration, gateway, approvals and budget. `--json` emits complete messages (not token deltas). Terminal counters are used when both are measured; missing counts on success retain an explicit estimate; missing counts on failure return Usage{} so the gateway accounts for the reservation. No replay of ambiguous execution, token in argv, raw stderr or inherited prior bearer token. Sessions remain ephemeral. Probes, real quota, handoff, UI and persistent coordination are not enabled in this PR. Local fixtures do not prove real CLI compatibility (#53/#113). Rollback by reverting the PR/pin.
 
-## Third slice — shared tariff and environment policy implementation
+## Segundo recorte — runtime Codex
 
-Consume SDK revision `v0.0.0-20261125235232-55a6c7bd2c0c` for evaluation in draft. The SDK CI consumer-pin job (run 45724638234) resolved the module and checksums. Calango retains the daemon-specific environment allowlist, authorized tariff path, price ledger and approval policy. Shared parsing, integer price arithmetic and environment filtering use SDK code only. Merge requires full SDK review and CI, then consumer CI; this is not a released SDK version.
+Atualização do pin para `v0.0.0-20261125011527-b93285109b30`, com checksums e seis jobs aprovados no run SDK 45524394245. `providers/codex.RunExec` e `CheckLoginStatus` substituem a execução e decodificação local. O host mantém as flags existentes de sandbox/ephemeral, workspace, CODEX_HOME, configuração MCP, gateway, aprovações e orçamento. `--json` emite mensagens completas (não deltas de tokens). Contadores do terminal são usados se ambos medidos; ausência no sucesso mantém estimativa explícita; ausência em falha devolve Usage{} para que gateway contabilize a reserva. Sem replay de execução ambígua; sem token em argv, sem stderr bruto e sem herdar bearer anterior. Sessões continuam efêmeras. Probes, quota real, handoff, UI e persistência de coordenação não são ativados neste PR. Fixture local não comprova compatibilidade com CLI real (#53/#113). Rollback por reversão do PR/pin.

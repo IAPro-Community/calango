@@ -1,6 +1,6 @@
-# Native keyring acceptance (#55)
+# Aceitação do keyring nativo (#55)
 
-Opt-in test with a random credential and dedicated test namespace. Never use a production keyring for destructive testing. In a disposable VM or session with an unlocked keyring:
+Teste opt-in com credencial aleatória e namespace de teste dedicado. Nunca use o keyring de produção para teste destrutivo. Em VM descartável ou sessão com keyring destravado:
 
 Windows PowerShell:
 
@@ -16,6 +16,6 @@ macOS/Linux:
 CALANGO_TEST_OS_KEYRING=1 go test ./internal/vault -run '^TestNativeKeyringRoundTrip$' -count=1 -v
 ```
 
-The test verifies creation, rereading and removal through the native backend without printing the key or using the real account. A SKIP in ordinary CI is not acceptance evidence. Additionally validate in a VM: startup with unlocked keyring, restart preserving the token, no plaintext fallback, explicit failure with locked keyring and recovery with the same user. Record OS, version, commit and sanitized output. For #63, repeat with a snapshot and previous/current binaries.
+O teste verifica criação, releitura e remoção pelo backend nativo sem imprimir a chave nem usar a conta real. SKIP no CI comum não é evidência de aceite. Valide também em VM: start com keyring destravado, restart preservando o token, ausência de fallback em texto claro, falha explícita com keyring travado e recuperação com o mesmo usuário. Registre OS, versão, commit e saída sanitizada. Para #63, repita com snapshot e binários anterior/atual.
 
-Do not delete real account credentials. Do not attach keys, tokens, personal paths or the database. Windows and macOS results are mandatory to close #55; cross-builds are not runtime evidence.
+Não apague credenciais reais da conta. Não anexe chaves, tokens, caminhos pessoais ou o banco. Resultados em Windows e macOS são obrigatórios para encerrar #55; cross-builds não são evidência de runtime.
