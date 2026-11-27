@@ -88,6 +88,7 @@ node scripts/generate-i18n.mjs --check
 
 ## Documentação
 
+- [docs/guia](docs/guia/README.md): guia de uso em pt-BR (primeiros passos, pareamento, VPS, Maestro e privacidade).
 - [AGENTS.md](AGENTS.md): ponto de entrada para quem vai programar (humano ou agente).
 - [DEV/INDEX.md](DEV/INDEX.md): mapa de toda a documentação.
 
