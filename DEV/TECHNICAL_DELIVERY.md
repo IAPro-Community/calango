@@ -40,6 +40,7 @@ flowchart LR
 |---|---|---|
 | `go vet ./...`, `go test ./...`, `gofmt` | Implemented in the workflow and run locally. | `.github/workflows/ci.yml`, `DEV/VERIFY.md` |
 | Cross-build of six targets | Workflow and six local builds verified; GitHub Actions run 45188079827 on `dee8efa` passed. Current uncommitted changes are not covered by that run. | `.github/workflows/ci.yml`, `DEV/VERIFY.md` |
+| Matriz nativa Linux, Windows e macOS | Workflow `ci-nativa` (issue #120): testes Go com `-race`, testes do desktop, smoke do daemon e gate `ci-nativa-gate`. Não homologa Linux/macOS; keyring real e assinatura ficam isolados. | `.github/workflows/ci-nativa.yml`, `DEV/CI_NATIVA.md` |
 | Site image build | Workflow builds the image; local run depends on access to the Docker daemon. | `Dockerfile`, `.github/workflows/ci.yml` |
 | Node image build | Workflow builds the image; missing an HTTP execution gate for the image in CI. | `deploy/Dockerfile.node`, `.github/workflows/ci.yml` |
 | OpenAPI semantic lint | Implemented in CI with Redocly CLI 2.81.0 pinned; current local lint is valid with one non-blocking warning. Run 45188079827 passed on `dee8efa`; current uncommitted changes need a later authorized push for CI coverage. | `api/openapi.yaml`, `.github/workflows/ci.yml` |
