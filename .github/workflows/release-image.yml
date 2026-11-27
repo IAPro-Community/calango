@@ -1,0 +1,187 @@
+# Publica a imagem oficial do nó (linux/amd64 e linux/arm64) no GHCR a partir de uma tag de
+# release vX.Y.Z revisada. Cada arquitetura é compilada nativamente no seu runner; o índice
+# multi-arquitetura recebe só a tag imutável X.Y.Z (sem latest) e a proveniência assinada do
+# GitHub. Pull requests não publicam: o build das duas arquiteturas roda no ci.yml.
+name: release-image
+
+on:
+  push:
+    tags: ["v*.*.*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag de release já existente (vX.Y.Z)"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-image-${{ inputs.tag || github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.vars.outputs.tag }}
+      version: ${{ steps.vars.outputs.version }}
+      image: ${{ steps.vars.outputs.image }}
+    steps:
+      - name: Validar a tag e o nome da imagem
+        id: vars
+        env:
+          TAG: ${{ inputs.tag || github.ref_name }}
+          REPO_OWNER: ${{ github.repository_owner }}
+          REPO_URL: ${{ github.server_url }}/${{ github.repository }}
+        run: |
+          printf '%s\n' "$TAG" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$' || {
+            echo "::error::tag inválida: $TAG (esperado vX.Y.Z)"; exit 1; }
+          git ls-remote --exit-code --tags "$REPO_URL" "refs/tags/$TAG" >/dev/null || {
+            echo "::error::a tag $TAG não existe no repositório"; exit 1; }
+          owner=$(printf '%s' "$REPO_OWNER" | tr '[:upper:]' '[:lower:]')
+          {
+            echo "tag=$TAG"
+            echo "version=${TAG#v}"
+            echo "image=ghcr.io/$owner/calango"
+          } >> "$GITHUB_OUTPUT"
+
+  build:
+    needs: prepare
+    name: Build ${{ matrix.platform }}
+    runs-on: ${{ matrix.runner }}
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - platform: linux/amd64
+            runner: ubuntu-latest
+          - platform: linux/arm64
+            runner: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: refs/tags/${{ needs.prepare.outputs.tag }}
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Metadados OCI
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ needs.prepare.outputs.image }}
+          labels: |
+            org.opencontainers.image.title=Calango
+            org.opencontainers.image.description=Nó do Calango (API, rotinas e dados) para VPS
+            org.opencontainers.image.licenses=AGPL-3.0-only
+            org.opencontainers.image.version=${{ needs.prepare.outputs.version }}
+      - name: Build e push por digest
+        id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: deploy/Dockerfile.node
+          platforms: ${{ matrix.platform }}
+          labels: ${{ steps.meta.outputs.labels }}
+          outputs: type=image,name=${{ needs.prepare.outputs.image }},push-by-digest=true,name-canonical=true,push=true
+          provenance: mode=max
+          sbom: true
+      - name: Exportar o digest
+        env:
+          DIGEST: ${{ steps.build.outputs.digest }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/digests"
+          touch "$RUNNER_TEMP/digests/${DIGEST#sha256:}"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: digests-${{ strategy.job-index }}
+          path: ${{ runner.temp }}/digests/*
+          if-no-files-found: error
+          retention-days: 1
+
+  merge:
+    needs: [prepare, build]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+      attestations: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: ${{ runner.temp }}/digests
+          pattern: digests-*
+          merge-multiple: true
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Recusar sobrescrever uma versão publicada
+        env:
+          REF: ${{ needs.prepare.outputs.image }}:${{ needs.prepare.outputs.version }}
+        run: |
+          if docker buildx imagetools inspect "$REF" >/dev/null 2>&1; then
+            echo "::error::$REF já existe; tags publicadas são imutáveis"; exit 1
+          fi
+      - name: Criar o índice multi-arquitetura
+        working-directory: ${{ runner.temp }}/digests
+        env:
+          IMAGE: ${{ needs.prepare.outputs.image }}
+          VERSION: ${{ needs.prepare.outputs.version }}
+          SOURCE: ${{ github.server_url }}/${{ github.repository }}
+          REVISION: ${{ github.sha }}
+        run: |
+          set --
+          for d in *; do set -- "$@" "$IMAGE@sha256:$d"; done
+          [ "$#" -eq 2 ] || { echo "::error::esperados 2 digests, achei $#"; exit 1; }
+          docker buildx imagetools create \
+            --tag "$IMAGE:$VERSION" \
+            --annotation "index:org.opencontainers.image.title=Calango" \
+            --annotation "index:org.opencontainers.image.licenses=AGPL-3.0-only" \
+            --annotation "index:org.opencontainers.image.source=$SOURCE" \
+            --annotation "index:org.opencontainers.image.revision=$REVISION" \
+            --annotation "index:org.opencontainers.image.version=$VERSION" \
+            "$@"
+      - name: Conferir plataformas e obter o digest
+        id: index
+        env:
+          REF: ${{ needs.prepare.outputs.image }}:${{ needs.prepare.outputs.version }}
+        run: |
+          docker buildx imagetools inspect "$REF"
+          raw=$(docker buildx imagetools inspect "$REF" --raw)
+          for p in amd64 arm64; do
+            printf '%s' "$raw" | jq -e --arg a "$p" '.manifests[] | select(.platform.os == "linux" and .platform.architecture == $a)' >/dev/null || {
+              echo "::error::falta linux/$p no índice"; exit 1; }
+          done
+          digest=$(docker buildx imagetools inspect "$REF" --format '{{json .Manifest}}' | jq -r .digest)
+          printf '%s\n' "$digest" | grep -Eq '^sha256:[a-f0-9]{64}$' || { echo "::error::digest inválido: $digest"; exit 1; }
+          echo "digest=$digest" >> "$GITHUB_OUTPUT"
+      - name: Proveniência assinada (GitHub attestation)
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-name: ${{ needs.prepare.outputs.image }}
+          subject-digest: ${{ steps.index.outputs.digest }}
+          push-to-registry: true
+      - name: Resumo
+        env:
+          REF: ${{ needs.prepare.outputs.image }}:${{ needs.prepare.outputs.version }}
+          DIGEST: ${{ steps.index.outputs.digest }}
+          IMAGE: ${{ needs.prepare.outputs.image }}
+        run: |
+          {
+            echo "### Imagem publicada"
+            echo
+            echo "- Tag: \`$REF\`"
+            echo "- Digest: \`$IMAGE@$DIGEST\`"
+            echo "- Verificar: \`gh attestation verify oci://$IMAGE@$DIGEST --repo $GITHUB_REPOSITORY\`"
+          } >> "$GITHUB_STEP_SUMMARY"

@@ -34,7 +34,7 @@ Database: SQLite per node (`modernc.org/sqlite`). IDs are ULID text. Dates in UT
 
 ### Memory, skills, connectors, vault
 - `memories(id, owner_id, scope['account'|'agent'], agent_id NULL, kind['fact'|'preference'|'decision'], text, created_at, updated_at, deleted_at)` — migration `0006`. `agent_id` is set only for agent scope (`CHECK`) and cascades on agent delete. Deletion is logical; `PurgeMemories` removes rows deleted before the retention cutoff. The `project` scope, `scope_id` and `source_run_id` from the first draft are pending (no `projects` table yet).
-- `skills(id, name, description, body_md, source['user'|'agent'|'import'], approved)`
+- `skills(id, name, description, body_md, source['user'|'agent'|'import'], approved)` — not created yet (issue #124). Skills imported from Claude Code and Codex are not rows: their metadata is in `<data-dir>/skills/index.json` and their files in `<data-dir>/skills/store/` (ADR 0022, `SPECS/modules/skills.md`).
 - `connectors(id, kind['mcp_stdio'|'mcp_http'], name, config_json, secret_ref)`
 - `vault_items(id, name, secret_ref, created_at)` — the value stays in the OS vault; only the reference is here.
 
