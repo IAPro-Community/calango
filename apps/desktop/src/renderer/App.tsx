@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { createClient, type CalangoClient } from '@calango/sdk-ts';
 import type { DaemonState } from '../shared/ipc';
 import { bridge } from './bridge';
@@ -32,7 +32,18 @@ export function App() {
   const [locale] = useState(detectLocale);
   const t = useMemo(() => translator(locale), [locale]);
   const [section, setSection] = useState<Section>('agents');
+  const mainRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    document.documentElement.lang = locale;
+  }, [locale]);
   useEffect(() => bridge.onQuickConversation(() => setSection('conversations')), []);
+
+  // Leva o foco para o conteúdo ao trocar de seção, para quem navega por teclado
+  // ou leitor de tela não precisar atravessar o menu de novo.
+  function openSection(next: Section) {
+    setSection(next);
+    window.requestAnimationFrame(() => mainRef.current?.focus());
+  }
   const { state, connection } = useDaemon();
 
   const client = useMemo(
@@ -50,13 +61,13 @@ export function App() {
             type="button"
             className={item.id === section ? 'nav-item active' : 'nav-item'}
             aria-current={item.id === section ? 'page' : undefined}
-            onClick={() => setSection(item.id)}
+            onClick={() => openSection(item.id)}
           >
             {t(item.key)}
           </button>
         ))}
       </nav>
-      <main className="content">
+      <main className="content" ref={mainRef} tabIndex={-1}>
         {client === null ? (
           <DaemonStatusView state={state} t={t} />
         ) : (
@@ -95,21 +106,21 @@ function SectionView({ section, client, t }: { section: Section; client: Calango
 function DaemonStatusView({ state, t }: { state: DaemonState; t: Translate }) {
   if (state.status === 'starting') {
     return (
-      <section className="status">
+      <section className="status" aria-live="polite">
         <h1>{t('commonLoading')}</h1>
       </section>
     );
   }
   if (state.status === 'restarting') {
     return (
-      <section className="status">
+      <section className="status" aria-live="polite">
         <h1>{t('daemonRetrying')}</h1>
         {state.detail && <p className="muted">{state.detail}</p>}
       </section>
     );
   }
   return (
-    <section className="status">
+    <section className="status" aria-live="polite">
       <h1>{t('daemonUnavailable')}</h1>
       {state.detail && <p className="muted">{state.detail}</p>}
     </section>

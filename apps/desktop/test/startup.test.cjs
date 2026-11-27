@@ -11,13 +11,14 @@ const {
 } = require('../dist/main/startup.js');
 
 test('Linux autostart honors XDG_CONFIG_HOME and falls back for relative values', () => {
+  // path.join usa o separador do sistema: o teste também roda na CI nativa Windows/macOS.
   assert.equal(
     linuxAutostartFilePath('/tmp/calango-config', '/home/tester'),
-    '/tmp/calango-config/autostart/calango.desktop',
+    path.join('/tmp/calango-config', 'autostart', 'calango.desktop'),
   );
   assert.equal(
     linuxAutostartFilePath('relative-config', '/home/tester'),
-    '/home/tester/.config/autostart/calango.desktop',
+    path.join('/home/tester', '.config', 'autostart', 'calango.desktop'),
   );
 });
 

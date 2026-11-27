@@ -19,7 +19,20 @@ test('onboarding cria conta, agente e mantém a fronteira IPC fechada', async ({
     ipcRenderer: typeof (window as { ipcRenderer?: unknown }).ipcRenderer,
   }));
   expect(surface).toEqual({
-    bridge: ['getConnection', 'getLoginItemSettings', 'getState', 'onQuickConversation', 'onState', 'setLaunchAtLogin'],
+    bridge: [
+      'getConnection',
+      'getLoginItemSettings',
+      'getState',
+      'onPtyClosed',
+      'onPtyOutput',
+      'onQuickConversation',
+      'onState',
+      'ptyAttach',
+      'ptyDetach',
+      'ptyInput',
+      'ptyResize',
+      'setLaunchAtLogin',
+    ],
     require: 'undefined',
     process: 'undefined',
     ipcRenderer: 'undefined',

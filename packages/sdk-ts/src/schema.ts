@@ -871,6 +871,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/license": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Evaluated node license and effective plan
+         * @description Reads the license file and verifies its Ed25519 signature offline. plan is the effective plan: the licensed plan while state is active or grace (up to 7 days after expires_at), free otherwise. A missing, invalid or expired license only lowers the plan to free; the node keeps running and no data is removed. License fields are present whenever the signature verified, including after expiry.
+         */
+        get: operations["getLicense"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/usage": {
         parameters: {
             query?: never;
@@ -1228,6 +1248,40 @@ export interface components {
         VaultSetInput: {
             /** @description The secret. Stored sealed; never returned. */
             value: string;
+        };
+        LicenseStatus: {
+            /**
+             * @description none: no license installed. grace: past expires_at but before grace_ends_at; the plan still applies. expired and invalid run free.
+             * @enum {string}
+             */
+            state: "none" | "active" | "grace" | "expired" | "invalid";
+            /**
+             * @description Effective plan for this node now.
+             * @enum {string}
+             */
+            plan: "free" | "pro" | "team" | "business";
+            /**
+             * @description Why the license was refused; only with state invalid.
+             * @enum {string}
+             */
+            reason?: "malformed" | "signature" | "claims" | "no_public_key" | "unreadable";
+            account_id?: string;
+            /**
+             * @description Plan in the license, even when it no longer applies
+             * @enum {string}
+             */
+            license_plan?: "pro" | "team" | "business";
+            features?: string[];
+            /** @description VPS nodes allowed; -1 means unlimited */
+            nodes_max?: number;
+            /** Format: date-time */
+            issued_at?: string;
+            /** Format: date-time */
+            expires_at?: string;
+            /** Format: date-time */
+            grace_ends_at?: string;
+            /** Format: date-time */
+            checked_at: string;
         };
         UsageRow: {
             key: string;
@@ -2686,6 +2740,26 @@ export interface operations {
                 };
             };
             400: components["responses"]["Error"];
+        };
+    };
+    getLicense: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LicenseStatus"];
+                };
+            };
         };
     };
     getUsage: {

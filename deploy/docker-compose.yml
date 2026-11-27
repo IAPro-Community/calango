@@ -1,29 +1,94 @@
-# Example. Not tested. Adjust the domain and versions before use.
+# Calango no VPS: nó + proxy Caddy com TLS automático.
+# Gerado por deploy/install.sh (sh deploy/install.sh --print-compose); a CI exige os dois iguais.
+# Variáveis no .env ao lado: CALANGO_IMAGE, CALANGO_DOMAIN, CALANGO_SUBNET e CALANGO_TLS.
+# A chave do cofre fica em ./secrets/vault.key (base64 de 32 bytes, dono 65532, modo 0400).
+name: calango
+
 services:
-  calango:
-    build:
-      context: ..
-      dockerfile: deploy/Dockerfile.node
-    image: calango/calango:latest
-    restart: unless-stopped
-    environment:
-      CALANGO_ADDR: 0.0.0.0:7317
+  # Ajusta o dono do volume de dados para o usuário não root do nó (uid 65532) e termina.
+  data-init:
+    image: busybox:1.37
+    user: "0:0"
+    command: ["chown", "65532:65532", "/data"]
+    network_mode: none
     volumes:
       - calango-data:/data
+    restart: "no"
+
+  calango:
+    image: ${CALANGO_IMAGE:?defina CALANGO_IMAGE no .env}
+    restart: unless-stopped
+    depends_on:
+      data-init:
+        condition: service_completed_successfully
+    environment:
+      CALANGO_ADDR: 0.0.0.0:7317
+      CALANGO_DATA_DIR: /data
+      CALANGO_VAULT_KEY_FILE: /run/secrets/calango_vault_key
+      # Só o proxy e o próprio nó estão nesta rede; o nó não publica porta no host.
+      CALANGO_TRUSTED_PROXIES: ${CALANGO_SUBNET:-172.30.117.0/24}
+    secrets:
+      - calango_vault_key
+    volumes:
+      - calango-data:/data
+    networks:
+      - calango
     expose:
       - "7317"
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: ["CMD", "/usr/local/bin/calango", "healthcheck"]
+      interval: 10s
+      timeout: 5s
+      start_period: 30s
+      retries: 3
 
   proxy:
-    image: caddy:2
+    image: caddy:2.10
     restart: unless-stopped
+    depends_on:
+      calango:
+        condition: service_healthy
+    environment:
+      CALANGO_DOMAIN: ${CALANGO_DOMAIN:?defina CALANGO_DOMAIN no .env}
+      CALANGO_TLS: ${CALANGO_TLS:-acme}
     ports:
+      - "80:80"
       - "443:443"
+      - "443:443/udp"
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy-data:/data
-    depends_on:
+      - caddy-config:/config
+    networks:
       - calango
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:2019/config/"]
+      interval: 30s
+      timeout: 5s
+      start_period: 10s
+      retries: 3
+
+networks:
+  calango:
+    ipam:
+      config:
+        - subnet: ${CALANGO_SUBNET:-172.30.117.0/24}
+
+secrets:
+  calango_vault_key:
+    file: ./secrets/vault.key
 
 volumes:
   calango-data:
   caddy-data:
+  caddy-config:

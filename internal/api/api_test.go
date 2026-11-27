@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/netip"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -21,6 +22,7 @@ import (
 	"calango/internal/devices"
 	"calango/internal/events"
 	"calango/internal/gateway"
+	"calango/internal/license"
 	"calango/internal/memory"
 	"calango/internal/providers"
 	"calango/internal/routines"
@@ -141,6 +143,10 @@ func newTestEnvWithGateway(t *testing.T, trusted []netip.Prefix, gw conversation
 	if releaseGateway != nil {
 		t.Cleanup(releaseGateway)
 	}
+	licenseMgr, err := license.NewManager(filepath.Join(t.TempDir(), "calango.license"), nil, now)
+	if err != nil {
+		t.Fatalf("license manager: %v", err)
+	}
 	cfg := Config{
 		Agents:         agentSvc,
 		Accounts:       providerSvc,
@@ -154,6 +160,7 @@ func newTestEnvWithGateway(t *testing.T, trusted []netip.Prefix, gw conversation
 		Events:         hub,
 		Routines:       routinesSvc,
 		Tools:          toolsSvc,
+		License:        licenseMgr,
 		Token:          localToken,
 		OwnerID:        testOwner,
 		DeviceID:       testDeviceID,

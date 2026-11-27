@@ -33,6 +33,8 @@ tags:
     description: Secret names and dates. Values are never returned.
   - name: terminal
     description: Integrated terminal sessions (PTY on Unix, ConPTY on Windows). Sessions live in memory only.
+  - name: license
+    description: Offline-verified node license and effective plan.
 paths:
   /healthz:
     get:
@@ -991,6 +993,18 @@ paths:
             text/csv:
               schema: { type: string }
         "400": { $ref: "#/components/responses/Error" }
+  /v1/license:
+    get:
+      operationId: getLicense
+      tags: [license]
+      summary: Evaluated node license and effective plan
+      description: "Reads the license file and verifies its Ed25519 signature offline. plan is the effective plan: the licensed plan while state is active or grace (up to 7 days after expires_at), free otherwise. A missing, invalid or expired license only lowers the plan to free; the node keeps running and no data is removed. License fields are present whenever the signature verified, including after expiry."
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/LicenseStatus" }
   /v1/usage:
     get:
       operationId: getUsage
@@ -1370,6 +1384,30 @@ components:
       required: [value]
       properties:
         value: { type: string, writeOnly: true, description: "The secret. Stored sealed; never returned." }
+    LicenseStatus:
+      type: object
+      required: [state, plan, checked_at]
+      properties:
+        state:
+          type: string
+          enum: [none, active, grace, expired, invalid]
+          description: "none: no license installed. grace: past expires_at but before grace_ends_at; the plan still applies. expired and invalid run free."
+        plan:
+          type: string
+          enum: [free, pro, team, business]
+          description: Effective plan for this node now.
+        reason:
+          type: string
+          enum: [malformed, signature, claims, no_public_key, unreadable]
+          description: Why the license was refused; only with state invalid.
+        account_id: { type: string }
+        license_plan: { type: string, enum: [pro, team, business], description: "Plan in the license, even when it no longer applies" }
+        features: { type: array, items: { type: string } }
+        nodes_max: { type: integer, description: "VPS nodes allowed; -1 means unlimited" }
+        issued_at: { type: string, format: date-time }
+        expires_at: { type: string, format: date-time }
+        grace_ends_at: { type: string, format: date-time }
+        checked_at: { type: string, format: date-time }
     UsageRow:
       type: object
       required: [key, tokens_in, tokens_out, cost_micros, cost_known_micros, cost_estimated_micros, cost_unknown_rows]

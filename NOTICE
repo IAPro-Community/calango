@@ -24,9 +24,14 @@ IAPro-SDK
   Full license: third_party/iapro-sdk/LICENSE; upstream provenance: third_party/iapro-sdk/NOTICE.
   Consumed as an immutable Go module (see go.mod and go.sum); source not vendored.
 
-Go modules reviewed so far (see go.mod)
+Go toolchain and runtime (linked into the calango binary)
+  Copyright (c) 2009 The Go Authors. BSD-3-Clause, with the Go patent grant.
+  Texts: third_party/go/go-toolchain/.
+
+Go modules linked into the calango binary (linux, windows and darwin builds)
+  Full license texts: third_party/go/<module path>/. Checked by scripts/third-party-licenses.mjs.
   modernc.org/sqlite v1.35.0, BSD-3-Clause (Copyright 2017 The SQLite Authors)
-  github.com/zalando/go-keyring v0.2.8, MIT (Copyright 2016 Zalando SE)
+  github.com/zalando/go-keyring v0.2.8, MIT (Copyright 2016 Zalando SE); includes internal/shellescape, MIT (Copyright 2016 Alessio Treglia)
   github.com/godbus/dbus/v5 v5.2.2, BSD-2-Clause (Copyright 2013 Georg Reinke, Google)
   github.com/danieljoos/wincred v1.2.3, MIT (Copyright 2014 Daniel Joos)
   golang.org/x/sys v0.28.0, BSD-3-Clause (Copyright 2009 The Go Authors)
@@ -37,14 +42,20 @@ Go modules reviewed so far (see go.mod)
   github.com/yosida95/uritemplate/v3 v3.0.2, BSD-3-Clause (Copyright 2016 Kohei YOSHIDA)
   github.com/dustin/go-humanize v1.0.1, MIT (Copyright 2005-2008 Dustin Sallings)
   github.com/google/uuid v1.6.0, BSD-3-Clause (Copyright 2009,2014 Google Inc.)
+  github.com/mattn/go-isatty v0.0.20, MIT (Copyright Yasuhiro MATSUMOTO); windows and darwin builds
+  github.com/ncruces/go-strftime v0.1.9, MIT (Copyright 2022 Nuno Cruces); windows and darwin builds
   golang.org/x/exp v0.0.0-20230315142452-642cacee5cc0, BSD-3-Clause (Copyright 2009 The Go Authors)
   github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec, BSD-3-Clause (Copyright 2012 The Go Authors)
-  modernc.org/libc v1.61.13, BSD-3-Clause (Copyright 2017 The Libc Authors)
+  modernc.org/libc v1.61.13, BSD-3-Clause (Copyright 2017 The Libc Authors); includes musl, MIT (Copyright 2005-2020 Rich Felker, et al.), and honnef.co/go/netdb, MIT (Copyright 2012 Dominik Honnef)
   modernc.org/memory v1.8.2, BSD-3-Clause (Copyright 2017 The Memory Authors)
   modernc.org/mathutil v1.7.1, BSD-3-Clause (Copyright 2014 The mathutil Authors)
   Other modules in go.sum are used only by tests or are not linked into the calango binary; they are not listed here.
 
-npm packages bundled into the desktop renderer, reviewed with the terminal screen
+npm packages bundled into the desktop renderer
+  Full license texts: third_party/npm/<package>/. The bundler drops their license comments.
+  react 19.2.0, MIT (Copyright (c) Meta Platforms, Inc. and affiliates)
+  react-dom 19.2.0, MIT (Copyright (c) Meta Platforms, Inc. and affiliates)
+  scheduler 0.27.0, MIT (Copyright (c) Meta Platforms, Inc. and affiliates)
   @xterm/xterm 6.0.0, MIT (Copyright 2017-2019 The xterm.js authors; 2014-2016 SourceLair Private Company; 2012-2013 Christopher Jeffrey)
   @xterm/addon-fit 0.11.0, MIT (Copyright 2019 The xterm.js authors)
 
