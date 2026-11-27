@@ -22,6 +22,21 @@ export function AgentsScreen({ client, t }: ScreenProps) {
 
   const [actionError, setActionError] = useState<string | null>(null);
   const [maestroBusyAgent, setMaestroBusyAgent] = useState<string | null>(null);
+  const [capacityBusy, setCapacityBusy] = useState<string | null>(null);
+  const [editingAgent, setEditingAgent] = useState<string | null>(null);
+
+  async function refreshCapacity(accountId: string) {
+    setActionError(null);
+    setCapacityBusy(accountId);
+    try {
+      await client.refreshProviderCapacity(accountId);
+      refresh();
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setCapacityBusy(null);
+    }
+  }
 
   async function toggleAgentMaestro(agent: Agent) {
     setActionError(null);
@@ -37,6 +52,7 @@ export function AgentsScreen({ client, t }: ScreenProps) {
         token_limit_month: agent.token_limit_month,
         approval_level: agent.approval_level,
         maestro_enabled: !agent.maestro_enabled,
+        capacity_routing: agent.capacity_routing,
       });
       refresh();
     } catch (err) {
@@ -101,6 +117,16 @@ export function AgentsScreen({ client, t }: ScreenProps) {
               <li key={account.id}>
                 <span>{account.key}</span>
                 <span className="muted">{account.setup}</span>
+                <AccountCapacity account={account} t={t} />
+                {account.kind === 'codex' && account.label !== DEFAULT_LABEL && (
+                  <button
+                    type="button"
+                    disabled={capacityBusy !== null || account.capacity?.reason === 'monitor_disabled'}
+                    onClick={() => void refreshCapacity(account.id)}
+                  >
+                    {capacityBusy === account.id ? t('commonLoading') : t('capacityRefresh')}
+                  </button>
+                )}
               </li>
             ))}
           </ul>
@@ -121,11 +147,33 @@ export function AgentsScreen({ client, t }: ScreenProps) {
                     {agent.role ? `${agent.role} · ` : ''}
                     {t(agent.paused ? 'agentStatusPaused' : 'agentStatusActive')}
                   </span>
+                  <span className="muted">
+                    {t('routingOrder')}:{' '}
+                    {agent.providers.map((provider) => provider.account ?? provider.account_id).join(' → ')}
+                  </span>
+                  {agent.capacity_routing && <span className="muted">{t('routingStrict')}</span>}
+                  <button type="button" onClick={() => setEditingAgent(agent.id)}>
+                    {t('routingEdit')}
+                  </button>
+                  {editingAgent === agent.id && (
+                    <AgentRoutingEditor
+                      key={agent.id}
+                      agent={agent}
+                      accounts={accounts}
+                      client={client}
+                      t={t}
+                      onClose={() => setEditingAgent(null)}
+                      onSaved={() => {
+                        setEditingAgent(null);
+                        refresh();
+                      }}
+                    />
+                  )}
                   {hasCodex && (
                     <button
                       type="button"
                       onClick={() => void toggleAgentMaestro(agent)}
-                      disabled={maestroBusyAgent !== null}
+                      disabled={maestroBusyAgent !== null || agent.capacity_routing === true}
                     >
                       {maestroBusyAgent === agent.id
                         ? t('commonLoading')
@@ -139,6 +187,199 @@ export function AgentsScreen({ client, t }: ScreenProps) {
         )}
       </div>
     </section>
+  );
+}
+
+function AgentRoutingEditor({
+  agent,
+  accounts,
+  client,
+  t,
+  onClose,
+  onSaved,
+}: ScreenProps & {
+  agent: Agent;
+  accounts: ProviderAccount[];
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const [chain, setChain] = useState(() => agent.providers.map(({ account_id, model }) => ({ account_id, model })));
+  const [strict, setStrict] = useState(agent.capacity_routing === true);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const unused = accounts.filter((account) => !chain.some((entry) => entry.account_id === account.id));
+
+  function move(index: number, delta: number) {
+    setChain((current) => {
+      const next = [...current];
+      const other = index + delta;
+      if (other < 0 || other >= next.length) return current;
+      [next[index], next[other]] = [next[other], next[index]];
+      return next;
+    });
+  }
+
+  async function save(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setBusy(true);
+    setError(null);
+    try {
+      await client.updateAgent(agent.id, {
+        name: agent.name,
+        role: agent.role || undefined,
+        instructions: agent.instructions || undefined,
+        providers: chain,
+        reasoning_effort: agent.reasoning_effort || undefined,
+        run_on: agent.run_on,
+        token_limit_month: agent.token_limit_month,
+        approval_level: agent.approval_level,
+        maestro_enabled: agent.maestro_enabled,
+        capacity_routing: strict,
+      });
+      onSaved();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <form className="form" onSubmit={(event) => void save(event)}>
+      <p className="muted">{t('routingOrder')}</p>
+      {chain.map((entry, index) => {
+        const account = accounts.find((item) => item.id === entry.account_id);
+        return (
+          <div key={entry.account_id}>
+            <span>
+              {index + 1}. {account?.key ?? entry.account_id}
+            </span>
+            {account && <AccountCapacity account={account} t={t} />}
+            <label>
+              {t('agentModel')}
+              <input
+                value={entry.model}
+                required
+                onChange={(event) => {
+                  const model = event.target.value;
+                  setChain((current) =>
+                    current.map((item, position) => (position === index ? { ...item, model } : item)),
+                  );
+                }}
+              />
+            </label>
+            <div className="actions">
+              <button type="button" disabled={busy || index === 0} onClick={() => move(index, -1)}>
+                {t('routingUp')}
+              </button>
+              <button type="button" disabled={busy || index === chain.length - 1} onClick={() => move(index, 1)}>
+                {t('routingDown')}
+              </button>
+              <button
+                type="button"
+                disabled={busy || chain.length === 1}
+                onClick={() => setChain((current) => current.filter((_, position) => position !== index))}
+              >
+                {t('routingRemove')}
+              </button>
+            </div>
+          </div>
+        );
+      })}
+      {unused.length > 0 && chain.length < 8 && (
+        <label>
+          {t('routingAdd')}
+          <select
+            value=""
+            disabled={busy}
+            onChange={(event) => {
+              const accountId = event.target.value;
+              if (accountId) {
+                setChain((current) => [...current, { account_id: accountId, model: current[0].model }]);
+              }
+            }}
+          >
+            <option value="" disabled>
+              —
+            </option>
+            {unused.map((account) => (
+              <option key={account.id} value={account.id}>
+                {account.key}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
+      <label className="check-label">
+        <input
+          type="checkbox"
+          checked={strict}
+          disabled={busy || agent.maestro_enabled}
+          onChange={(event) => setStrict(event.target.checked)}
+        />
+        {t('routingStrict')}
+      </label>
+      <p className="muted">{t('routingStrictNote')}</p>
+      {error && (
+        <p className="error" role="alert">
+          {error}
+        </p>
+      )}
+      <div className="actions">
+        <button type="submit" disabled={busy}>
+          {t('routingSave')}
+        </button>
+        <button type="button" disabled={busy} onClick={onClose}>
+          {t('routingCancel')}
+        </button>
+      </div>
+    </form>
+  );
+}
+
+function AccountCapacity({ account, t }: { account: ProviderAccount; t: ScreenProps['t'] }) {
+  const capacity = account.capacity;
+  if (!capacity) return <span className="muted">{t('capacityUnknown')}</span>;
+  const status = (() => {
+    switch (capacity.status) {
+      case 'LIVE':
+      case 'CACHED':
+        return t('capacityObserved');
+      case 'UNSUPPORTED':
+        return t('capacityUnsupported');
+      case 'ERROR':
+        return t('capacityError');
+      case 'STALE':
+        return t('capacityStale');
+      case 'RATE_LIMITED':
+        return t('capacityRateLimited');
+      default:
+        return t('capacityUnknown');
+    }
+  })();
+  return (
+    <div>
+      <span className="muted">
+        {t('capacityLabel')}: {status}
+      </span>
+      {capacity.reason === 'monitor_disabled' && <p className="muted">{t('capacityDisabled')}</p>}
+      {capacity.reason === 'shared_home' && <p className="muted">{t('capacitySharedHome')}</p>}
+      {capacity.reason === 'identity_unverified' && <p className="muted">{t('capacityIdentity')}</p>}
+      {capacity.observed_at && (
+        <p className="muted">
+          {t('capacityUpdated')}: {new Date(capacity.observed_at).toLocaleString()} · {capacity.source}
+        </p>
+      )}
+      {capacity.windows.map((window) => (
+        <p className="muted" key={`${window.group}/${window.kind}`}>
+          {window.kind}:{' '}
+          {window.remaining_percent === undefined
+            ? t('capacityUnknown')
+            : `${window.remaining_percent.toFixed(0)}% ${t('capacityRemaining')}`}
+          {window.reset_at && ` · ${t('capacityReset')}: ${new Date(window.reset_at).toLocaleString()}`}
+        </p>
+      ))}
+    </div>
   );
 }
 

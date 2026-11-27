@@ -342,6 +342,7 @@ final class ProviderAccount {
     required this.setup,
     required this.createdAt,
     required this.updatedAt,
+    this.capacity,
   });
 
   factory ProviderAccount.fromJson(Map<String, Object?> json) {
@@ -353,6 +354,7 @@ final class ProviderAccount {
       setup: json['setup'] as String,
       createdAt: DateTime.parse(json['created_at'] as String),
       updatedAt: DateTime.parse(json['updated_at'] as String),
+      capacity: json['capacity'] == null ? null : ProviderCapacity.fromJson(json['capacity'] as Map<String, Object?>),
     );
   }
 
@@ -372,6 +374,8 @@ final class ProviderAccount {
 
   final DateTime updatedAt;
 
+  final ProviderCapacity? capacity;
+
   Map<String, Object?> toJson() {
     return <String, Object?>{
       'id': id,
@@ -381,6 +385,97 @@ final class ProviderAccount {
       'setup': setup,
       'created_at': createdAt.toUtc().toIso8601String(),
       'updated_at': updatedAt.toUtc().toIso8601String(),
+      'capacity': ?capacity?.toJson(),
+    };
+  }
+}
+
+final class ProviderCapacity {
+  const ProviderCapacity({
+    required this.accountId,
+    required this.status,
+    required this.source,
+    required this.reason,
+    this.observedAt,
+    this.expiresAt,
+    required this.windows,
+  });
+
+  factory ProviderCapacity.fromJson(Map<String, Object?> json) {
+    return ProviderCapacity(
+      accountId: json['account_id'] as String,
+      status: json['status'] as String,
+      source: json['source'] as String,
+      reason: json['reason'] as String,
+      observedAt: json['observed_at'] == null ? null : DateTime.parse(json['observed_at'] as String),
+      expiresAt: json['expires_at'] == null ? null : DateTime.parse(json['expires_at'] as String),
+      windows: (json['windows'] as List<Object?>).map((e) => CapacityWindow.fromJson(e as Map<String, Object?>)).toList(),
+    );
+  }
+
+  final String accountId;
+
+  final String status;
+
+  final String source;
+
+  final String reason;
+
+  final DateTime? observedAt;
+
+  final DateTime? expiresAt;
+
+  final List<CapacityWindow> windows;
+
+  Map<String, Object?> toJson() {
+    return <String, Object?>{
+      'account_id': accountId,
+      'status': status,
+      'source': source,
+      'reason': reason,
+      'observed_at': ?observedAt?.toUtc().toIso8601String(),
+      'expires_at': ?expiresAt?.toUtc().toIso8601String(),
+      'windows': windows.map((e) => e.toJson()).toList(),
+    };
+  }
+}
+
+final class CapacityWindow {
+  const CapacityWindow({
+    required this.group,
+    required this.kind,
+    required this.state,
+    this.remainingPercent,
+    this.resetAt,
+  });
+
+  factory CapacityWindow.fromJson(Map<String, Object?> json) {
+    return CapacityWindow(
+      group: json['group'] as String,
+      kind: json['kind'] as String,
+      state: json['state'] as String,
+      remainingPercent: json['remaining_percent'] == null ? null : (json['remaining_percent'] as num).toDouble(),
+      resetAt: json['reset_at'] == null ? null : DateTime.parse(json['reset_at'] as String),
+    );
+  }
+
+  final String group;
+
+  final String kind;
+
+  final String state;
+
+  final double? remainingPercent;
+
+  final DateTime? resetAt;
+
+  Map<String, Object?> toJson() {
+    return <String, Object?>{
+      'group': group,
+      'kind': kind,
+      'state': state,
+      'remaining_percent': ?remainingPercent,
+      'reset_at': ?resetAt?.toUtc().toIso8601String(),
     };
   }
 }
@@ -464,6 +559,7 @@ final class AgentInput {
     required this.tokenLimitMonth,
     this.approvalLevel,
     this.maestroEnabled,
+    this.capacityRouting,
   });
 
   factory AgentInput.fromJson(Map<String, Object?> json) {
@@ -477,6 +573,7 @@ final class AgentInput {
       tokenLimitMonth: json['token_limit_month'] as int,
       approvalLevel: json['approval_level'] == null ? null : AgentApprovalLevel.fromJson(json['approval_level'] as String),
       maestroEnabled: json['maestro_enabled'] as bool?,
+      capacityRouting: json['capacity_routing'] as bool?,
     );
   }
 
@@ -502,6 +599,9 @@ final class AgentInput {
   /// Server default: `false`.
   final bool? maestroEnabled;
 
+  /// Opt-in verified capacity routing before dispatch; no paid automatic fallback.
+  final bool? capacityRouting;
+
   Map<String, Object?> toJson() {
     return <String, Object?>{
       'name': name,
@@ -513,6 +613,7 @@ final class AgentInput {
       'token_limit_month': tokenLimitMonth,
       'approval_level': ?approvalLevel?.toJson(),
       'maestro_enabled': ?maestroEnabled,
+      'capacity_routing': ?capacityRouting,
     };
   }
 }
@@ -528,6 +629,7 @@ final class Agent {
     required this.tokenLimitMonth,
     this.approvalLevel,
     required this.maestroEnabled,
+    this.capacityRouting,
     required this.id,
     required this.paused,
     required this.tokensUsedMonth,
@@ -544,6 +646,7 @@ final class Agent {
       tokenLimitMonth: json['token_limit_month'] as int,
       approvalLevel: json['approval_level'] == null ? null : AgentApprovalLevel.fromJson(json['approval_level'] as String),
       maestroEnabled: json['maestro_enabled'] as bool,
+      capacityRouting: json['capacity_routing'] as bool?,
       id: json['id'] as String,
       paused: json['paused'] as bool,
       tokensUsedMonth: json['tokens_used_month'] as int,
@@ -572,6 +675,9 @@ final class Agent {
   /// Server default: `false`.
   final bool maestroEnabled;
 
+  /// Opt-in verified capacity routing before dispatch; no paid automatic fallback.
+  final bool? capacityRouting;
+
   final String id;
 
   /// True while the node-wide pause is on. Per-agent pause is not in V1.
@@ -590,6 +696,7 @@ final class Agent {
       'token_limit_month': tokenLimitMonth,
       'approval_level': ?approvalLevel?.toJson(),
       'maestro_enabled': maestroEnabled,
+      'capacity_routing': ?capacityRouting,
       'id': id,
       'paused': paused,
       'tokens_used_month': tokensUsedMonth,

@@ -17,13 +17,14 @@ type providerAccountBody struct {
 // providerAccountResponse is the ProviderAccount schema. It never carries a secret;
 // setup names the step that finishes the sign-in.
 type providerAccountResponse struct {
-	ID        string    `json:"id"`
-	Kind      string    `json:"kind"`
-	Label     string    `json:"label"`
-	Key       string    `json:"key"`
-	Setup     string    `json:"setup"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
+	ID        string                 `json:"id"`
+	Kind      string                 `json:"kind"`
+	Label     string                 `json:"label"`
+	Key       string                 `json:"key"`
+	Setup     string                 `json:"setup"`
+	CreatedAt time.Time              `json:"created_at"`
+	UpdatedAt time.Time              `json:"updated_at"`
+	Capacity  providers.CapacityView `json:"capacity"`
 }
 
 func providerAccountResponseOf(v providers.View) providerAccountResponse {
@@ -35,6 +36,7 @@ func providerAccountResponseOf(v providers.View) providerAccountResponse {
 		Setup:     v.Setup,
 		CreatedAt: v.CreatedAt,
 		UpdatedAt: v.UpdatedAt,
+		Capacity:  v.Capacity,
 	}
 }
 
@@ -42,6 +44,7 @@ func (h *handler) registerProviderAccounts(mux *http.ServeMux) {
 	mux.HandleFunc("GET /v1/provider-accounts", h.need(core.PermRead, h.listProviderAccounts))
 	mux.HandleFunc("POST /v1/provider-accounts", h.need(core.PermWrite, h.createProviderAccount))
 	mux.HandleFunc("DELETE /v1/provider-accounts/{id}", h.need(core.PermWrite, h.deleteProviderAccount))
+	mux.HandleFunc("POST /v1/provider-accounts/{id}/capacity/refresh", h.need(core.PermWrite, h.refreshProviderCapacity))
 }
 
 func (h *handler) listProviderAccounts(w http.ResponseWriter, r *http.Request) {
@@ -77,4 +80,13 @@ func (h *handler) deleteProviderAccount(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
+}
+
+func (h *handler) refreshProviderCapacity(w http.ResponseWriter, r *http.Request) {
+	v, err := h.accounts.RefreshCapacity(r.Context(), h.ownerID, r.PathValue("id"))
+	if err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, providerAccountResponseOf(v))
 }

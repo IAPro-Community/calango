@@ -7,6 +7,7 @@ import "sync"
 
 // Event types sent to clients.
 const (
+	TypeCapacityChanged        = "capacity.changed"
 	TypeMessageCreated         = "message.created"
 	TypeRunStarted             = "run.started"
 	TypeRunStep                = "run.step"

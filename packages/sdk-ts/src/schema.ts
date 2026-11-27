@@ -447,6 +447,25 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/provider-accounts/{id}/capacity/refresh": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["Id"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Refresh provider capacity subject to cooldown */
+        post: operations["refreshProviderCapacity"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/connectors": {
         parameters: {
             query?: never;
@@ -1063,6 +1082,26 @@ export interface components {
             created_at: string;
             /** Format: date-time */
             updated_at: string;
+            capacity?: components["schemas"]["ProviderCapacity"];
+        };
+        ProviderCapacity: {
+            account_id: string;
+            status: string;
+            source: string;
+            reason: string;
+            /** Format: date-time */
+            observed_at?: string;
+            /** Format: date-time */
+            expires_at?: string;
+            windows: components["schemas"]["CapacityWindow"][];
+        };
+        CapacityWindow: {
+            group: string;
+            kind: string;
+            state: string;
+            remaining_percent?: number;
+            /** Format: date-time */
+            reset_at?: string;
         };
         ProviderModel: {
             /** @description Model slug accepted by the provider CLI. */
@@ -1097,6 +1136,8 @@ export interface components {
              * @default false
              */
             maestro_enabled: boolean;
+            /** @description Opt-in verified capacity routing before dispatch; no paid automatic fallback. */
+            capacity_routing?: boolean;
         };
         Agent: components["schemas"]["AgentInput"] & {
             id: string;
@@ -2156,6 +2197,29 @@ export interface operations {
             };
             404: components["responses"]["Error"];
             409: components["responses"]["Error"];
+        };
+    };
+    refreshProviderCapacity: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["Id"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProviderAccount"];
+                };
+            };
+            404: components["responses"]["Error"];
         };
     };
     listConnectors: {

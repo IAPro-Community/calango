@@ -16,23 +16,25 @@ import (
 
 const connectorColumns = `id, owner_id, name, transport, command, args, url, created_at, updated_at`
 
-// CreateConnector stores a connector. A name the owner already uses is core.ErrConflict.
+// CreateConnector stores a connector and its audit event atomically.
 func (s *Store) CreateConnector(ctx context.Context, c core.Connector) error {
 	args, err := json.Marshal(c.Args)
 	if err != nil {
 		return fmt.Errorf("encode connector args: %w", err)
 	}
-	_, err = s.db.ExecContext(ctx, `INSERT INTO connectors (`+connectorColumns+`)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`, c.ID, c.OwnerID, c.Name, string(c.Transport),
-		c.Command, string(args), c.URL, c.CreatedAt.UTC().Format(usageTimeLayout),
-		c.UpdatedAt.UTC().Format(usageTimeLayout))
-	if err != nil {
-		if isUniqueViolation(err) {
-			return fmt.Errorf("%w: connector %q already exists", core.ErrConflict, c.Name)
+	return s.connectorMutation(ctx, func(tx *sql.Tx) error {
+		_, err := tx.ExecContext(ctx, `INSERT INTO connectors (`+connectorColumns+`)
+			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`, c.ID, c.OwnerID, c.Name, string(c.Transport),
+			c.Command, string(args), c.URL, c.CreatedAt.UTC().Format(usageTimeLayout),
+			c.UpdatedAt.UTC().Format(usageTimeLayout))
+		if err != nil {
+			if isUniqueViolation(err) {
+				return fmt.Errorf("%w: connector %q already exists", core.ErrConflict, c.Name)
+			}
+			return fmt.Errorf("insert connector %s: %w", c.ID, err)
 		}
-		return fmt.Errorf("insert connector %s: %w", c.ID, err)
-	}
-	return nil
+		return connectorAudit(ctx, tx, c.OwnerID, "connector.created", c.ID, map[string]any{"transport": string(c.Transport)})
+	})
 }
 
 // ListConnectors returns the owner's connectors, oldest first.
@@ -71,35 +73,85 @@ func (s *Store) GetConnector(ctx context.Context, ownerID, id string) (core.Conn
 	return c, nil
 }
 
-// DeleteConnector removes a connector and, through the foreign key, every grant to it.
+// DeleteConnector removes the connector and cascading grants, with an audit event.
 func (s *Store) DeleteConnector(ctx context.Context, ownerID, id string) error {
-	res, err := s.db.ExecContext(ctx, `DELETE FROM connectors WHERE id = ? AND owner_id = ?`, id, ownerID)
-	if err != nil {
-		return fmt.Errorf("delete connector %s: %w", id, err)
-	}
-	return requireOneRow(res, "connector "+id)
+	return s.connectorMutation(ctx, func(tx *sql.Tx) error {
+		res, err := tx.ExecContext(ctx, `DELETE FROM connectors WHERE id = ? AND owner_id = ?`, id, ownerID)
+		if err != nil {
+			return fmt.Errorf("delete connector %s: %w", id, err)
+		}
+		if err := requireOneRow(res, "connector "+id); err != nil {
+			return err
+		}
+		return connectorAudit(ctx, tx, ownerID, "connector.deleted", id, map[string]any{"grants_cascade": true})
+	})
 }
 
-// SetAgentTool stores or replaces an agent's grant on a connector.
+// SetAgentTool stores or replaces a grant with its audit event.
 func (s *Store) SetAgentTool(ctx context.Context, t core.AgentTool) error {
-	_, err := s.db.ExecContext(ctx, `INSERT INTO agent_tools (agent_id, connector_id, access)
-		VALUES (?, ?, ?)
-		ON CONFLICT (agent_id, connector_id) DO UPDATE SET access = excluded.access`,
-		t.AgentID, t.ConnectorID, string(t.Access))
-	if err != nil {
-		return fmt.Errorf("set grant for agent %s: %w", t.AgentID, err)
-	}
-	return nil
+	return s.connectorMutation(ctx, func(tx *sql.Tx) error {
+		var owner string
+		err := tx.QueryRowContext(ctx, `SELECT a.owner_id FROM agents a
+			JOIN connectors c ON c.owner_id = a.owner_id WHERE a.id = ? AND c.id = ?`, t.AgentID, t.ConnectorID).Scan(&owner)
+		if errors.Is(err, sql.ErrNoRows) {
+			return core.ErrNotFound
+		}
+		if err != nil {
+			return err
+		}
+		if _, err := tx.ExecContext(ctx, `INSERT INTO agent_tools (agent_id, connector_id, access)
+			VALUES (?, ?, ?) ON CONFLICT (agent_id, connector_id) DO UPDATE SET access = excluded.access`,
+			t.AgentID, t.ConnectorID, string(t.Access)); err != nil {
+			return fmt.Errorf("set grant for agent %s: %w", t.AgentID, err)
+		}
+		return connectorAudit(ctx, tx, owner, "connector.grant_set", t.ConnectorID,
+			map[string]any{"agent_id": t.AgentID, "access": string(t.Access)})
+	})
 }
 
-// RemoveAgentTool deletes a grant. Removing a grant that does not exist does nothing.
+// RemoveAgentTool removes a grant and audits the transition. Missing grants are a no-op.
 func (s *Store) RemoveAgentTool(ctx context.Context, agentID, connectorID string) error {
-	_, err := s.db.ExecContext(ctx,
-		`DELETE FROM agent_tools WHERE agent_id = ? AND connector_id = ?`, agentID, connectorID)
+	return s.connectorMutation(ctx, func(tx *sql.Tx) error {
+		var owner string
+		err := tx.QueryRowContext(ctx, `SELECT a.owner_id FROM agent_tools g
+			JOIN agents a ON a.id = g.agent_id WHERE g.agent_id = ? AND g.connector_id = ?`, agentID, connectorID).Scan(&owner)
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil
+		}
+		if err != nil {
+			return err
+		}
+		if _, err := tx.ExecContext(ctx, `DELETE FROM agent_tools WHERE agent_id = ? AND connector_id = ?`, agentID, connectorID); err != nil {
+			return fmt.Errorf("remove grant for agent %s: %w", agentID, err)
+		}
+		return connectorAudit(ctx, tx, owner, "connector.grant_revoked", connectorID, map[string]any{"agent_id": agentID})
+	})
+}
+
+func (s *Store) connectorMutation(ctx context.Context, mutate func(*sql.Tx) error) error {
+	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
-		return fmt.Errorf("remove grant for agent %s: %w", agentID, err)
+		return err
 	}
-	return nil
+	defer func() { _ = tx.Rollback() }()
+	if err := mutate(tx); err != nil {
+		return err
+	}
+	return tx.Commit()
+}
+
+// The store knows the owner scope, not the deciding device. Never record commands,
+// URLs, arguments, credentials or connector output.
+func connectorAudit(ctx context.Context, tx *sql.Tx, owner, action, subject string, facts map[string]any) error {
+	at := time.Now().UTC()
+	id, err := core.NewID(at)
+	if err != nil {
+		return err
+	}
+	return insertAudit(ctx, tx, core.AuditEvent{
+		ID: id, At: at, ActorKind: "owner", ActorID: owner,
+		Action: action, Subject: subject, Facts: facts,
+	})
 }
 
 // ListAgentTools returns the grants of one agent, ordered by connector id.

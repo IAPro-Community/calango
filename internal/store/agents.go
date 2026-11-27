@@ -14,7 +14,7 @@ import (
 )
 
 const agentColumns = `id, owner_id, name, role, instructions,
-	reasoning_effort, run_on, token_limit_month, approval_level, maestro_enabled, created_at, updated_at`
+	reasoning_effort, run_on, token_limit_month, approval_level, maestro_enabled, capacity_routing, created_at, updated_at`
 
 // InsertAgent stores a new agent and its provider chain in one transaction. The
 // caller validates the agent first.
@@ -26,9 +26,9 @@ func (s *Store) InsertAgent(ctx context.Context, a core.Agent) error {
 	defer func() { _ = tx.Rollback() }()
 
 	if _, err := tx.ExecContext(ctx, `INSERT INTO agents (`+agentColumns+`)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		a.ID, a.OwnerID, a.Name, a.Role, a.Instructions,
-		effortValue(a.ReasoningEffort), string(a.RunOn), a.TokenLimitMonth, string(a.ApprovalLevel), a.MaestroEnabled,
+		effortValue(a.ReasoningEffort), string(a.RunOn), a.TokenLimitMonth, string(a.ApprovalLevel), a.MaestroEnabled, a.CapacityRouting,
 		a.CreatedAt.UTC().Format(usageTimeLayout), a.UpdatedAt.UTC().Format(usageTimeLayout)); err != nil {
 		return fmt.Errorf("insert agent %s: %w", a.ID, err)
 	}
@@ -53,13 +53,16 @@ func writeProviderChain(ctx context.Context, tx *sql.Tx, a core.Agent) error {
 		return fmt.Errorf("clear provider chain of agent %s: %w", a.ID, err)
 	}
 	for i, p := range a.Providers {
-		var owner string
-		err := tx.QueryRowContext(ctx, `SELECT owner_id FROM provider_accounts WHERE id = ?`, p.AccountID).Scan(&owner)
+		var owner, kind, label string
+		err := tx.QueryRowContext(ctx, `SELECT owner_id, kind, label FROM provider_accounts WHERE id = ?`, p.AccountID).Scan(&owner, &kind, &label)
 		if errors.Is(err, sql.ErrNoRows) || (err == nil && owner != a.OwnerID) {
 			return fmt.Errorf("%w: providers[%d] account is not one of yours", core.ErrInvalidInput, i)
 		}
 		if err != nil {
 			return fmt.Errorf("read provider account %s: %w", p.AccountID, err)
+		}
+		if a.CapacityRouting && (kind != core.ProviderKindCodex || label == core.DefaultAccountLabel) {
+			return fmt.Errorf("%w: capacity routing requires dedicated Codex accounts", core.ErrInvalidInput)
 		}
 		if _, err := tx.ExecContext(ctx,
 			`INSERT INTO agent_providers (agent_id, position, account_id, model) VALUES (?, ?, ?, ?)`,
@@ -152,10 +155,10 @@ func (s *Store) ReplaceAgent(ctx context.Context, a core.Agent) error {
 
 	res, err := tx.ExecContext(ctx, `UPDATE agents SET
 		name = ?, role = ?, instructions = ?, reasoning_effort = ?,
-		run_on = ?, token_limit_month = ?, approval_level = ?, maestro_enabled = ?, updated_at = ?
+		run_on = ?, token_limit_month = ?, approval_level = ?, maestro_enabled = ?, capacity_routing = ?, updated_at = ?
 		WHERE id = ? AND owner_id = ?`,
 		a.Name, a.Role, a.Instructions, effortValue(a.ReasoningEffort),
-		string(a.RunOn), a.TokenLimitMonth, string(a.ApprovalLevel), a.MaestroEnabled, a.UpdatedAt.UTC().Format(usageTimeLayout),
+		string(a.RunOn), a.TokenLimitMonth, string(a.ApprovalLevel), a.MaestroEnabled, a.CapacityRouting, a.UpdatedAt.UTC().Format(usageTimeLayout),
 		a.ID, a.OwnerID)
 	if err != nil {
 		return fmt.Errorf("replace agent %s: %w", a.ID, err)
@@ -220,7 +223,7 @@ func scanAgent(row rowScanner) (core.Agent, error) {
 		createdAt, updatedAt string
 	)
 	if err := row.Scan(&a.ID, &a.OwnerID, &a.Name, &a.Role, &a.Instructions,
-		&effort, &runOn, &a.TokenLimitMonth, &approval, &a.MaestroEnabled, &createdAt, &updatedAt); err != nil {
+		&effort, &runOn, &a.TokenLimitMonth, &approval, &a.MaestroEnabled, &a.CapacityRouting, &createdAt, &updatedAt); err != nil {
 		return core.Agent{}, err
 	}
 	a.ReasoningEffort = core.ReasoningEffort(effort.String)

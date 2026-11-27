@@ -15,6 +15,7 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"time"
 )
 
 const (
@@ -267,6 +268,9 @@ func (m *Manager) install(ctx context.Context, version string, automatic bool) e
 	if err := m.activate(ctx, version); err != nil {
 		return errors.Join(fmt.Errorf("maestro: activate %s: %w", version, err), m.restoreHome(ctx, current))
 	}
+	if err := ctx.Err(); err != nil {
+		return errors.Join(err, m.restoreHome(ctx, current))
+	}
 	if err := m.writePrevious(current); err != nil {
 		return errors.Join(fmt.Errorf("maestro: record previous version: %w", err), m.restoreHome(ctx, current))
 	}
@@ -321,7 +325,7 @@ func (m *Manager) Rollback(ctx context.Context) error {
 		return errors.Join(fmt.Errorf("maestro: previous version failed verification: %w", err), m.restoreHome(ctx, current))
 	}
 	if err := ctx.Err(); err != nil {
-		return err
+		return errors.Join(err, m.restoreHome(ctx, current))
 	}
 
 	if err := m.writePrevious(current); err != nil {
@@ -429,7 +433,10 @@ func (m *Manager) restoreHome(ctx context.Context, version string) error {
 	if version == "" {
 		return nil
 	}
-	return m.activate(ctx, version)
+	// Recovery must not inherit the canceled request that caused the failure.
+	recoveryCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 2*time.Minute)
+	defer cancel()
+	return m.activate(recoveryCtx, version)
 }
 func (m *Manager) cliPath(version string) string {
 	name := "orquestrador-maestro"

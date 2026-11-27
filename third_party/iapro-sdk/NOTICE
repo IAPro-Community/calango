@@ -19,3 +19,7 @@ Second extraction from the same Nexus commit:
 - hud/types.go and primary.go: read-only DTOs and primary selection from internal/nexus/hud_projection.go; cost enum fields represented by strings.
 - providers/parsers/{claude,gemini}: JSON normalization from respective usage_live.go; no auth or HTTP requests copied.
 New tests exercise local primitives. No real user credentials or session records copied. Broader legal and integration gates remain open.
+
+Additional extraction from Nexus source commit above:
+- providers/parsers/codex/usage.go: app-server quota response mapping from internal/core/provider/adapters/codex/app_server_usage.go and codex.go, with stricter identity and missing-value gates. Synthetic tests; no upstream personal data copied.
+- providers/contract.go: provider-neutral host ports adapted from internal/core/provider/provider.go. No product runtime or credentials copied.

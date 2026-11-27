@@ -7,14 +7,18 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io"
 	"os"
 	"os/exec"
 	"strings"
-	"time"
 
 	"calango/internal/core"
 	"calango/internal/gateway"
+
+	"github.com/IAPro-Community/IAPro-SDK/model"
+	"github.com/IAPro-Community/IAPro-SDK/providers"
+	sdkcodex "github.com/IAPro-Community/IAPro-SDK/providers/codex"
+	"github.com/IAPro-Community/IAPro-SDK/providers/process"
+	sdkruntime "github.com/IAPro-Community/IAPro-SDK/runtime"
 )
 
 // ErrSignedOut means the CLI has no valid sign-in on this machine. The fix is
@@ -23,6 +27,16 @@ var ErrSignedOut = errors.New("harness: CLI is signed out; sign in again with th
 
 // ErrNotInstalled means the CLI binary was not found on PATH.
 var ErrNotInstalled = errors.New("harness: CLI is not installed or not on PATH")
+
+// ErrModelNotSupported means the requested model is outside this login's
+// catalog. The caller must choose another model; retrying cannot help.
+var ErrModelNotSupported = errors.New("harness: the model is not supported by this login")
+
+// ErrQuotaIdentityChanged is emitted only before a model dispatch.
+var ErrQuotaIdentityChanged = errors.New("harness: quota identity changed before dispatch")
+
+// ErrQuotaNotDispatched proves the model invocation was never started.
+var ErrQuotaNotDispatched = process.ErrNotDispatched
 
 // CodexName is the gateway provider name of the Codex CLI harness.
 const CodexName = core.ProviderKindCodex
@@ -35,13 +49,14 @@ type Status struct {
 
 // Codex runs turns through the OpenAI Codex CLI (`codex exec`). It implements
 // gateway.Provider. Runs are isolated from the person's Codex configuration
-// and session history, and they cannot use any tools Codex brings with it.
+// and session history; MCP calls remain subject to Calango's turn gateway.
 type Codex struct {
 	bin     string
 	workDir string
 	// home is the CODEX_HOME of this account. Empty means the person's default
 	// Codex home, which is ADR 0013's shared default.
-	home string
+	home            string
+	coordinateQuota bool
 }
 
 // NewCodex returns a Codex harness. bin is the CLI binary ("codex" when empty).
@@ -59,13 +74,17 @@ func NewCodex(bin, workDir, home string) (*Codex, error) {
 
 func (c *Codex) commandWithHome(ctx context.Context, home string, args ...string) *exec.Cmd {
 	cmd := exec.CommandContext(ctx, c.bin, args...)
+	overrides := make(map[string]string)
 	if home != "" {
-		// exec keeps the last value of a duplicated variable, so this overrides
-		// a CODEX_HOME inherited from the environment.
-		cmd.Env = append(os.Environ(), "CODEX_HOME="+home)
+		overrides["CODEX_HOME"] = home
 	}
+	// Allow only platform variables; never inherit a previous turn's token.
+	cmd.Env = sdkruntime.EnvSet(safeCLIEnv(os.Environ()), overrides, "CALANGO_MCP_TOKEN")
 	return cmd
 }
+
+// CoordinateQuota serializes dedicated-home runs with quota maintenance.
+func (c *Codex) CoordinateQuota() { c.coordinateQuota = true }
 
 // Name implements gateway.Provider.
 func (c *Codex) Name() string { return CodexName }
@@ -83,26 +102,33 @@ func (c *Codex) available(ctx context.Context, home string) (Status, error) {
 	if _, err := exec.LookPath(c.bin); err != nil {
 		return Status{}, nil
 	}
-	out, err := c.commandWithHome(ctx, home, "login", "status").CombinedOutput()
-	if ctxErr := ctx.Err(); ctxErr != nil {
-		return Status{Installed: true}, fmt.Errorf("harness: codex login status: %w", ctxErr)
+	signedIn, err := sdkcodex.CheckLoginStatus(ctx, func(runCtx context.Context) (*exec.Cmd, error) {
+		return c.commandWithHome(runCtx, home, "login", "status"), nil
+	})
+	if err != nil {
+		return Status{Installed: true}, fmt.Errorf("harness: codex login status: %w", err)
 	}
-	// A non-zero exit or missing "Logged in" text means signed out.
-	signedIn := err == nil && strings.Contains(string(out), "Logged in")
 	return Status{Installed: true, SignedIn: signedIn}, nil
 }
 
-// Complete implements gateway.Provider. It sends the prompt on stdin, waits
-// for the CLI to finish, and streams the final message as one chunk. Codex
-// output is not parsed as events, so tokens are always estimated.
+// Complete implements gateway.Provider. The SDK decodes JSONL assistant messages
+// as they complete and uses measured terminal usage when available. Calango
+// retains the launch policy, MCP endpoint, account home and budget authority.
 func (c *Codex) Complete(ctx context.Context, req gateway.Request, stream func(gateway.Chunk)) (gateway.Usage, error) {
 	home := c.home
 	if req.CodexHome != "" {
 		home = req.CodexHome
 	}
+	if c.coordinateQuota && home != "" {
+		release, err := lockQuotaHome(ctx, home)
+		if err != nil {
+			return gateway.Usage{}, errors.Join(ErrQuotaNotDispatched, err)
+		}
+		defer release()
+	}
 	status, err := c.available(ctx, home)
 	if err != nil {
-		return gateway.Usage{}, err
+		return gateway.Usage{}, errors.Join(ErrQuotaNotDispatched, err)
 	}
 	if !status.Installed {
 		return gateway.Usage{}, fmt.Errorf("%w: %s", ErrNotInstalled, c.bin)
@@ -111,28 +137,30 @@ func (c *Codex) Complete(ctx context.Context, req gateway.Request, stream func(g
 		return gateway.Usage{}, ErrSignedOut
 	}
 
-	outFile, err := os.CreateTemp("", "calango-codex-*.txt")
-	if err != nil {
-		return gateway.Usage{}, fmt.Errorf("harness: create output file: %w", err)
+	if req.AdmissionScope != nil {
+		adapter := QuotaAdapter{Codex: c}
+		current, err := adapter.Identity(req.AdmissionOwner, req.AdmissionScope.ProfileID)
+		if err != nil || current.Scope != *req.AdmissionScope || req.CodexHome != "" || req.CheckAdmission == nil {
+			return gateway.Usage{}, ErrQuotaIdentityChanged
+		}
+		if err := req.CheckAdmission(ctx); err != nil {
+			return gateway.Usage{}, ErrQuotaIdentityChanged
+		}
+	} else if req.CapacityRoute != nil {
+		return gateway.Usage{}, ErrQuotaIdentityChanged
 	}
-	outPath := outFile.Name()
-	if err := outFile.Close(); err != nil {
-		_ = os.Remove(outPath)
-		return gateway.Usage{}, fmt.Errorf("harness: close output file: %w", err)
-	}
-	defer func() { _ = os.Remove(outPath) }()
 
 	// mcpTokenEnv names the variable that carries a turn's MCP bearer token.
 	const mcpTokenEnv = "CALANGO_MCP_TOKEN"
 	args := []string{
 		"exec",
+		"--json",
 		"--ephemeral",
 		"--ignore-user-config",
 		"--ignore-rules",
 		"--skip-git-repo-check",
 		"--sandbox", "workspace-write",
 		"-C", c.workDir,
-		"-o", outPath,
 		"-m", req.Model,
 	}
 	if req.Tools != nil {
@@ -143,41 +171,58 @@ func (c *Codex) Complete(ctx context.Context, req gateway.Request, stream func(g
 		)
 	}
 	args = append(args, "-")
-	cmd := c.commandWithHome(ctx, home, args...)
-	if req.Tools != nil {
-		if cmd.Env == nil {
-			cmd.Env = os.Environ()
+	var textBytes int64
+	var messages int
+	result, err := sdkcodex.RunExec(ctx, func(runCtx context.Context) (*exec.Cmd, error) {
+		cmd := c.commandWithHome(runCtx, home, args...)
+		if req.Tools != nil {
+			cmd.Env = sdkruntime.EnvSet(cmd.Env, map[string]string{mcpTokenEnv: req.Tools.Token})
 		}
-		cmd.Env = append(cmd.Env, mcpTokenEnv+"="+req.Tools.Token)
+		return cmd, nil
+	}, req.Prompt, func(event providers.Event) error {
+		if event.Kind != providers.EventText {
+			return nil
+		}
+		text := strings.TrimSpace(event.Text)
+		if text == "" {
+			return nil
+		}
+		if messages > 0 {
+			text = "\n\n" + text
+		}
+		messages++
+		textBytes += int64(len(text))
+		if stream != nil {
+			stream(gateway.Chunk{Text: text})
+		}
+		return nil
+	})
+	// The SDK classifies the failure; the host only names the ones that are
+	// safe to retry elsewhere. A model the account cannot use is a caller fix.
+	if err != nil && result.Failure.Kind == model.FailureModelUnsupported {
+		return gateway.Usage{}, errors.Join(ErrModelNotSupported, err)
 	}
-	cmd.Stdin = strings.NewReader(req.Prompt)
-	cmd.Stdout = io.Discard
-	cmd.Stderr = io.Discard
-	// After cancellation, Wait closes the pipes after this delay, so a child
-	// that outlives the CLI cannot keep Complete blocked.
-	cmd.WaitDelay = 2 * time.Second
-	if err := cmd.Run(); err != nil {
-		if ctxErr := ctx.Err(); ctxErr != nil {
-			return gateway.Usage{}, fmt.Errorf("harness: codex run stopped: %w", ctxErr)
+	// A failed turn with complete measured usage must still be recorded. If
+	// usage is missing on failure, return zero so gateway charges its reservation.
+	if result.InputTokens != nil && result.OutputTokens != nil {
+		usage := gateway.Usage{TokensIn: *result.InputTokens, TokensOut: *result.OutputTokens}
+		if err != nil {
+			return usage, fmt.Errorf("harness: codex exec failed: %w", err)
 		}
-		// The CLI's output is not included: it can echo the prompt.
+		if messages == 0 {
+			return usage, errors.New("harness: codex finished without a message")
+		}
+		return usage, nil
+	}
+	if err != nil {
 		return gateway.Usage{}, fmt.Errorf("harness: codex exec failed: %w", err)
 	}
-
-	raw, err := os.ReadFile(outPath)
-	if err != nil {
-		return gateway.Usage{}, fmt.Errorf("harness: read codex message: %w", err)
-	}
-	text := strings.TrimSpace(string(raw))
-	if text == "" {
+	if messages == 0 {
 		return gateway.Usage{}, errors.New("harness: codex finished without a message")
-	}
-	if stream != nil {
-		stream(gateway.Chunk{Text: text})
 	}
 	return gateway.Usage{
 		TokensIn:  estimateTokens(req.Prompt),
-		TokensOut: estimateTokens(text),
+		TokensOut: (textBytes + 3) / 4,
 		Estimated: true,
 	}, nil
 }

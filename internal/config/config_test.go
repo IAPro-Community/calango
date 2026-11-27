@@ -77,3 +77,26 @@ func TestLoadRejectsDataDirWithSurroundingWhitespace(t *testing.T) {
 		t.Fatal("Load() accepted CALANGO_DATA_DIR with surrounding whitespace")
 	}
 }
+
+func TestPriceTableConfiguration(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "prices.json")
+	t.Setenv("CALANGO_PRICE_TABLE_FILE", path)
+	cfg, err := Load()
+	if err != nil || cfg.PriceTableFile != path {
+		t.Fatalf("valid tariff configuration rejected: %v", err)
+	}
+	for _, invalid := range []string{"relative.json", " " + path, path + " "} {
+		t.Setenv("CALANGO_PRICE_TABLE_FILE", invalid)
+		if _, err := Load(); err == nil {
+			t.Fatal("accepted invalid tariff path")
+		}
+		cfg, err := LoadForPrintToken()
+		if err != nil || cfg.PriceTableFile != "" {
+			t.Fatalf("print-token depends on tariff: %v", err)
+		}
+	}
+	cfg = Config{Addr: defaultAddr, DataDir: t.TempDir(), PriceTableFile: path + "\x00"}
+	if err := cfg.Validate(); err == nil {
+		t.Fatal("accepted NUL in tariff path")
+	}
+}

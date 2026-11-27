@@ -50,14 +50,19 @@ const (
 const desktopOrigin = "app://calango"
 
 func main() {
-	cfg, err := config.Load()
+	printingToken := len(os.Args) > 1 && os.Args[1] == "print-token"
+	loadConfig := config.Load
+	if printingToken {
+		loadConfig = config.LoadForPrintToken
+	}
+	cfg, err := loadConfig()
 	if err != nil {
 		log.Fatalf("invalid configuration: %v", err)
 	}
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
-	if len(os.Args) > 1 && os.Args[1] == "print-token" {
+	if printingToken {
 		if err := printToken(ctx, cfg); err != nil {
 			log.Fatalf("print-token: %v", err)
 		}
@@ -69,6 +74,11 @@ func main() {
 		}
 		return
 	}
+	prices, err := gateway.LoadPriceTable(cfg.PriceTableFile)
+	if err != nil {
+		log.Fatalf("invalid price table: %v", err)
+	}
+
 	database, err := store.Open(ctx, filepath.Join(cfg.DataDir, "calango.db"))
 	if err != nil {
 		log.Fatalf("open store: %v", err)
@@ -152,12 +162,21 @@ func main() {
 	if err := os.MkdirAll(workDir, 0o700); err != nil {
 		log.Fatalf("conversations workspace: %v", err)
 	}
+	hub := events.NewHub()
 	providerSvc, err := providers.NewService(providers.Config{
 		Repo:             database,
 		Secrets:          secrets,
 		CodexBin:         "codex",
 		CodexWorkDir:     workDir,
 		AccountsDir:      filepath.Join(cfg.DataDir, "accounts"),
+		CapacityInterval: cfg.CapacityInterval,
+		CapacityOwner:    localOwnerID,
+		RoutingAllowed:   cfg.CapacityRoutingAllowed,
+		LeaseStore:       database.AccountLeases(),
+		Prices:           prices,
+		OnCapacity: func(owner string, view providers.CapacityView) {
+			hub.Publish(events.Event{Type: events.TypeCapacityChanged, OwnerID: owner, Data: view})
+		},
 		AnthropicBaseURL: anthropic.DefaultBaseURL,
 		Now:              time.Now,
 		NewID:            core.NewID,
@@ -171,13 +190,23 @@ func main() {
 	gw, err := gateway.New(gateway.Config{
 		Ledger:  database,
 		Resolve: resolve,
+		Prices:  prices,
 		Now:     time.Now,
 		NewID:   core.NewID,
 	})
 	if err != nil {
 		log.Fatalf("gateway: %v", err)
 	}
-	hub := events.NewHub()
+	capacityCtx, stopCapacity := context.WithCancel(ctx)
+	capacityDone := make(chan struct{})
+	go func() {
+		defer close(capacityDone)
+		providerSvc.RunCapacity(capacityCtx)
+	}()
+	defer func() {
+		stopCapacity()
+		<-capacityDone
+	}()
 	maestroManager, err := maestro.New(maestro.Config{
 		DataDir: cfg.DataDir,
 		ActiveRuns: func(ctx context.Context) (bool, error) {
@@ -212,13 +241,15 @@ func main() {
 		log.Fatalf("maestro manager: %v", err)
 	}
 	convSvc, err := conversations.NewService(conversations.Config{
-		Repo:        database,
-		Gateway:     gw,
-		Now:         time.Now,
-		NewID:       core.NewID,
-		Events:      hub,
-		MaestroHome: maestroManager.CodexHome,
-		Tools:       mcpGW,
+		Repo:           database,
+		Gateway:        gw,
+		CapacityRouter: providerSvc,
+		Memory:         memorySvc,
+		Now:            time.Now,
+		NewID:          core.NewID,
+		Events:         hub,
+		MaestroHome:    maestroManager.CodexHome,
+		Tools:          mcpGW,
 	})
 	if err != nil {
 		log.Fatalf("conversations service: %v", err)
@@ -404,7 +435,7 @@ func runMaestroScheduler(ctx context.Context, manager *maestro.Manager, hub *eve
 		if status.AutoUpdate {
 			installed, err := manager.RunAutoUpdate(ctx)
 			if err != nil {
-				log.Printf("maestro automatic update failed")
+				log.Printf("maestro automatic update failed: %v", err)
 				hub.Publish(events.Event{Type: events.TypeMaestroUpdateFailed, OwnerID: localOwnerID, Data: map[string]string{"result": "failed"}})
 				return
 			}

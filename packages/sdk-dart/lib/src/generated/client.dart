@@ -313,6 +313,15 @@ final class CalangoClient {
     );
   }
 
+  /// Refresh provider capacity subject to cooldown
+  Future<ProviderAccount> refreshProviderCapacity(String id) async {
+    final response = await _transport.sendJson(
+      'POST',
+      '/v1/provider-accounts/${Uri.encodeComponent(id)}/capacity/refresh',
+    );
+    return ProviderAccount.fromJson(response as Map<String, Object?>);
+  }
+
   /// List connectors
   Future<List<Connector>> listConnectors() async {
     final response = await _transport.sendJson(

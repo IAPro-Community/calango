@@ -72,6 +72,7 @@ export interface CalangoClient {
   /** Models one account can use; empty when the provider has no catalog endpoint. */
   listProviderModels(accountId: string): Promise<ProviderModel[]>;
   createProviderAccount(input: ProviderAccountInput): Promise<ProviderAccount>;
+  refreshProviderCapacity(accountId: string): Promise<ProviderAccount>;
   /** Stores a secret in the vault. The value is write-only; the API never returns it. */
   setVaultSecret(name: string, value: string): Promise<void>;
   /** Lists metadata only; secret values are never returned. */
@@ -190,6 +191,8 @@ export function createClient(options: ClientOptions): CalangoClient {
     listProviderModels: (accountId) =>
       request<ProviderModel[]>('GET', `/v1/provider-accounts/${encodeURIComponent(accountId)}/models`),
     createProviderAccount: (input) => request<ProviderAccount>('POST', '/v1/provider-accounts', input),
+    refreshProviderCapacity: (accountId) =>
+      request<ProviderAccount>('POST', `/v1/provider-accounts/${encodeURIComponent(accountId)}/capacity/refresh`),
     setVaultSecret: (name, value) => request<void>('PUT', `/v1/vault/${encodeURIComponent(name)}`, { value }),
     listVaultItems: () => request<VaultItem[]>('GET', '/v1/vault'),
     deleteVaultSecret: (name) => request<void>('DELETE', `/v1/vault/${encodeURIComponent(name)}`),

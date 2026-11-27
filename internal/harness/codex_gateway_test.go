@@ -3,6 +3,8 @@ package harness
 import (
 	"context"
 	"errors"
+	"os"
+	"path/filepath"
 	"sync"
 	"testing"
 	"time"
@@ -79,8 +81,10 @@ func TestCodexRunThroughGatewayRecordsEstimatedUnknownCost(t *testing.T) {
 }
 
 func TestCodexSignedOutSurfacesThroughGateway(t *testing.T) {
-	c, _ := newFakeCodex(t)
-	t.Setenv("FAKE_SIGNED_OUT", "1")
+	c, dir := newFakeCodex(t)
+	if err := os.WriteFile(filepath.Join(dir, "FAKE_SIGNED_OUT"), nil, 0o600); err != nil {
+		t.Fatal(err)
+	}
 	g := gatewayWith(t, c, &memLedger{limit: 1_000_000})
 
 	_, err := g.Call(context.Background(), gateway.Caller{AgentID: "agent-1"}, request("hi"), nil)

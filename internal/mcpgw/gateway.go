@@ -156,37 +156,49 @@ func (g *Gateway) Open(ctx context.Context, ownerID, agentID, runID string) (*ga
 	return &gateway.ToolEndpoint{URL: g.cfg.URL, Token: token}, release, nil
 }
 
-// Execute runs an approved write. The approvals service calls it with the stored
-// snapshot, never with arguments recomputed by the model. Target is
-// "<connector name>/<tool>".
+// Execute runs an approved write. The snapshot binds connector name, immutable
+// connector ID and tool. Old snapshots without identity must be approved again.
 func (g *Gateway) Execute(ctx context.Context, ownerID, approvalID string, action core.Action) error {
-	connName, tool, ok := strings.Cut(action.Target, "/")
-	if !ok {
-		return fmt.Errorf("connector target %q is not <connector>/<tool>", action.Target)
+	connName, rest, ok := strings.Cut(action.Target, "/")
+	connID, tool, hasID := strings.Cut(rest, "/")
+	if !ok || !hasID || !remoteNamePattern.MatchString(tool) {
+		return errors.New("connector approval lacks a bound connector identity; request a new approval")
 	}
-	conns, err := g.cfg.Tools.List(ctx, ownerID)
+	ap, err := g.cfg.Approvals.Get(ctx, ownerID, approvalID)
 	if err != nil {
 		return err
 	}
-	var conn *core.Connector
-	for i := range conns {
-		if conns[i].Name == connName {
-			conn = &conns[i]
-			break
-		}
+	conn, err := g.cfg.Tools.Get(ctx, ownerID, connID)
+	if err != nil || conn.Name != connName {
+		return errors.New("approved connector no longer exists")
 	}
-	if conn == nil {
-		return fmt.Errorf("connector %q no longer exists", connName)
-	}
-	res, err := g.cfg.Tools.CallRemote(ctx, *conn, tool, action.Args)
-	if err != nil {
+	if err := g.checkGrant(ctx, ownerID, ap.AgentID, conn.ID, false); err != nil {
 		return err
+	}
+	res, err := g.cfg.Tools.CallRemote(ctx, conn, tool, action.Args)
+	if err != nil {
+		return errors.New("approved connector call failed; outcome may be unknown, do not retry automatically")
 	}
 	if res.IsError {
-		return fmt.Errorf("%s reported an error: %s", action.Target, resultText(res))
+		return errors.New("approved connector reported an error; do not retry automatically")
 	}
 	g.store(approvalID, res)
 	return nil
+}
+
+// checkGrant revalidates current authority at dispatch, rather than relying on
+// a grant captured during discovery. It cannot undo an already-started call.
+func (g *Gateway) checkGrant(ctx context.Context, ownerID, agentID, connectorID string, readOnly bool) error {
+	grants, err := g.cfg.Tools.Grants(ctx, ownerID, agentID)
+	if err != nil {
+		return errors.New("connector grant could not be verified")
+	}
+	for _, grant := range grants {
+		if grant.ConnectorID == connectorID && (grant.Access == core.AccessWrite || (readOnly && grant.Access == core.AccessRead)) {
+			return nil
+		}
+	}
+	return errors.New("connector grant was revoked or does not authorize this operation")
 }
 
 // LoopbackURL builds the endpoint URL a local CLI uses for a daemon listening on addr.
@@ -300,6 +312,9 @@ func (g *Gateway) buildServer(ctx context.Context, t turn) *mcp.Server {
 
 func (g *Gateway) handle(t turn, conn core.Connector, tool string, readOnly bool) mcp.ToolHandler {
 	return func(ctx context.Context, req *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		if err := g.checkGrant(ctx, t.ownerID, t.agentID, conn.ID, readOnly); err != nil {
+			return errorResult(err.Error()), nil
+		}
 		if readOnly {
 			res, err := g.cfg.Tools.CallRemote(ctx, conn, tool, req.Params.Arguments)
 			if err != nil {
@@ -340,7 +355,7 @@ func (g *Gateway) callWithApproval(ctx context.Context, t turn, conn core.Connec
 	if len(args) == 0 {
 		args = json.RawMessage(`{}`)
 	}
-	action := core.Action{Kind: core.ActionConnectorWrite, Target: conn.Name + "/" + tool, Args: args}
+	action := core.Action{Kind: core.ActionConnectorWrite, Target: conn.Name + "/" + conn.ID + "/" + tool, Args: args}
 	ap, err := g.cfg.Approvals.Request(ctx, t.ownerID, t.agentID, t.runID, action)
 	if err != nil {
 		return errorResult("could not request approval: " + err.Error())
@@ -433,7 +448,10 @@ func (g *Gateway) take(approvalID string) (*mcp.CallToolResult, bool) {
 	defer g.mu.Unlock()
 	s, ok := g.results[approvalID]
 	delete(g.results, approvalID)
-	return s.result, ok
+	if !ok || time.Since(s.at) > resultTTL {
+		return nil, false
+	}
+	return s.result, true
 }
 
 func newToken() (string, error) {
@@ -456,18 +474,6 @@ func isObjectSchema(schema any) bool {
 		return false
 	}
 	return m["type"] == "object"
-}
-
-func resultText(res *mcp.CallToolResult) string {
-	var parts []string
-	for _, c := range res.Content {
-		if tc, ok := c.(*mcp.TextContent); ok {
-			parts = append(parts, tc.Text)
-		} else {
-			parts = append(parts, "[non-text content]")
-		}
-	}
-	return strings.Join(parts, "\n")
 }
 
 func textResult(text string) *mcp.CallToolResult {

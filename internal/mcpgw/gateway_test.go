@@ -286,7 +286,7 @@ func TestWriteGrantRoutesWritesThroughApproval(t *testing.T) {
 		done <- outcome{res, err}
 	}()
 	ap := e.waitPending(t)
-	if ap.Action.Target != "notes/create_note" {
+	if !strings.HasPrefix(ap.Action.Target, "notes/") || !strings.HasSuffix(ap.Action.Target, "/create_note") {
 		t.Fatalf("approval target = %q", ap.Action.Target)
 	}
 	if _, err := e.apps.Decide(ctx, owner, ap.ID, "dev-1", true, false); err != nil {
@@ -501,5 +501,49 @@ func TestLoopbackURL(t *testing.T) {
 	}
 	if _, err := mcpgw.LoopbackURL("no-port"); err == nil {
 		t.Fatal("address without a port was accepted")
+	}
+}
+
+func TestRevokedGrantPreventsApprovedConnectorWrite(t *testing.T) {
+	ctx := context.Background()
+	remote := remoteServer(t)
+	e := newEnv(t)
+	e.registerNotes(t, remote.URL, core.AccessWrite)
+	gw := startGateway(t, e, 10*time.Second)
+
+	ep, release, err := gw.Open(ctx, owner, e.agentID, e.runID)
+	if err != nil || ep == nil {
+		t.Fatalf("open turn: ep=%v err=%v", ep, err)
+	}
+	t.Cleanup(release)
+	sess := connect(t, ep.URL, ep.Token)
+
+	done := make(chan *mcp.CallToolResult, 1)
+	go func() {
+		res, _ := sess.CallTool(ctx, &mcp.CallToolParams{Name: "notes__create_note", Arguments: map[string]any{"title": "x"}})
+		done <- res
+	}()
+	ap := e.waitPending(t)
+	conns, err := e.tools.List(ctx, owner)
+	if err != nil || len(conns) != 1 {
+		t.Fatalf("list connectors: %v, %v", conns, err)
+	}
+	if err := e.tools.Revoke(ctx, owner, e.agentID, conns[0].ID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := e.apps.Decide(ctx, owner, ap.ID, "dev-1", true, false); err != nil {
+		t.Fatal(err)
+	}
+	select {
+	case res := <-done:
+		if res == nil || !res.IsError || !strings.Contains(resultText(t, res), "grant was revoked") {
+			t.Fatalf("revoked write result = %+v", res)
+		}
+	case <-time.After(12 * time.Second):
+		t.Fatal("connector call did not settle")
+	}
+	stored, err := e.apps.Get(ctx, owner, ap.ID)
+	if err != nil || stored.Outcome != core.OutcomeFailed {
+		t.Fatalf("revoked approval = %+v, %v", stored, err)
 	}
 }

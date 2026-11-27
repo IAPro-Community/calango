@@ -25,22 +25,39 @@ if (args[0] !== 'exec') {
   process.exit(2);
 }
 
+const useJson = args.includes('--json');
 const outPath = valueAfter('-o');
-if (outPath === undefined) {
-  process.stderr.write('fake codex: -o is required\n');
+if (!useJson && outPath === undefined) {
+  process.stderr.write('fake codex: -o or --json is required\n');
   process.exit(2);
 }
 const prompt = readFileSync(0, 'utf8');
 const lastLine = prompt.split('\n').findLast((line) => line.includes('[e2e:')) ?? '';
+
+function emitReply(text) {
+  if (useJson) {
+    process.stdout.write(`${JSON.stringify({ type: 'thread.started', thread_id: 'e2e' })}\n`);
+    process.stdout.write(
+      `${JSON.stringify({ type: 'item.completed', item: { id: 'msg-1', type: 'agent_message', text } })}\n`,
+    );
+    process.stdout.write(
+      `${JSON.stringify({ type: 'turn.completed', usage: { input_tokens: 7, output_tokens: 3 } })}\n`,
+    );
+    return;
+  }
+  if (outPath !== undefined) {
+    writeFileSync(outPath, text);
+  }
+}
 
 if (lastLine.includes('[e2e:slow]')) {
   // Stays busy until the daemon stops the run and kills this process.
   setInterval(() => {}, 1_000);
 } else if (lastLine.includes('[e2e:tool]')) {
   const result = await callNoteTool();
-  writeFileSync(outPath, `Ferramenta respondeu: ${result}`);
+  emitReply(`Ferramenta respondeu: ${result}`);
 } else {
-  writeFileSync(outPath, FAKE_REPLY);
+  emitReply(FAKE_REPLY);
 }
 
 function valueAfter(flag) {

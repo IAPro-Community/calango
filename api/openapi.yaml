@@ -481,6 +481,20 @@ paths:
         "204": { description: Deleted }
         "404": { $ref: "#/components/responses/Error" }
         "409": { $ref: "#/components/responses/Error" }
+  /v1/provider-accounts/{id}/capacity/refresh:
+    parameters:
+      - $ref: "#/components/parameters/Id"
+    post:
+      operationId: refreshProviderCapacity
+      tags: [provider-accounts]
+      summary: Refresh provider capacity subject to cooldown
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ProviderAccount" }
+        "404": { $ref: "#/components/responses/Error" }
   /v1/connectors:
     get:
       operationId: listConnectors
@@ -1196,6 +1210,29 @@ components:
         setup: { type: string, description: "The step that finishes sign-in for this account. Never a secret." }
         created_at: { type: string, format: date-time }
         updated_at: { type: string, format: date-time }
+        capacity: { $ref: "#/components/schemas/ProviderCapacity" }
+    ProviderCapacity:
+      type: object
+      required: [account_id, status, source, reason, windows]
+      properties:
+        account_id: { type: string }
+        status: { type: string }
+        source: { type: string }
+        reason: { type: string }
+        observed_at: { type: string, format: date-time }
+        expires_at: { type: string, format: date-time }
+        windows:
+          type: array
+          items: { $ref: "#/components/schemas/CapacityWindow" }
+    CapacityWindow:
+      type: object
+      required: [group, kind, state]
+      properties:
+        group: { type: string }
+        kind: { type: string }
+        state: { type: string }
+        remaining_percent: { type: number, minimum: 0, maximum: 100 }
+        reset_at: { type: string, format: date-time }
     ProviderModel:
       type: object
       required: [id, label]
@@ -1232,6 +1269,7 @@ components:
           type: boolean
           default: false
           description: Use the isolated Maestro Codex home for Codex providers in this agent's chain.
+        capacity_routing: { type: boolean, description: "Opt-in verified capacity routing before dispatch; no paid automatic fallback." }
     Agent:
       allOf:
         - $ref: "#/components/schemas/AgentInput"
