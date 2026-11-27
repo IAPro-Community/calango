@@ -1,5 +1,12 @@
 import { contextBridge, ipcRenderer } from 'electron';
-import type { BrowserBridge, BrowserTabsEvent, CalangoBridge, DaemonConnection, DaemonState } from '../shared/ipc';
+import type {
+  BrowserBridge,
+  BrowserTabsEvent,
+  CalangoBridge,
+  DaemonConnection,
+  DaemonState,
+  PreviewBlockedEvent,
+} from '../shared/ipc';
 
 // Sandboxed preloads cannot require local modules, so the channel names repeat
 // the ones in ../shared/ipc.ts.
@@ -10,6 +17,7 @@ const GET_LOGIN_ITEM_SETTINGS = 'calango:get-login-item-settings';
 const SET_LAUNCH_AT_LOGIN = 'calango:set-launch-at-login';
 const QUICK_CONVERSATION = 'calango:quick-conversation';
 const BROWSER_TABS_CHANGED = 'calango:browser-tabs-changed';
+const BROWSER_PREVIEW_BLOCKED = 'calango:browser-preview-blocked';
 const quickConversationListeners = new Set<() => void>();
 let quickConversationPending = false;
 
@@ -40,6 +48,16 @@ const browser: BrowserBridge = {
     ipcRenderer.on(BROWSER_TABS_CHANGED, handler);
     return () => {
       ipcRenderer.removeListener(BROWSER_TABS_CHANGED, handler);
+    };
+  },
+  detectServers: () => ipcRenderer.invoke('calango:browser-detect-servers'),
+  openPreview: (target, options) => ipcRenderer.invoke('calango:browser-open-preview', target, options),
+  openExternal: (url) => ipcRenderer.invoke('calango:browser-open-external', url),
+  onPreviewBlocked: (listener) => {
+    const handler = (_event: unknown, payload: PreviewBlockedEvent) => listener(payload);
+    ipcRenderer.on(BROWSER_PREVIEW_BLOCKED, handler);
+    return () => {
+      ipcRenderer.removeListener(BROWSER_PREVIEW_BLOCKED, handler);
     };
   },
 };
