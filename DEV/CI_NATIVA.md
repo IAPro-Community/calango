@@ -43,11 +43,10 @@ O checkout desativa `core.autocrlf` para que o Windows receba os arquivos com LF
 | `internal/vault.TestOSKeyringRoundTrip` | `CALANGO_TEST_OS_KEYRING=1` | Runners não têm sessão de usuário com keyring desbloqueado; no Linux não há Secret Service. Um resultado ali não provaria o comportamento real. | Rodar `CALANGO_TEST_OS_KEYRING=1 go test ./internal/vault -run TestOSKeyring` numa sessão real de cada sistema (Keychain, Credential Manager, Secret Service). |
 | `scripts/signature-check.test.mjs` | `CALANGO_SIGNED_ARTIFACT=<caminho>` | A cadeia de assinatura e notarização ainda não existe. | Apontar a variável para o binário ou app assinado: `codesign --verify --strict` no macOS, `Get-AuthenticodeSignature` = `Valid` no Windows. No Linux o teste é pulado: a verificação é por checksum e assinatura destacada. |
 | `internal/harness` (testes com `fakeCodex`) | sistema diferente de Windows | O codex falso é um script `sh`. | Cobertura do harness no Windows depende de um fake multiplataforma (pendente). |
-| `internal/auth.TestImportFileToken*` (importação do `api-token` legado: move, conflito, importação interrompida) | sistema diferente de Windows | Bug real, descrito abaixo. | Corrigir a checagem de permissão no Windows e remover o skip. |
 
 ## Bugs encontrados pela matriz
 
-**Windows: o `api-token` legado nunca é importado.** `internal/auth/token.go` (`readToken`) recusa o arquivo quando `Mode().Perm()&0o077 != 0`. No Windows, `os.Stat` reporta 0666 para qualquer arquivo gravável, porque as ACLs não viram bits POSIX. Resultado: um nó Windows que ainda tenha `<data dir>/api-token` de uma versão anterior não sobe (`local api token: api token import: ... readable by other users; run chmod 600`), e a instrução de `chmod` não resolve nada no Windows. A CI nativa pulou os três testes afetados no Windows com esse motivo; o teste de recusa por permissão continua rodando. A correção mexe numa checagem de segurança e fica para revisão própria: no Windows, validar a ACL do arquivo ou confiar no perfil do usuário, com teste específico.
+**Windows: o `api-token` legado nunca era importado (corrigido na #160).** `readToken` recusava o arquivo pelos bits POSIX, que no Windows sempre saem 0666. A checagem passou a valer só fora do Windows, onde o arquivo herda a ACL do perfil do usuário, e os três testes de importação voltaram a rodar nos três sistemas.
 
 Os testes de vault com keyring falso (`internal/vault/keys_test.go`, `bootstrap_test.go`) continuam rodando em todos os sistemas: eles cobrem a lógica de fallback e a recusa sem keyring.
 
@@ -64,7 +63,6 @@ Para reproduzir localmente: `go test ./... -race -count=1`, `npm run test:main -
 - Assinatura e notarização dos instaladores e do binário (macOS e Windows), com a verificação de `scripts/signature-check.test.mjs` rodando no pipeline de release.
 - Keyring real verificado em sessão de usuário de cada sistema (`CALANGO_TEST_OS_KEYRING=1`), incluindo Secret Service bloqueado no Linux.
 - Shutdown gracioso do daemon no Windows: hoje o desktop e o smoke encerram com TerminateProcess; não há sinal de console equivalente ao SIGTERM.
-- Correção da importação do `api-token` legado no Windows (seção de bugs acima).
 - Fake do codex multiplataforma para cobrir o harness no Windows.
 - Instalação limpa, atualização e desinstalação do app Electron empacotado em cada sistema; a CI testa só o processo principal compilado, sem abrir janela.
 - Arquiteturas: `ubuntu-latest` e `windows-latest` rodam em amd64 e `macos-latest` em arm64. Linux e Windows em arm64 e macOS em amd64 continuam cobertos só pelo build cruzado do workflow `ci`.
