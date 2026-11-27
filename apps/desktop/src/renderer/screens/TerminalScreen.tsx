@@ -100,7 +100,7 @@ export function TerminalScreen({ client, t }: ScreenProps) {
         </div>
       </header>
       <p className="muted">{t('terminalIntro')}</p>
-      {error && <p className="error">{error}</p>}
+      {error && <p className="error" role="alert">{error}</p>}
       {session === null ? (
         !loading && <p className="muted">{t('terminalEmpty')}</p>
       ) : (
