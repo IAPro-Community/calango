@@ -4,6 +4,8 @@
     "includes": [
       "apps/desktop/src/**",
       "apps/desktop/test/**",
+      "apps/desktop/e2e/**",
+      "apps/desktop/playwright.config.ts",
       "apps/desktop/vite.config.ts",
       "packages/sdk-ts/src/**",
       "scripts/*.mjs",
