@@ -169,19 +169,17 @@ export function BrowserScreen({ client, t }: ScreenProps) {
       <PageHeader
         title={t('navBrowser')}
         actions={
-          <>
-            <label className="browser-agent">
-              <span>{t('browserAgentLabel')}</span>
-              <select value={agentId ?? ''} onChange={(event) => setAgentId(event.target.value)}>
-                {agentList.map((agent) => (
-                  <option key={agent.id} value={agent.id}>
-                    {agent.name}
-                  </option>
-                ))}
-                <option value={PREVIEW_OWNER}>{t('browserPreviewOption')}</option>
-              </select>
-            </label>
-          </>
+          <label className="browser-agent">
+            <span>{t('browserAgentLabel')}</span>
+            <select value={agentId ?? ''} onChange={(event) => setAgentId(event.target.value)}>
+              {agentList.map((agent) => (
+                <option key={agent.id} value={agent.id}>
+                  {agent.name}
+                </option>
+              ))}
+              <option value={PREVIEW_OWNER}>{t('browserPreviewOption')}</option>
+            </select>
+          </label>
         }
       />
       {agentsError && (
