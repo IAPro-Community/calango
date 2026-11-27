@@ -388,3 +388,79 @@ output.muted {
   border-radius: var(--calango-radius-sm);
   overflow: hidden;
 }
+
+.browser-screen {
+  height: calc(100vh - 48px);
+  min-height: 480px;
+}
+
+.browser-agent {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.browser-tabs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.browser-tablist {
+  display: flex;
+  flex: 1;
+  gap: 4px;
+  min-width: 0;
+  overflow-x: auto;
+}
+
+.browser-tab {
+  display: flex;
+  align-items: center;
+  max-width: 220px;
+  border: 1px solid var(--calango-color-ink-soft);
+  border-radius: var(--calango-radius-sm);
+}
+
+.browser-tab.active {
+  border-color: var(--calango-color-postit-deep);
+}
+
+.browser-tab > button {
+  background: transparent;
+  color: inherit;
+  border-color: transparent;
+}
+
+.browser-tab > button[role="tab"] {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.browser-icon {
+  min-width: 44px;
+}
+
+.browser-toolbar {
+  display: flex;
+  gap: 8px;
+}
+
+.browser-toolbar input {
+  flex: 1;
+  min-width: 0;
+}
+
+.browser-viewport {
+  flex: 1;
+  min-height: 240px;
+  border: 1px solid var(--calango-color-ink-soft);
+  border-radius: var(--calango-radius-md);
+  background: var(--calango-color-night-card);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}

@@ -6,13 +6,18 @@ import {
   Menu,
   nativeImage,
   protocol,
+  session,
   Tray,
   type IpcMainEvent,
+  WebContentsView,
   type IpcMainInvokeEvent,
 } from 'electron';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
-import { channels, type DaemonState } from '../shared/ipc';
+import { channels, type BrowserTab, type DaemonState } from '../shared/ipc';
+import { BrowserManager } from './browser/manager';
+import { parseBounds } from './browser/policy';
+import { loadProfileKey } from './browser/profileKey';
 import { Daemon } from './daemon';
 import { PtyBridge } from './pty';
 import { messages, type Locale } from './trayMessages';
@@ -56,6 +61,7 @@ const mimeTypes: Record<string, string> = {
 let mainWindow: BrowserWindow | null = null;
 let tray: Tray | null = null;
 let shuttingDown = false;
+let browser: BrowserManager | null = null;
 
 const daemon = new Daemon({
   binary,
@@ -129,6 +135,61 @@ function assertTrusted(event: IpcMainInvokeEvent | IpcMainEvent): void {
   if (!url.startsWith(`${APP_ORIGIN}/`)) {
     throw new Error('untrusted IPC sender');
   }
+}
+
+function createBrowser(win: BrowserWindow, profileKey: Buffer): BrowserManager {
+  return new BrowserManager({
+    profileKey,
+    fromPartition: (partition) => session.fromPartition(partition),
+    createView: (options) => new WebContentsView(options),
+    host: {
+      add: (view) => {
+        if (!win.isDestroyed()) win.contentView.addChildView(view);
+      },
+      remove: (view) => {
+        if (!win.isDestroyed()) win.contentView.removeChildView(view);
+      },
+    },
+    onTabsChanged: (agentId: string, tabs: BrowserTab[]) => {
+      if (!win.isDestroyed()) {
+        win.webContents.send(channels.browserTabsChanged, { agentId, tabs });
+      }
+    },
+  });
+}
+
+function requireBrowser(event: IpcMainInvokeEvent): BrowserManager {
+  assertTrusted(event);
+  if (browser === null) {
+    throw new Error('browser is not ready');
+  }
+  return browser;
+}
+
+// The renderer can only drive the browser through these handlers; tab content has no
+// preload and fails assertTrusted, so a web page cannot reach them.
+function registerBrowserIpc(): void {
+  ipcMain.handle(channels.browserList, (event, agentId: unknown) => requireBrowser(event).listTabs(agentId));
+  ipcMain.handle(channels.browserFocusAgent, (event, agentId: unknown) => requireBrowser(event).focusAgent(agentId));
+  ipcMain.handle(channels.browserOpenTab, (event, agentId: unknown, url: unknown) =>
+    requireBrowser(event).openTab(agentId, url),
+  );
+  ipcMain.handle(channels.browserCloseTab, (event, tabId: unknown) => requireBrowser(event).closeTab(tabId));
+  ipcMain.handle(channels.browserActivate, (event, tabId: unknown) => requireBrowser(event).activate(tabId));
+  ipcMain.handle(channels.browserNavigate, (event, tabId: unknown, address: unknown) =>
+    requireBrowser(event).navigate(tabId, address),
+  );
+  ipcMain.handle(channels.browserBack, (event, tabId: unknown) => requireBrowser(event).goBack(tabId));
+  ipcMain.handle(channels.browserForward, (event, tabId: unknown) => requireBrowser(event).goForward(tabId));
+  ipcMain.handle(channels.browserReload, (event, tabId: unknown) => requireBrowser(event).reload(tabId));
+  ipcMain.handle(channels.browserSetBounds, (event, bounds: unknown) => {
+    const manager = requireBrowser(event);
+    const size = mainWindow?.getContentBounds() ?? { width: 0, height: 0 };
+    manager.setBounds(bounds === null ? null : parseBounds(bounds, size));
+  });
+  ipcMain.handle(channels.browserClearProfile, (event, agentId: unknown) =>
+    requireBrowser(event).clearProfile(agentId),
+  );
 }
 
 function linuxAutostartPath(): string {
@@ -309,16 +370,24 @@ if (!app.requestSingleInstanceLock()) {
 
   app.on('activate', () => showWindow());
 
-  app.whenReady().then(() => {
+  app.whenReady().then(async () => {
     protocol.handle(APP_SCHEME, serveRenderer);
     registerIpc();
+    registerBrowserIpc();
     mainWindow = createWindow();
+    try {
+      const profileKey = await loadProfileKey(path.join(app.getPath('userData'), 'browser-profile.key'));
+      browser = createBrowser(mainWindow, profileKey);
+    } catch {
+      console.warn('Calango could not prepare the internal browser profile key');
+    }
     createTray();
     registerQuickConversationShortcut();
     void daemon.start();
   });
 
   app.on('will-quit', () => {
+    browser?.dispose();
     globalShortcut.unregisterAll();
     tray?.destroy();
   });
@@ -334,6 +403,9 @@ if (!app.requestSingleInstanceLock()) {
     shuttingDown = true;
     event.preventDefault();
     ptyBridge.detachAll();
+    // Close browser tabs while the window still exists; their WebContents would otherwise
+    // keep the process alive after quit.
+    browser?.dispose();
     void daemon.stop().finally(() => app.quit());
   });
 }

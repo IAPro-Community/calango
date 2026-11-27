@@ -10,6 +10,7 @@ import { ConversationsScreen } from './screens/ConversationsScreen';
 import { RoutinesScreen } from './screens/RoutinesScreen';
 import { UsageScreen } from './screens/UsageScreen';
 import { AuditScreen } from './screens/AuditScreen';
+import { BrowserScreen } from './screens/BrowserScreen';
 import { SettingsScreen } from './screens/SettingsScreen';
 import { SkillsScreen } from './screens/SkillsScreen';
 
@@ -23,6 +24,7 @@ type Section =
   | 'routines'
   | 'skills'
   | 'terminal'
+  | 'browser'
   | 'usage'
   | 'audit'
   | 'settings';
@@ -34,6 +36,7 @@ const SECTIONS: { id: Section; key: MessageKey }[] = [
   { id: 'routines', key: 'navRoutines' },
   { id: 'skills', key: 'navSkills' },
   { id: 'terminal', key: 'navTerminal' },
+  { id: 'browser', key: 'navBrowser' },
   { id: 'usage', key: 'navUsage' },
   { id: 'audit', key: 'navAudit' },
   { id: 'settings', key: 'navSettings' },
@@ -107,6 +110,8 @@ function SectionView({ section, client, t }: { section: Section; client: Calango
           <TerminalScreen client={client} t={t} />
         </Suspense>
       );
+    case 'browser':
+      return <BrowserScreen client={client} t={t} />;
     case 'usage':
       return <UsageScreen client={client} t={t} />;
     case 'audit':
