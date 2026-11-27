@@ -49,6 +49,10 @@ export function App() {
     document.documentElement.lang = locale;
   }, [locale]);
   useEffect(() => bridge.onQuickConversation(() => setSection('conversations')), []);
+  // The accelerator is registered by the OS, so a conflict can only be reported
+  // from the main process. The banner keeps the failure visible instead of a log.
+  const [notice, setNotice] = useState<string | null>(null);
+  useEffect(() => bridge.onShortcutUnavailable((message) => setNotice(message)), []);
 
   // Leva o foco para o conteúdo ao trocar de seção, para quem navega por teclado
   // ou leitor de tela não precisar atravessar o menu de novo.
@@ -80,6 +84,14 @@ export function App() {
         ))}
       </nav>
       <main className="content" ref={mainRef} tabIndex={-1}>
+        {notice !== null ? (
+          <output className="notice">
+            {notice}
+            <button type="button" onClick={() => setNotice(null)} aria-label={t('commonCancel')}>
+              ×
+            </button>
+          </output>
+        ) : null}
         {client === null ? (
           <DaemonStatusView state={state} t={t} />
         ) : (

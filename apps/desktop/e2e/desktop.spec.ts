@@ -26,6 +26,7 @@ test('onboarding cria conta, agente e mantém a fronteira IPC fechada', async ({
       'getNodeInfo',
       'getState',
       'onQuickConversation',
+      'onShortcutUnavailable',
       'onState',
       'setLaunchAtLogin',
     ],

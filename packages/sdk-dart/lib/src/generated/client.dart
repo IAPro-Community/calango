@@ -269,6 +269,17 @@ final class CalangoClient {
     return ProviderAccount.fromJson(response as Map<String, Object?>);
   }
 
+  /// List the models one provider account can use
+  ///
+  /// Read-only probe of the provider CLI's own catalog. The daemon runs it with the account's isolated home. Accounts without a catalog (Anthropic) return an empty list, so the client keeps a free-form field.
+  Future<List<ProviderModel>> listProviderModels(String id) async {
+    final response = await _transport.sendJson(
+      'GET',
+      '/v1/provider-accounts/${Uri.encodeComponent(id)}/models',
+    );
+    return (response as List<Object?>).map((e) => ProviderModel.fromJson(e as Map<String, Object?>)).toList();
+  }
+
   /// Delete provider account
   ///
   /// Refused with conflict while an agent's provider chain uses it. Deleting a non-default codex account removes its isolated CODEX_HOME.

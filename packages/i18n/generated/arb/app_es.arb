@@ -281,6 +281,8 @@
   "pairingExpired": "El código caducó. Genera otro para emparejar.",
   "pairingPaired": "Nuevo dispositivo emparejado.",
   "pairingTransportNote": "El acceso remoto entre teléfono y computadora aún está en desarrollo; por ahora el teléfono solo llega a Calango en redes de prueba.",
+  "trayShortcutUnavailable": "No se pudo registrar Ctrl+Shift+Espacio; otra aplicación puede haber reservado esa combinación.",
+  "agentModelManual": "Digite o modelo (a conta não expõe catálogo)",
   "browserPreviewOption": "Vista previa del proyecto",
   "browserPreviewNote": "La vista previa abre solo servidores locales de este equipo (localhost), en un perfil separado de los agentes. Los enlaces a otras direcciones quedan bloqueados.",
   "browserDetectServers": "Detectar servidores locales",

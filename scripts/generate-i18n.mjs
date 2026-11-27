@@ -88,7 +88,7 @@ function typescriptOutput(catalog) {
 }
 
 function trayTypescriptOutput(catalog) {
-  const trayKeys = ['trayOpen', 'trayQuickConversation', 'trayQuit'];
+  const trayKeys = ['trayOpen', 'trayQuickConversation', 'trayQuit', 'trayShortcutUnavailable'];
   const trayCatalog = Object.fromEntries(
     Object.entries(catalog).map(([locale, messages]) => [
       locale,

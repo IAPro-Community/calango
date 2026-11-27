@@ -10,6 +10,7 @@ export const channels = {
   setLaunchAtLogin: 'calango:set-launch-at-login',
   quickConversation: 'calango:quick-conversation',
   nodeInfo: 'calango:node-info',
+  shortcutUnavailable: 'calango:shortcut-unavailable',
   browserList: 'calango:browser-list',
   browserFocusAgent: 'calango:browser-focus-agent',
   browserOpenTab: 'calango:browser-open-tab',
@@ -131,6 +132,7 @@ export interface CalangoBridge {
   setLaunchAtLogin(enabled: boolean): Promise<LoginItemSettings>;
   getNodeInfo(): Promise<NodeInfo>;
   onQuickConversation(listener: () => void): () => void;
+  onShortcutUnavailable(listener: (message: string) => void): () => void;
   onState(listener: (state: DaemonState) => void): () => void;
   browser: BrowserBridge;
 }
