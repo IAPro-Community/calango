@@ -237,6 +237,8 @@
   "browserClearProfile": "Clear profile",
   "browserClearProfileConfirm": "Erase this agent's cookies, logins and browsing data? Its tabs will be closed.",
   "browserProfileCleared": "Agent profile cleared.",
+  "trayShortcutUnavailable": "Ctrl+Shift+Space could not be registered; another application may have claimed that combination.",
+  "agentModelManual": "Type the model (this account exposes no catalog)",
   "browserPreviewOption": "Project preview",
   "browserPreviewNote": "The preview opens only local servers on this computer (localhost), in a profile kept apart from the agents. Links to other addresses are blocked.",
   "browserDetectServers": "Detect local servers",
