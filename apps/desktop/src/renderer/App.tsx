@@ -98,7 +98,7 @@ export function App() {
   const node = NODE_STATE[state.status];
 
   return (
-    <div className="grid min-h-screen grid-cols-[248px_minmax(0,1fr)] bg-bg font-body text-ink">
+    <div className="grid h-screen grid-cols-[248px_minmax(0,1fr)] bg-bg font-body text-ink">
       <nav
         className="flex flex-col gap-md overflow-y-auto border-r border-line bg-card px-md py-6"
         aria-label={t('appName')}

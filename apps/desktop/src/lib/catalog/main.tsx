@@ -2,7 +2,20 @@ import { StrictMode, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import '../../../../../packages/tokens/generated/tokens.css';
 import '@/styles/theme.css';
-import { ApprovalCard, Badge, Button, NavItem, NodePill, StatCard } from '@/index';
+import {
+  ApprovalCard,
+  Badge,
+  Button,
+  Card,
+  Field,
+  Input,
+  NavItem,
+  NodePill,
+  PageHeader,
+  Select,
+  StatCard,
+  Textarea,
+} from '@/index';
 
 // Development catalog of the UI kit: `npx vite` in apps/desktop, then open /catalog.html.
 // It is not part of the production build, which only bundles index.html.
@@ -96,6 +109,29 @@ function Catalog() {
             value="R$ 18,40"
             hint="36% do limite · 412k tokens"
           />
+        </Section>
+        <Section title="PageHeader">
+          <PageHeader
+            title="Conversas"
+            meta="Cadeia: codex/default → anthropic/sonnet · nó: Auto (PC)"
+            actions={<Button variant="postit">+ Nova conversa</Button>}
+          />
+        </Section>
+        <Section title="Card e campos">
+          <Card className="w-[360px]" title="Criar rotina" aside={<Badge tone="ok">ativa</Badge>}>
+            <Field label="Nome">
+              <Input placeholder="Resumo da manhã" />
+            </Field>
+            <Field label="Disparo" hint="Cron de 5 campos">
+              <Select defaultValue="cron">
+                <option value="cron">Agenda (cron)</option>
+                <option value="interval">Intervalo</option>
+              </Select>
+            </Field>
+            <Field label="Pedido ao agente">
+              <Textarea rows={2} />
+            </Field>
+          </Card>
         </Section>
       </main>
     </div>

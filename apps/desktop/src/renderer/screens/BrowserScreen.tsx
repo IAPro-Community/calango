@@ -3,6 +3,7 @@ import { type BrowserTab, type DevServer, PREVIEW_OWNER } from '../../shared/ipc
 import { bridge } from '../bridge';
 import { usePoll } from '../usePoll';
 import type { ScreenProps } from './props';
+import { Button, PageHeader } from '@';
 
 // Internal browser panel (F5-T01). The page itself is a native WebContentsView placed by the
 // main process over the viewport element below; this screen only sends its bounds and
@@ -165,20 +166,24 @@ export function BrowserScreen({ client, t }: ScreenProps) {
   const agentList = agents ?? [];
   return (
     <section className="screen browser-screen">
-      <header className="screen-header">
-        <h1>{t('navBrowser')}</h1>
-        <label className="browser-agent">
-          <span>{t('browserAgentLabel')}</span>
-          <select value={agentId ?? ''} onChange={(event) => setAgentId(event.target.value)}>
-            {agentList.map((agent) => (
-              <option key={agent.id} value={agent.id}>
-                {agent.name}
-              </option>
-            ))}
-            <option value={PREVIEW_OWNER}>{t('browserPreviewOption')}</option>
-          </select>
-        </label>
-      </header>
+      <PageHeader
+        title={t('navBrowser')}
+        actions={
+          <>
+            <label className="browser-agent">
+              <span>{t('browserAgentLabel')}</span>
+              <select value={agentId ?? ''} onChange={(event) => setAgentId(event.target.value)}>
+                {agentList.map((agent) => (
+                  <option key={agent.id} value={agent.id}>
+                    {agent.name}
+                  </option>
+                ))}
+                <option value={PREVIEW_OWNER}>{t('browserPreviewOption')}</option>
+              </select>
+            </label>
+          </>
+        }
+      />
       {agentsError && (
         <p className="error" role="alert">
           {agentsError}
@@ -191,9 +196,9 @@ export function BrowserScreen({ client, t }: ScreenProps) {
           {isPreview && (
             <div className="browser-preview">
               <div className="browser-preview-row">
-                <button type="button" disabled={detecting} onClick={() => void detectServers()}>
+                <Button variant="ghost" disabled={detecting} onClick={() => void detectServers()}>
                   {t('browserDetectServers')}
-                </button>
+                </Button>
                 <form className="browser-preview-port" onSubmit={submitPort}>
                   <input
                     type="text"
@@ -205,7 +210,7 @@ export function BrowserScreen({ client, t }: ScreenProps) {
                     autoComplete="off"
                     onChange={(event) => setPort(event.target.value)}
                   />
-                  <button type="submit">{t('browserOpenPreview')}</button>
+                  <Button type="submit">{t('browserOpenPreview')}</Button>
                 </form>
                 <label className="browser-preview-reload">
                   <input
@@ -229,9 +234,9 @@ export function BrowserScreen({ client, t }: ScreenProps) {
                       <span className="muted">
                         {server.kind} · HTTP {server.status}
                       </span>
-                      <button type="button" onClick={() => openPreview(server.origin)}>
+                      <Button variant="ghost" onClick={() => openPreview(server.origin)}>
                         {t('browserOpenPreview')}
-                      </button>
+                      </Button>
                     </li>
                   ))}
                 </ul>
@@ -244,15 +249,15 @@ export function BrowserScreen({ client, t }: ScreenProps) {
                 const label = tab.title || tab.url || t('browserNewTab');
                 return (
                   <div key={tab.id} className={tab.active ? 'browser-tab active' : 'browser-tab'}>
-                    <button
-                      type="button"
+                    <Button
+                      variant="ghost"
                       role="tab"
                       aria-selected={tab.active}
                       title={tab.url}
                       onClick={() => void run(() => browser.activate(tab.id))}
                     >
                       {label}
-                    </button>
+                    </Button>
                     <button
                       type="button"
                       className="browser-icon"
@@ -267,9 +272,9 @@ export function BrowserScreen({ client, t }: ScreenProps) {
               })}
             </div>
             {!isPreview && (
-              <button type="button" onClick={() => void run(() => browser.openTab(agentId))}>
+              <Button variant="ghost" onClick={() => void run(() => browser.openTab(agentId))}>
                 {t('browserNewTab')}
-              </button>
+              </Button>
             )}
           </div>
           <form className="browser-toolbar" onSubmit={submitAddress}>
@@ -313,20 +318,20 @@ export function BrowserScreen({ client, t }: ScreenProps) {
               autoComplete="off"
               onChange={(event) => setAddress(event.target.value)}
             />
-            <button type="submit">{t('browserGo')}</button>
+            <Button type="submit">{t('browserGo')}</Button>
             {confirmingClear ? (
               <>
-                <button type="button" className="danger" onClick={() => void clearProfile()}>
+                <Button variant="danger" onClick={() => void clearProfile()}>
                   {t('browserClearProfile')}
-                </button>
-                <button type="button" onClick={() => setConfirmingClear(false)}>
+                </Button>
+                <Button variant="ghost" onClick={() => setConfirmingClear(false)}>
                   {t('commonCancel')}
-                </button>
+                </Button>
               </>
             ) : (
-              <button type="button" className="danger" onClick={() => setConfirmingClear(true)}>
+              <Button variant="danger" onClick={() => setConfirmingClear(true)}>
                 {t('browserClearProfile')}
-              </button>
+              </Button>
             )}
           </form>
           {confirmingClear && (
@@ -336,12 +341,12 @@ export function BrowserScreen({ client, t }: ScreenProps) {
             <div className="browser-blocked" role="alert">
               <span>{t('browserPreviewBlocked')}</span>
               <code>{blockedUrl}</code>
-              <button type="button" onClick={() => openOutside(blockedUrl)}>
+              <Button variant="ghost" onClick={() => openOutside(blockedUrl)}>
                 {t('browserOpenInSystem')}
-              </button>
-              <button type="button" onClick={() => setBlockedUrl(null)}>
+              </Button>
+              <Button variant="ghost" onClick={() => setBlockedUrl(null)}>
                 {t('commonCancel')}
-              </button>
+              </Button>
             </div>
           )}
           {error && (
