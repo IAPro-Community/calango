@@ -64,8 +64,7 @@ describe('App', () => {
 
     const agents = screen.getByRole('button', { name: en('navAgents') });
     expect(agents).toHaveAttribute('aria-current', 'page');
-    await user.tab();
-    expect(agents).toHaveFocus();
+    // The menu follows the Figma sidebar: conversations come first.
     await user.tab();
     const conversations = screen.getByRole('button', { name: en('navConversations') });
     expect(conversations).toHaveFocus();

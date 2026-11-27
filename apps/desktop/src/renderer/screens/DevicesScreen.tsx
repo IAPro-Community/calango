@@ -1,4 +1,4 @@
-import { type RefObject, useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
+import { type RefObject, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Device, DeviceScope } from '@calango/sdk-ts';
 import {
   encodePairingPayload,
@@ -12,6 +12,7 @@ import { bridge } from '../bridge';
 import type { MessageKey, Translate } from '../i18n';
 import { usePoll } from '../usePoll';
 import type { ScreenProps } from './props';
+import { Button, Card, PageHeader } from '@';
 
 const SCOPE_KEYS: Record<DeviceScope, { label: MessageKey; hint: MessageKey }> = {
   full: { label: 'scopeFull', hint: 'scopeFullHint' },
@@ -52,8 +53,6 @@ export function DevicesScreen({ client, t }: ScreenProps) {
   const [revokeError, setRevokeError] = useState(false);
   const confirmRef = useRef<HTMLButtonElement | null>(null);
   const announcedMinute = useRef(false);
-  const pairingTitleId = useId();
-  const devicesTitleId = useId();
 
   useEffect(() => {
     let active = true;
@@ -152,14 +151,11 @@ export function DevicesScreen({ client, t }: ScreenProps) {
   }
 
   return (
-    <section className="screen">
-      <header className="screen-header">
-        <h1>{t('navDevices')}</h1>
-      </header>
+    <section className="flex flex-col gap-md">
+      <PageHeader title={t('navDevices')} />
       <p className="muted">{t('devicesDescription')}</p>
 
-      <section className="card pairing" aria-labelledby={pairingTitleId}>
-        <h2 id={pairingTitleId}>{t('pairingTitle')}</h2>
+      <Card title={t('pairingTitle')} className="pairing">
         <p className="muted">{t('pairingDescription')}</p>
         <fieldset className="scope-picker" disabled={generating}>
           <legend>{t('pairingScopeLabel')}</legend>
@@ -180,9 +176,9 @@ export function DevicesScreen({ client, t }: ScreenProps) {
           ))}
         </fieldset>
         <div className="actions">
-          <button type="button" onClick={() => void generate()} disabled={generating}>
+          <Button variant="ghost" onClick={() => void generate()} disabled={generating}>
             {generating ? t('pairingGenerating') : issued === null ? t('pairingGenerate') : t('pairingGenerateAnother')}
-          </button>
+          </Button>
         </div>
         {generateError && (
           <p className="error" role="alert">
@@ -222,14 +218,13 @@ export function DevicesScreen({ client, t }: ScreenProps) {
           </p>
         )}
         <p className="muted">{t('pairingTransportNote')}</p>
-      </section>
+      </Card>
 
       <p className="visually-hidden" aria-live="polite" aria-atomic="true">
         {announcement === null ? '' : t(announcement)}
       </p>
 
-      <section className="card" aria-labelledby={devicesTitleId}>
-        <h2 id={devicesTitleId}>{t('devicesListTitle')}</h2>
+      <Card title={t('devicesListTitle')}>
         {loadError !== null && (
           <p className="error" role="alert">
             {t('devicesLoadError')}
@@ -255,7 +250,7 @@ export function DevicesScreen({ client, t }: ScreenProps) {
             onRevoke={(id) => void revoke(id)}
           />
         )}
-      </section>
+      </Card>
     </section>
   );
 }
@@ -312,30 +307,28 @@ function DeviceTable({ devices, t, confirmingId, revokingId, confirmRef, onAsk, 
                     <legend className="visually-hidden">{`${t('devicesRevoke')}: ${device.name}`}</legend>
                     <p>{t('devicesRevokeConfirm')}</p>
                     <div className="actions">
-                      <button
+                      <Button
                         ref={confirmRef}
-                        type="button"
-                        className="danger"
+                        variant="danger"
                         disabled={revokingId !== null}
                         onClick={() => onRevoke(device.id)}
                       >
                         {t('devicesRevokeConfirmAction')}
-                      </button>
-                      <button type="button" disabled={revokingId !== null} onClick={() => onAsk(null)}>
+                      </Button>
+                      <Button variant="ghost" disabled={revokingId !== null} onClick={() => onAsk(null)}>
                         {t('commonCancel')}
-                      </button>
+                      </Button>
                     </div>
                   </fieldset>
                 ) : (
-                  <button
-                    type="button"
-                    className="danger"
+                  <Button
+                    variant="danger"
                     aria-label={`${t('devicesRevoke')}: ${device.name}`}
                     disabled={revokingId !== null}
                     onClick={() => onAsk(device.id)}
                   >
                     {t('devicesRevoke')}
-                  </button>
+                  </Button>
                 )}
               </td>
             </tr>

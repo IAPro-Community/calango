@@ -13,10 +13,12 @@ The desktop renderer is styled by one hand-written `styles.css` over the `--cala
 3. **Tokens stay the source.** Brand primitives keep coming from `packages/tokens` (`--calango-*`). `src/lib/styles/theme.css` adds the semantic layer (`--cl-*`) for the two themes, mirroring the Figma `Color` and `Color Light` collections and `site/index.html`, and maps it into Tailwind with `@theme inline`. Components use only those names, never raw colors. The danger text colour is adjusted per theme to keep WCAG AA (Figma's `#d9483b` stays on borders); `contrast.test.ts` checks every text pair in both themes.
 4. **No preflight yet.** Tailwind is imported without its CSS reset, and `styles.css` moves into a `legacy` cascade layer below the utilities. The current screens render as before, and kit components win over the old element rules. The reset can come in when every screen uses the kit.
 5. **Fonts are bundled.** Bricolage Grotesque, Instrument Sans and JetBrains Mono come from `@fontsource-variable` (OFL-1.1) and ship with the renderer, so the `font-src 'self'` CSP holds and the app works offline.
-6. **Catalog.** `catalog.html` shows every component in both themes under `vite` dev. The production build bundles only `index.html`.
+6. **Screens use the kit.** `src/renderer/app.css` imports the kit theme, puts `styles.css` in the `legacy` layer and adds `@source "./"`, so screens can use kit utilities too; the kit itself scans only `src/lib`. The shell follows the Figma desktop sidebar (grouped `NavItem`s, a `NodePill` for this computer) and every screen is built from `PageHeader`, `Card`, `Field`/`Input`/`Select`/`Textarea`, `Button`, `Badge`, `ApprovalCard` and `StatCard`. What is left of `styles.css` (tables, lists, browser and pairing details) reads the `--cl-*` tokens.
+7. **Catalog.** `catalog.html` shows every component in both themes under `vite` dev. The production build bundles only `index.html`.
 
 ## Consequences
 
 - New runtime dependencies: `class-variance-authority`, `clsx`, `tailwind-merge`, `@radix-ui/react-slot` and the three font packages; `tailwindcss` and `@tailwindcss/vite` as dev dependencies.
 - The semantic theme values that are not primitives (for example the night text `#fff4da`) live in `theme.css` for now. Moving them into `packages/tokens/tokens.json` as themed tokens fits better once the Dart theme generator (#171) settles, so both apps read the same values.
-- Screens move to the kit in a follow-up change (#180), after the open renderer PRs land.
+- Screens moved to the kit on the integration branch that gathers the open desktop PRs, so the change does not fight their conflicts one by one.
+- The light theme is ready in the tokens but the app has no switch yet; adding one is a separate change.

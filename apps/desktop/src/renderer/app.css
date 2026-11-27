@@ -1,0 +1,8 @@
+/* Renderer entry stylesheet (ADR 0025). The UI kit theme brings Tailwind; the renderer is
+   scanned too, so screens can use kit utilities. The old styles sit in the "legacy" cascade
+   layer, below the utilities, while screens move to the kit. Biome cannot parse @source, so
+   biome.json leaves this file out. */
+@import "../lib/styles/theme.css";
+@import "./styles.css" layer(legacy);
+
+@source "./";

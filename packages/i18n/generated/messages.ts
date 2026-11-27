@@ -337,7 +337,19 @@ export const messages = {
     "browserPreviewOutside": "O preview só abre endereços deste servidor local.",
     "browserPreviewEmpty": "Nenhum preview aberto. Detecte um servidor local ou informe a porta.",
     "browserClearPreviewConfirm": "Apagar cookies e dados de navegação do preview? As abas de preview serão fechadas.",
-    "browserPreviewCleared": "Perfil do preview limpo."
+    "browserPreviewCleared": "Perfil do preview limpo.",
+    "brandSubtitle": "execução local",
+    "navGroupMain": "Principal",
+    "navGroupManage": "Gestão e dados",
+    "navGroupTools": "Ferramentas",
+    "navGroupNodes": "Onde roda",
+    "nodeThisComputer": "Seu computador",
+    "nodeStateOnline": "ligado",
+    "nodeStateStarting": "iniciando",
+    "nodeStateOffline": "desligado",
+    "approvalPendingEyebrow": "Aprovação pendente",
+    "usageTokensTotal": "Tokens no período",
+    "usageUnknownHint": "linhas sem preço conhecido"
   },
   "en": {
     "appName": "Calango",
@@ -676,7 +688,19 @@ export const messages = {
     "browserPreviewOutside": "The preview only opens addresses of this local server.",
     "browserPreviewEmpty": "No preview open. Detect a local server or enter its port.",
     "browserClearPreviewConfirm": "Erase the preview's cookies and browsing data? Preview tabs will be closed.",
-    "browserPreviewCleared": "Preview profile cleared."
+    "browserPreviewCleared": "Preview profile cleared.",
+    "brandSubtitle": "runs locally",
+    "navGroupMain": "Main",
+    "navGroupManage": "Management and data",
+    "navGroupTools": "Tools",
+    "navGroupNodes": "Where it runs",
+    "nodeThisComputer": "Your computer",
+    "nodeStateOnline": "on",
+    "nodeStateStarting": "starting",
+    "nodeStateOffline": "off",
+    "approvalPendingEyebrow": "Pending approval",
+    "usageTokensTotal": "Tokens in period",
+    "usageUnknownHint": "rows without a known price"
   },
   "es": {
     "appName": "Calango",
@@ -1015,7 +1039,19 @@ export const messages = {
     "browserPreviewOutside": "La vista previa solo abre direcciones de este servidor local.",
     "browserPreviewEmpty": "No hay vista previa abierta. Detecta un servidor local o indica su puerto.",
     "browserClearPreviewConfirm": "¿Borrar las cookies y los datos de navegación de la vista previa? Se cerrarán sus pestañas.",
-    "browserPreviewCleared": "Perfil de la vista previa borrado."
+    "browserPreviewCleared": "Perfil de la vista previa borrado.",
+    "brandSubtitle": "ejecución local",
+    "navGroupMain": "Principal",
+    "navGroupManage": "Gestión y datos",
+    "navGroupTools": "Herramientas",
+    "navGroupNodes": "Dónde se ejecuta",
+    "nodeThisComputer": "Tu computadora",
+    "nodeStateOnline": "encendido",
+    "nodeStateStarting": "iniciando",
+    "nodeStateOffline": "apagado",
+    "approvalPendingEyebrow": "Aprobación pendiente",
+    "usageTokensTotal": "Tokens en el período",
+    "usageUnknownHint": "filas sin precio conocido"
   }
 } as const;
 

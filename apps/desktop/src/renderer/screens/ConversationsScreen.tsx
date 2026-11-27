@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
 import type { Agent, Approval, Conversation, Message, Run } from '@calango/sdk-ts';
+import { ApprovalCard, Badge, type BadgeProps, Button, Card, cn, Field, Input, PageHeader, Select, Textarea } from '@';
 import { usePoll } from '../usePoll';
 import type { MessageKey } from '../i18n';
 import type { ScreenProps } from './props';
@@ -13,6 +14,15 @@ const RUN_STATUS_KEY: Record<RunStatus, MessageKey> = {
   done: 'runDone',
   failed: 'runFailed',
   stopped: 'runStopped',
+};
+
+const RUN_TONE: Record<RunStatus, NonNullable<BadgeProps['tone']>> = {
+  queued: 'neutral',
+  running: 'warn',
+  waiting_approval: 'postit',
+  done: 'ok',
+  failed: 'danger',
+  stopped: 'neutral',
 };
 
 const TERMINAL: Partial<Record<RunStatus, true>> = { done: true, failed: true, stopped: true };
@@ -40,43 +50,55 @@ export function ConversationsScreen({ client, t }: ScreenProps) {
   }
 
   return (
-    <section className="screen split">
-      <h1 className="sr-only">{t('navConversations')}</h1>
-      <div className="card">
-        <NewConversation client={client} t={t} agents={agents} onCreated={created} />
-        {conversations.length === 0 ? (
-          <p className="muted">{t('conversationEmptyList')}</p>
-        ) : (
-          <ul className="list">
-            {conversations.map((conversation: Conversation) => (
-              <li key={conversation.id}>
-                <button
-                  type="button"
-                  className={conversation.id === selected ? 'nav-item active' : 'nav-item'}
-                  aria-current={conversation.id === selected ? 'true' : undefined}
-                  onClick={() => setSelected(conversation.id)}
-                >
-                  {conversation.title}
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
-        {error && (
-          <p className="error" role="alert">
-            {error}
-          </p>
-        )}
-      </div>
-      <div className="card conversation">
-        {selected === null ? (
-          <div className="empty">
-            <h2>{t('conversationEmptyTitle')}</h2>
-            <p className="muted">{t('conversationEmptyBody')}</p>
-          </div>
-        ) : (
-          <ConversationView key={selected} client={client} t={t} conversationId={selected} />
-        )}
+    <section className="flex h-full min-h-0 flex-col gap-md">
+      <PageHeader title={t('navConversations')} />
+      <div className="grid min-h-0 flex-1 grid-cols-[280px_minmax(0,1fr)] gap-md">
+        <Card className="self-start">
+          <NewConversation client={client} t={t} agents={agents} onCreated={created} />
+          {conversations.length === 0 ? (
+            <p className="muted">{t('conversationEmptyList')}</p>
+          ) : (
+            <ul className="m-0 flex list-none flex-col gap-xs p-0">
+              {conversations.map((conversation: Conversation) => {
+                const active = conversation.id === selected;
+                return (
+                  <li key={conversation.id}>
+                    <button
+                      type="button"
+                      className={cn(
+                        'flex w-full cursor-pointer items-center gap-xs rounded-md border px-sm py-sm text-left font-body text-[14px] leading-5 font-semibold text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-postit',
+                        active ? 'border-leaf bg-ok-soft' : 'border-line bg-paper hover:brightness-110',
+                      )}
+                      aria-current={active ? 'true' : undefined}
+                      onClick={() => setSelected(conversation.id)}
+                    >
+                      <span
+                        aria-hidden="true"
+                        className={cn('size-2 shrink-0 rounded-[2px]', active ? 'bg-leaf' : 'bg-clay')}
+                      />
+                      <span className="truncate">{conversation.title}</span>
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+          {error && (
+            <p className="error" role="alert">
+              {error}
+            </p>
+          )}
+        </Card>
+        <Card className="min-h-[480px]">
+          {selected === null ? (
+            <div className="m-auto flex max-w-sm flex-col items-center gap-xs text-center">
+              <h2 className="m-0 font-display text-[18px] font-semibold text-ink">{t('conversationEmptyTitle')}</h2>
+              <p className="muted">{t('conversationEmptyBody')}</p>
+            </div>
+          ) : (
+            <ConversationView key={selected} client={client} t={t} conversationId={selected} />
+          )}
+        </Card>
       </div>
     </section>
   );
@@ -115,10 +137,9 @@ function NewConversation({
   }
 
   return (
-    <form className="form" onSubmit={(event) => void submit(event)}>
-      <label>
-        {t('conversationAgent')}
-        <select value={agentId} onChange={(event) => setAgentId(event.target.value)} required>
+    <form className="flex flex-col gap-sm" onSubmit={(event) => void submit(event)}>
+      <Field label={t('conversationAgent')}>
+        <Select value={agentId} onChange={(event) => setAgentId(event.target.value)} required>
           <option value="" disabled>
             —
           </option>
@@ -127,18 +148,19 @@ function NewConversation({
               {agent.name}
             </option>
           ))}
-        </select>
-      </label>
-      <label>
-        {t('conversationTitleLabel')}
-        <input value={title} onChange={(event) => setTitle(event.target.value)} />
-      </label>
+        </Select>
+      </Field>
+      <Field label={t('conversationTitleLabel')}>
+        <Input value={title} onChange={(event) => setTitle(event.target.value)} />
+      </Field>
       {formError && (
         <p className="error" role="alert">
           {formError}
         </p>
       )}
-      <button type="submit">{t('actionNewConversation')}</button>
+      <Button type="submit" variant="postit">
+        {t('actionNewConversation')}
+      </Button>
     </form>
   );
 }
@@ -177,13 +199,33 @@ function ConversationView({ client, t, conversationId }: ScreenProps & { convers
   const messages: Message[] = data ?? [];
   return (
     <>
-      <div className="messages" role="log" aria-label={t('conversationMessagesLabel')}>
-        {messages.map((message) => (
-          <div key={message.id} className={`message ${message.author_kind}`}>
-            <span className="sr-only">{t(AUTHOR_KEY[message.author_kind])}: </span>
-            {message.body}
-          </div>
-        ))}
+      <div
+        className="flex flex-1 flex-col gap-sm overflow-y-auto"
+        role="log"
+        aria-label={t('conversationMessagesLabel')}
+      >
+        {messages.map((message) =>
+          message.author_kind === 'person' ? (
+            <div
+              key={message.id}
+              className="message person max-w-[75%] self-end rounded-lg bg-btn px-md py-sm font-body text-[14px] leading-[21px] whitespace-pre-wrap text-on-btn"
+            >
+              <span className="sr-only">{t(AUTHOR_KEY[message.author_kind])}: </span>
+              {message.body}
+            </div>
+          ) : (
+            <div
+              key={message.id}
+              className={`message ${message.author_kind} flex max-w-[85%] flex-col gap-2xs self-start rounded-lg border border-line bg-paper px-md py-sm`}
+            >
+              <span className="font-mono text-[11px] leading-[14px] font-bold tracking-[0.08em] text-moss-text uppercase">
+                {t(AUTHOR_KEY[message.author_kind])}
+                <span className="sr-only">: </span>
+              </span>
+              <span className="font-body text-[14px] leading-[21px] whitespace-pre-wrap text-ink">{message.body}</span>
+            </div>
+          ),
+        )}
         {error && (
           <p className="error" role="alert">
             {error}
@@ -191,8 +233,12 @@ function ConversationView({ client, t, conversationId }: ScreenProps & { convers
         )}
       </div>
       {runId !== null && <RunWatcher key={runId} client={client} t={t} runId={runId} />}
-      <form className="composer" onSubmit={(event) => void send(event)}>
-        <textarea
+      <form
+        className="composer flex items-end gap-xs rounded-lg border border-line bg-paper p-sm"
+        onSubmit={(event) => void send(event)}
+      >
+        <Textarea
+          className="min-h-11 flex-1 border-transparent bg-transparent"
           aria-label={t('conversationMessageLabel')}
           disabled={sending}
           value={draft}
@@ -206,9 +252,9 @@ function ConversationView({ client, t, conversationId }: ScreenProps & { convers
           }}
           rows={2}
         />
-        <button type="submit" disabled={sending || draft.trim() === ''}>
+        <Button type="submit" disabled={sending || draft.trim() === ''}>
           {t('actionSend')}
-        </button>
+        </Button>
       </form>
       {sendError && (
         <p className="error" role="alert">
@@ -269,9 +315,13 @@ function RunWatcher({ client, t, runId }: ScreenProps & { runId: string }) {
 
   return (
     <>
-      <div className="run">
-        <output>{status === undefined ? t('commonLoading') : t(RUN_STATUS_KEY[status])}</output>
-        {run?.error_code && <span className="muted"> {run.error_code}</span>}
+      <div className="run flex flex-wrap items-center gap-xs">
+        <output>
+          <Badge tone={status === undefined ? 'neutral' : RUN_TONE[status]}>
+            {status === undefined ? t('commonLoading') : t(RUN_STATUS_KEY[status])}
+          </Badge>
+        </output>
+        {run?.error_code && <span className="font-mono text-[12px] text-ink-soft">{run.error_code}</span>}
         {error && (
           <span className="error" role="alert">
             {error}
@@ -283,9 +333,9 @@ function RunWatcher({ client, t, runId }: ScreenProps & { runId: string }) {
           </span>
         )}
         {!terminal && (
-          <button
-            type="button"
-            className="danger"
+          <Button
+            variant="danger"
+            size="sm"
             onClick={() => {
               setStopError(null);
               void client
@@ -295,7 +345,7 @@ function RunWatcher({ client, t, runId }: ScreenProps & { runId: string }) {
             }}
           >
             {t('actionStop')}
-          </button>
+          </Button>
         )}
       </div>
       {run?.steps
@@ -317,46 +367,37 @@ function RunWatcher({ client, t, runId }: ScreenProps & { runId: string }) {
             </p>
           );
         })}
-      {data?.approvals.length ? (
-        <div className="card">
-          {approvalError && (
-            <p className="error" role="alert">
-              {approvalError}
-            </p>
-          )}
-          <ul className="list">
-            {data.approvals.map((approval) => (
-              <li key={approval.id} className="approval">
-                <div>
-                  <strong>{approval.action}</strong>
-                  <div className="muted">
-                    {t('approvalTarget')}: {approval.target}
-                  </div>
-                </div>
-                <div className="actions">
-                  <button type="button" disabled={deciding} onClick={() => void decide(approval, 'approve', false)}>
-                    {t('actionApprove')}
-                  </button>
-                  <button type="button" disabled={deciding} onClick={() => void decide(approval, 'approve', true)}>
-                    {t('actionAlwaysAllow')}
-                  </button>
-                  <button
-                    type="button"
-                    className="danger"
-                    disabled={deciding}
-                    onClick={() => void decide(approval, 'deny', false)}
-                  >
-                    {t('actionDeny')}
-                  </button>
-                </div>
-              </li>
-            ))}
-          </ul>
-        </div>
-      ) : approvalError ? (
+      {approvalError && (
         <p className="error" role="alert">
           {approvalError}
         </p>
+      )}
+      {data?.approvals.length ? (
+        <ul className="m-0 flex max-w-[560px] list-none flex-col gap-sm p-0">
+          {data.approvals.map((approval) => (
+            <li key={approval.id} className="approval">
+              <ApprovalCard
+                state="pending"
+                eyebrow={t('approvalPendingEyebrow')}
+                title={approval.action}
+                detail={`${t('approvalTarget')}: ${approval.target}`}
+                actions={
+                  <>
+                    <Button disabled={deciding} onClick={() => void decide(approval, 'approve', false)}>
+                      {t('actionApprove')}
+                    </Button>
+                    <Button variant="ghost" disabled={deciding} onClick={() => void decide(approval, 'approve', true)}>
+                      {t('actionAlwaysAllow')}
+                    </Button>
+                    <Button variant="danger" disabled={deciding} onClick={() => void decide(approval, 'deny', false)}>
+                      {t('actionDeny')}
+                    </Button>
+                  </>
+                }
+              />
+            </li>
+          ))}
+        </ul>
       ) : null}
     </>
   );

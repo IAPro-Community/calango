@@ -98,9 +98,12 @@ test('o idioma do documento acompanha o idioma da interface', () => {
 });
 
 test('cada tela tem um título de nível 1', () => {
+  // O PageHeader do UI kit renderiza o <h1> da tela.
+  const pageHeader = readFileSync(path.join(rendererDir, '..', 'lib', 'components', 'ui', 'page-header.tsx'), 'utf8');
+  assert.match(pageHeader, /<h1\b/);
   for (const { name, source } of rendererSources()) {
     if (name.startsWith('screens') && name.endsWith('Screen.tsx')) {
-      assert.match(source, /<h1\b/, `${name} sem <h1>`);
+      assert.match(source, /<h1\b|<PageHeader\b/, `${name} sem <h1>`);
     }
   }
 });
