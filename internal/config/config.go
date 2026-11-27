@@ -10,9 +10,14 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"calango/internal/license"
 )
 
 const defaultAddr = "127.0.0.1:7317"
+
+// DefaultLicenseFileName is the license file inside DataDir when CALANGO_LICENSE_FILE is unset.
+const DefaultLicenseFileName = "calango.license"
 
 type Config struct {
 	Addr    string
@@ -33,7 +38,23 @@ type Config struct {
 	PriceTableFile         string
 	CapacityInterval       time.Duration
 	CapacityRoutingAllowed bool
+	// SkillRoots are the only directories scanned for Claude Code and Codex skills.
+	SkillRoots []SkillRoot
+	// LicenseFile is the signed license token the node reads; missing means Free.
+	LicenseFile string
+	// LicensePublicKey verifies licenses in builds without an embedded key (base64 Ed25519).
+	// It is public, not a secret; release builds ignore it in favour of the embedded key.
+	LicensePublicKey string
 }
+
+// SkillRoot is one authorized skills directory. Origin is claude, codex or project.
+type SkillRoot struct {
+	Origin string
+	Path   string
+}
+
+// maxSkillRoots bounds CALANGO_SKILL_DIRS.
+const maxSkillRoots = 32
 
 // Load reads supported CALANGO_* environment variables and validates them.
 func Load() (Config, error) {
@@ -81,11 +102,20 @@ func load(withDaemonConfig bool) (Config, error) {
 	if err != nil {
 		return Config{}, err
 	}
+	skillRoots, err := loadSkillRoots()
+	if err != nil {
+		return Config{}, err
+	}
+	licenseFile := os.Getenv("CALANGO_LICENSE_FILE")
+	if licenseFile == "" {
+		licenseFile = filepath.Join(dataDir, DefaultLicenseFileName)
+	}
 	cfg := Config{
-		Addr: addr, DataDir: dataDir,
+		Addr: addr, DataDir: dataDir, SkillRoots: skillRoots,
 		VaultKey: vaultKey, VaultKeyFile: vaultKeyFile, VaultKeyVersion: vaultKeyVersion,
 		VaultKeyPrevious: os.Getenv("CALANGO_VAULT_KEY_PREVIOUS"), VaultKeyPreviousFile: os.Getenv("CALANGO_VAULT_KEY_PREVIOUS_FILE"),
 		TrustedProxies: trustedProxies,
+		LicenseFile:    licenseFile, LicensePublicKey: strings.TrimSpace(os.Getenv("CALANGO_LICENSE_PUBLIC_KEY")),
 	}
 	if withDaemonConfig {
 		cfg.PriceTableFile = os.Getenv("CALANGO_PRICE_TABLE_FILE")
@@ -106,6 +136,64 @@ func load(withDaemonConfig bool) (Config, error) {
 		return Config{}, err
 	}
 	return cfg, nil
+}
+
+// loadSkillRoots reads CALANGO_SKILL_DIRS. Unset means the defaults: Claude Code's
+// ~/.claude/skills and Codex's $CODEX_HOME/skills (default ~/.codex/skills). Set, even
+// to an empty value, it replaces the defaults; empty disables discovery.
+func loadSkillRoots() ([]SkillRoot, error) {
+	if raw, ok := os.LookupEnv("CALANGO_SKILL_DIRS"); ok {
+		return parseSkillRoots(raw)
+	}
+	home, err := os.UserHomeDir()
+	if err != nil || !filepath.IsAbs(home) {
+		// No home directory (for example a minimal container): no default roots.
+		return nil, nil
+	}
+	codexHome := filepath.Join(home, ".codex")
+	if v := os.Getenv("CODEX_HOME"); v != "" && filepath.IsAbs(v) {
+		codexHome = v
+	}
+	return []SkillRoot{
+		{Origin: "claude", Path: filepath.Join(home, ".claude", "skills")},
+		{Origin: "codex", Path: filepath.Join(codexHome, "skills")},
+	}, nil
+}
+
+// parseSkillRoots reads origin=path entries separated by the OS path list separator
+// (":" on Unix, ";" on Windows). Paths must be absolute; duplicates are dropped.
+func parseSkillRoots(raw string) ([]SkillRoot, error) {
+	var out []SkillRoot
+	seen := map[string]bool{}
+	for _, item := range filepath.SplitList(raw) {
+		item = strings.TrimSpace(item)
+		if item == "" {
+			continue
+		}
+		origin, path, ok := strings.Cut(item, "=")
+		if !ok {
+			return nil, fmt.Errorf("CALANGO_SKILL_DIRS: entries must be origin=path")
+		}
+		switch origin {
+		case "claude", "codex", "project":
+		default:
+			return nil, fmt.Errorf("CALANGO_SKILL_DIRS: origin %q must be claude, codex or project", origin)
+		}
+		if strings.ContainsRune(path, 0) || !filepath.IsAbs(path) {
+			return nil, fmt.Errorf("CALANGO_SKILL_DIRS: path for %s must be absolute", origin)
+		}
+		path = filepath.Clean(path)
+		key := origin + "=" + path
+		if seen[key] {
+			continue
+		}
+		seen[key] = true
+		out = append(out, SkillRoot{Origin: origin, Path: path})
+		if len(out) > maxSkillRoots {
+			return nil, fmt.Errorf("CALANGO_SKILL_DIRS: at most %d directories", maxSkillRoots)
+		}
+	}
+	return out, nil
 }
 
 // parseTrustedProxies reads CALANGO_TRUSTED_PROXIES: comma-separated IP addresses or CIDR ranges.
@@ -158,6 +246,14 @@ func (c Config) Validate() error {
 	}
 	if err := c.validateVaultKeys(); err != nil {
 		return err
+	}
+	if c.LicenseFile != "" && (strings.TrimSpace(c.LicenseFile) != c.LicenseFile || strings.ContainsRune(c.LicenseFile, 0) || !filepath.IsAbs(c.LicenseFile)) {
+		return fmt.Errorf("CALANGO_LICENSE_FILE: must be an absolute path without surrounding whitespace or NUL")
+	}
+	if c.LicensePublicKey != "" {
+		if _, err := license.ParsePublicKey(c.LicensePublicKey); err != nil {
+			return fmt.Errorf("CALANGO_LICENSE_PUBLIC_KEY: must be a base64 Ed25519 public key (32 bytes)")
+		}
 	}
 	return nil
 }

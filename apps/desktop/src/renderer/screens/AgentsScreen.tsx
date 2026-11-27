@@ -93,8 +93,16 @@ export function AgentsScreen({ client, t }: ScreenProps) {
           </button>
         </div>
       </header>
-      {error && <p className="error">{error}</p>}
-      {actionError && <p className="error">{actionError}</p>}
+      {error && (
+        <p className="error" role="alert">
+          {error}
+        </p>
+      )}
+      {actionError && (
+        <p className="error" role="alert">
+          {actionError}
+        </p>
+      )}
 
       <div className="grid">
         <div className="card">
@@ -312,7 +320,11 @@ function AgentRoutingEditor({
         {t('routingStrict')}
       </label>
       <p className="muted">{t('routingStrictNote')}</p>
-      {error && <p className="error">{error}</p>}
+      {error && (
+        <p className="error" role="alert">
+          {error}
+        </p>
+      )}
       <div className="actions">
         <button type="submit" disabled={busy}>
           {t('routingSave')}
@@ -429,7 +441,11 @@ function AccountForm({ client, t, onCreated }: ScreenProps & { onCreated: () => 
         <p className="muted">{t('accountCodexNote')}</p>
       )}
       <p className="muted">{t('accountSecretNote')}</p>
-      {formError && <p className="error">{formError}</p>}
+      {formError && (
+        <p className="error" role="alert">
+          {formError}
+        </p>
+      )}
       <button type="submit" disabled={busy}>
         {t('accountCreate')}
       </button>
@@ -566,7 +582,11 @@ function AgentForm({
           <p className="muted">{t('agentMaestroDescription')}</p>
         </>
       )}
-      {formError && <p className="error">{formError}</p>}
+      {formError && (
+        <p className="error" role="alert">
+          {formError}
+        </p>
+      )}
       <button type="submit" disabled={busy}>
         {t('agentCreate')}
       </button>

@@ -13,6 +13,7 @@ Model and connector keys, PC files, browser sessions, project code, conversation
 | Agent runs something destructive | mandatory approval per action type; restricted working folder; Docker on the VPS | `approvals`, `tools-mcp` |
 | Prompt injection (web, email, file) | external content enters marked as data; write tools always go through approval; the agent cannot approve itself | `harness`, `approvals` |
 | Key leakage | operating system vault; the agent uses keys by reference and never sees the value; masking in logs and traces | `vault` |
+| Imported skill reads or leaks files outside what was authorized | discovery reads only the configured roots, read-only, with size/count limits; symlinks leaving a root are skipped; the client sends an id, never a path; copies live in the data directory | `skills` |
 | Uncontrolled spending | budget per agent and per routine, checked before each call | `gateway` |
 | Remote screen control abused | off by default; can only be turned on at the PC itself; visible notice while active; audit; ends with one click | `computer-use` |
 | Forged license on the VPS node | Ed25519-signed key, validated offline; downgrades to free, never shuts down | `licensing-billing` |

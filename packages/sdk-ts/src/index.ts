@@ -22,6 +22,13 @@ export type UsageRow = Schemas['UsageRow'];
 export type VaultItem = Schemas['VaultItem'];
 export type MaestroStatus = Schemas['MaestroStatus'];
 export type MaestroUpdateResult = Schemas['MaestroUpdateResult'];
+export type SkillDiscovery = Schemas['SkillDiscovery'];
+export type DiscoveredSkill = Schemas['DiscoveredSkill'];
+export type SkippedSkill = Schemas['SkippedSkill'];
+export type SkillWarning = Schemas['SkillWarning'];
+export type ImportedSkill = Schemas['ImportedSkill'];
+export type SkillImportInput = Schemas['SkillImportInput'];
+export type SkillImportResult = Schemas['SkillImportResult'];
 
 export interface ClientOptions {
   /** Base URL of the local daemon, for example http://127.0.0.1:7317. */
@@ -87,6 +94,14 @@ export interface CalangoClient {
   updateMaestro(): Promise<MaestroUpdateResult>;
   rollbackMaestro(): Promise<MaestroStatus>;
   setMaestroAutoUpdate(enabled: boolean): Promise<MaestroStatus>;
+
+  /** Read-only scan of the authorized skill directories. */
+  discoverSkills(): Promise<SkillDiscovery>;
+  listImportedSkills(): Promise<ImportedSkill[]>;
+  /** Idempotent: the same version returns result "unchanged". */
+  importSkill(input: SkillImportInput): Promise<SkillImportResult>;
+  /** Removes the node's copy only; the source directory is untouched. */
+  removeImportedSkill(skillId: string): Promise<void>;
 }
 
 export function createClient(options: ClientOptions): CalangoClient {
@@ -201,5 +216,10 @@ export function createClient(options: ClientOptions): CalangoClient {
     rollbackMaestro: () => request<MaestroStatus>('POST', '/v1/maestro/rollback'),
     setMaestroAutoUpdate: (enabled) =>
       request<MaestroStatus>('PATCH', '/v1/maestro/settings', { auto_update: enabled }),
+
+    discoverSkills: () => request<SkillDiscovery>('GET', '/v1/skill-imports/discover'),
+    listImportedSkills: () => request<ImportedSkill[]>('GET', '/v1/skill-imports'),
+    importSkill: (input) => request<SkillImportResult>('POST', '/v1/skill-imports', input),
+    removeImportedSkill: (skillId) => request<void>('DELETE', `/v1/skill-imports/${encodeURIComponent(skillId)}`),
   };
 }

@@ -1,11 +1,20 @@
 import { useCallback, useMemo, useState } from 'react';
 import type { UsageQuery } from '@calango/sdk-ts';
 import { usePoll } from '../usePoll';
+import type { MessageKey } from '../i18n';
 import type { ScreenProps } from './props';
 
 type GroupBy = NonNullable<UsageQuery['groupBy']>;
 
 const GROUPS: GroupBy[] = ['agent', 'routine', 'project', 'node', 'model'];
+
+const GROUP_KEY: Record<GroupBy, MessageKey> = {
+  agent: 'usageGroupAgent',
+  routine: 'usageGroupRoutine',
+  project: 'usageGroupProject',
+  node: 'usageGroupNode',
+  model: 'usageGroupModel',
+};
 
 // Dates from <input type="date"> are local days; the API takes RFC 3339 instants.
 // from is inclusive and to is exclusive, as documented in openapi.yaml.
@@ -39,14 +48,18 @@ export function UsageScreen({ client, t }: ScreenProps) {
             <select value={groupBy} onChange={(event) => setGroupBy(event.target.value as GroupBy)}>
               {GROUPS.map((group) => (
                 <option key={group} value={group}>
-                  {group}
+                  {t(GROUP_KEY[group])}
                 </option>
               ))}
             </select>
           </label>
         </div>
       </header>
-      {error && <p className="error">{error}</p>}
+      {error && (
+        <p className="error" role="alert">
+          {error}
+        </p>
+      )}
       <div className="card">
         {rows.length === 0 ? (
           <p className="muted">{t('usageEmpty')}</p>

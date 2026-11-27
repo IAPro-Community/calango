@@ -14,10 +14,13 @@ Load environment configuration in a single package and reject invalid values bef
 | `CALANGO_VAULT_KEY_VERSION` | `1` | Version of the current explicit key (`CALANGO_VAULT_KEY` or `_FILE`). Integer ≥ 1. Above 1 needs an explicit current key; the OS keyring stays at version 1. See the ADR 0012 amendment. |
 | `CALANGO_VAULT_KEY_PREVIOUS` | unset | Old master key during rotation: base64 of 32 bytes. Needs an explicit current key and version ≥ 2. Mutually exclusive with `CALANGO_VAULT_KEY_PREVIOUS_FILE`. Remove after the rewrap is logged. Secret: never logged; errors do not echo it. |
 | `CALANGO_VAULT_KEY_PREVIOUS_FILE` | unset | Path to a file with the same old key. Mutually exclusive with `CALANGO_VAULT_KEY_PREVIOUS`. |
+| `CALANGO_SKILL_DIRS` | `claude=~/.claude/skills` and `codex=$CODEX_HOME/skills` (`CODEX_HOME` defaults to `~/.codex`) | Only directories scanned for skills (`SPECS/modules/skills.md`). Entries `origin=path` separated by the OS path list separator (`:` on Unix, `;` on Windows); origin is `claude`, `codex` or `project`; paths absolute; duplicates dropped; at most 32. Set, even empty, it replaces the defaults; empty disables discovery. No home directory means no defaults. |
 | `CALANGO_TRUSTED_PROXIES` | unset | Comma-separated IP addresses or CIDR ranges of reverse proxies. When the TCP peer is listed, the `/v1/pair` limit uses the right-most `X-Forwarded-For` entry that is not a listed proxy. Empty trusts none. Malformed entries fail startup; errors name the variable only. |
 | `CALANGO_CAPACITY_INTERVAL` | unset (disabled) | Opt-in quota monitor for dedicated Codex profiles only; duration 30s–1h, also defines the maximum snapshot TTL. Requires exclusive profile use. |
 | `CALANGO_CAPACITY_ROUTING_ALLOWED` | unset (false) | Explicit operator opt-in for dedicated profiles, provider terms and verified zero-marginal-cost tariffs; requires capacity interval and tariff file. |
 | `CALANGO_PRICE_TABLE_FILE` | unset | Absolute path to a versioned JSON tariff file in USD micros per million tokens. Invalid configured files stop daemon startup; `print-token` ignores tariff configuration. Unlisted account/model combinations remain unknown. See below. |
+| `CALANGO_LICENSE_FILE` | `<CALANGO_DATA_DIR>/calango.license` | Absolute path to the signed license token. Missing or invalid license means the Free plan; it never stops the node. See `licensing-billing.md`. |
+| `CALANGO_LICENSE_PUBLIC_KEY` | unset | Base64 Ed25519 public key (32 bytes) that verifies licenses in builds without an embedded key; ignored when the build embeds one. Public, not a secret. A malformed value fails startup. |
 
 `internal/config.Load` is the only point that reads `CALANGO_*` variables. New variables must come here with a default, validation, usage and documentation. Secrets must not be placed in environment variables when the system vault is supported. The one exception is the VPS vault master key (`CALANGO_VAULT_KEY`, `CALANGO_VAULT_KEY_FILE`, and the `_VERSION`, `_PREVIOUS` and `_PREVIOUS_FILE` variables during rotation), because a VPS has no OS vault (ADR 0012).
 
@@ -30,7 +33,7 @@ Load environment configuration in a single package and reject invalid values bef
 
 ## Verification
 
-- Unit tests cover the default, an explicit address, invalid formats/ports, and the vault key settings (mutually exclusive sources).
+- Unit tests cover the default, an explicit address, invalid formats/ports, the vault key settings (mutually exclusive sources) and the license file/public key settings.
 - `go test ./...` and `go vet ./...` run in CI.
 
 ## Price table (#60)
