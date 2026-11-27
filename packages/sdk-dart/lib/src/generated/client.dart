@@ -140,6 +140,29 @@ final class CalangoClient {
     return MaestroStatus.fromJson(response as Map<String, Object?>);
   }
 
+  /// Start a shell on a pseudo-terminal
+  ///
+  /// Needs write scope. The daemon picks the shell (the person's login shell on Unix, PowerShell or cmd.exe on Windows); clients cannot choose the program. `cwd` must resolve, after symlinks, to the daemon workspace or a directory below it; anything else is `400 invalid_input`. The child gets an allowlisted environment: no `CALANGO_*` variable, provider key or token reaches it. At most 8 sessions run per node (`429 rate_limited`). A session with no client attached and no input for 30 minutes is closed. Ending a session kills its whole process tree. Open and close are audited (`terminal.opened`, `terminal.closed`) without terminal content.
+  Future<PtySession> createPtySession({PtySessionInput? body}) async {
+    final response = await _transport.sendJson(
+      'POST',
+      '/v1/pty',
+      body: body?.toJson(),
+    );
+    return PtySession.fromJson(response as Map<String, Object?>);
+  }
+
+  /// List the calling device's terminal sessions
+  ///
+  /// Needs write scope. Sessions are bound to the device that created them; others are not listed.
+  Future<List<PtySession>> listPtySessions() async {
+    final response = await _transport.sendJson(
+      'GET',
+      '/v1/pty',
+    );
+    return (response as List<Object?>).map((e) => PtySession.fromJson(e as Map<String, Object?>)).toList();
+  }
+
   /// Scan the authorized skill directories
   ///
   /// Read-only scan of the directories in CALANGO_SKILL_DIRS (default ~/.claude/skills and $CODEX_HOME/skills). Only direct subdirectories with a SKILL.md are skills; symlinks that resolve outside their root, hidden entries and anything over the size and count limits are skipped. Source files are never modified.

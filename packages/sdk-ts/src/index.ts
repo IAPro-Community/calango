@@ -23,6 +23,8 @@ export type UsageRow = Schemas['UsageRow'];
 export type VaultItem = Schemas['VaultItem'];
 export type MaestroStatus = Schemas['MaestroStatus'];
 export type MaestroUpdateResult = Schemas['MaestroUpdateResult'];
+export type PtySession = Schemas['PtySession'];
+export type PtySessionInput = Schemas['PtySessionInput'];
 export type SkillDiscovery = Schemas['SkillDiscovery'];
 export type DiscoveredSkill = Schemas['DiscoveredSkill'];
 export type SkippedSkill = Schemas['SkippedSkill'];
@@ -100,6 +102,11 @@ export interface CalangoClient {
   rollbackMaestro(): Promise<MaestroStatus>;
   setMaestroAutoUpdate(enabled: boolean): Promise<MaestroStatus>;
 
+  /** Starts a shell in the daemon workspace. Terminal bytes flow over the WebSocket /v1/pty/{id}. */
+  createPtySession(input?: PtySessionInput): Promise<PtySession>;
+  listPtySessions(): Promise<PtySession[]>;
+  /** Ends the session and kills its whole process tree. */
+  deletePtySession(sessionId: string): Promise<void>;
   /** Read-only scan of the authorized skill directories. */
   discoverSkills(): Promise<SkillDiscovery>;
   listImportedSkills(): Promise<ImportedSkill[]>;
@@ -227,6 +234,9 @@ export function createClient(options: ClientOptions): CalangoClient {
     rollbackMaestro: () => request<MaestroStatus>('POST', '/v1/maestro/rollback'),
     setMaestroAutoUpdate: (enabled) =>
       request<MaestroStatus>('PATCH', '/v1/maestro/settings', { auto_update: enabled }),
+    createPtySession: (input = {}) => request<PtySession>('POST', '/v1/pty', input),
+    listPtySessions: () => request<PtySession[]>('GET', '/v1/pty'),
+    deletePtySession: (sessionId) => request<void>('DELETE', `/v1/pty/${encodeURIComponent(sessionId)}`),
 
     discoverSkills: () => request<SkillDiscovery>('GET', '/v1/skill-imports/discover'),
     listImportedSkills: () => request<ImportedSkill[]>('GET', '/v1/skill-imports'),

@@ -9,6 +9,7 @@ import {
   session,
   shell,
   Tray,
+  type IpcMainEvent,
   WebContentsView,
   type IpcMainInvokeEvent,
 } from 'electron';
@@ -23,6 +24,7 @@ import { isNavigableUrl, parseBounds } from './browser/policy';
 import { DEFAULT_PREVIEW_PORTS, detectDevServers } from './browser/preview';
 import { loadProfileKey } from './browser/profileKey';
 import { Daemon } from './daemon';
+import { PtyBridge } from './pty';
 import { messages, type Locale } from './trayMessages';
 import { fallbackTrayIcon, loadTrayIcon, TRAY_ICON_PNG } from './trayIcon';
 import { linuxAutostartEnabled, linuxAutostartFilePath, setLinuxAutostart } from './startup';
@@ -45,7 +47,9 @@ const binary =
 const contentSecurityPolicy = [
   "default-src 'self'",
   "script-src 'self'",
-  "style-src 'self'",
+  // xterm.js (terminal screen) writes its own <style> elements for its viewport and
+  // theme. Scripts stay limited to 'self'.
+  "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data:",
   "font-src 'self'",
   `connect-src 'self' http://${addr}`,
@@ -72,8 +76,20 @@ let browser: BrowserManager | null = null;
 const daemon = new Daemon({
   binary,
   addr,
-  onState: broadcastState,
+  onState: (state) => {
+    if (state.status !== 'running') {
+      ptyBridge.detachAll();
+    }
+    broadcastState(state);
+  },
   output: app.isPackaged ? daemonLogFile() : undefined,
+});
+
+// Terminal sockets live here, never in the renderer (ADR 0015).
+const ptyBridge = new PtyBridge({
+  connection: () => daemon.connectionOrThrow(),
+  sendOutput: (ownerId, sessionId, data) => sendTo(ownerId, channels.ptyOutput, sessionId, data),
+  sendClosed: (ownerId, closed) => sendTo(ownerId, channels.ptyClosed, closed),
 });
 
 // daemonLogFile opens the log file of an installed app, which has no console. The daemon
@@ -84,6 +100,14 @@ function daemonLogFile(): NodeJS.WritableStream {
   const stream = createWriteStream(path.join(logsDir, 'daemon.log'), { flags: 'a' });
   stream.on('error', (err) => console.error(`Calango could not write the daemon log: ${err.message}`));
   return stream;
+}
+
+function sendTo(webContentsId: number, channel: string, ...args: unknown[]): void {
+  for (const win of BrowserWindow.getAllWindows()) {
+    if (!win.isDestroyed() && win.webContents.id === webContentsId) {
+      win.webContents.send(channel, ...args);
+    }
+  }
 }
 
 function loopbackAddr(value: string): string {
@@ -127,7 +151,7 @@ async function serveRenderer(request: Request): Promise<Response> {
 }
 
 // assertTrusted rejects IPC from any frame that is not the renderer page.
-function assertTrusted(event: IpcMainInvokeEvent): void {
+function assertTrusted(event: IpcMainInvokeEvent | IpcMainEvent): void {
   const url = event.senderFrame?.url ?? '';
   if (!url.startsWith(`${APP_ORIGIN}/`)) {
     throw new Error('untrusted IPC sender');
@@ -263,6 +287,38 @@ function registerIpc(): void {
     }
     return { openAtLogin };
   });
+  ipcMain.handle(channels.ptyAttach, (event, sessionId: unknown) => {
+    assertTrusted(event);
+    if (typeof sessionId !== 'string') {
+      throw new Error('terminal session id must be a string');
+    }
+    return ptyBridge.attach(event.sender.id, sessionId);
+  });
+  // Fire-and-forget channels: untrusted senders and malformed arguments are dropped.
+  ipcMain.on(channels.ptyInput, (event, sessionId: unknown, data: unknown) => {
+    if (trusted(event) && typeof sessionId === 'string' && typeof data === 'string') {
+      ptyBridge.input(event.sender.id, sessionId, data);
+    }
+  });
+  ipcMain.on(channels.ptyResize, (event, sessionId: unknown, cols: unknown, rows: unknown) => {
+    if (trusted(event) && typeof sessionId === 'string' && typeof cols === 'number' && typeof rows === 'number') {
+      ptyBridge.resize(event.sender.id, sessionId, cols, rows);
+    }
+  });
+  ipcMain.on(channels.ptyDetach, (event, sessionId: unknown) => {
+    if (trusted(event) && typeof sessionId === 'string') {
+      ptyBridge.detach(sessionId, event.sender.id);
+    }
+  });
+}
+
+function trusted(event: IpcMainEvent): boolean {
+  try {
+    assertTrusted(event);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 function showWindow(section?: 'conversations'): void {
@@ -350,6 +406,8 @@ function createWindow(): BrowserWindow {
     },
   });
   win.once('ready-to-show', () => win.show());
+  const contentsId = win.webContents.id;
+  win.webContents.once('destroyed', () => ptyBridge.detachOwner(contentsId));
   win.on('close', (event) => {
     if (!shuttingDown) {
       event.preventDefault();
@@ -411,6 +469,7 @@ if (!app.requestSingleInstanceLock()) {
     }
     shuttingDown = true;
     event.preventDefault();
+    ptyBridge.detachAll();
     // Close browser tabs while the window still exists; their WebContents would otherwise
     // keep the process alive after quit.
     browser?.dispose();

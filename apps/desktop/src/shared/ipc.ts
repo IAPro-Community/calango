@@ -10,6 +10,12 @@ export const channels = {
   setLaunchAtLogin: 'calango:set-launch-at-login',
   quickConversation: 'calango:quick-conversation',
   nodeInfo: 'calango:node-info',
+  ptyAttach: 'calango:pty-attach',
+  ptyInput: 'calango:pty-input',
+  ptyResize: 'calango:pty-resize',
+  ptyDetach: 'calango:pty-detach',
+  ptyOutput: 'calango:pty-output',
+  ptyClosed: 'calango:pty-closed',
   shortcutUnavailable: 'calango:shortcut-unavailable',
   browserList: 'calango:browser-list',
   browserFocusAgent: 'calango:browser-focus-agent',
@@ -28,6 +34,14 @@ export const channels = {
   browserOpenExternal: 'calango:browser-open-external',
   browserPreviewBlocked: 'calango:browser-preview-blocked',
 } as const;
+
+/** Why a terminal socket closed: the session ended on the daemon, or the connection dropped. */
+export interface PtyClosed {
+  sessionId: string;
+  ended: boolean;
+  reason?: string;
+  exitCode?: number;
+}
 
 export interface LoginItemSettings {
   openAtLogin: boolean;
@@ -134,5 +148,15 @@ export interface CalangoBridge {
   onQuickConversation(listener: () => void): () => void;
   onShortcutUnavailable(listener: (message: string) => void): () => void;
   onState(listener: (state: DaemonState) => void): () => void;
+  /**
+   * Terminal sessions. The main process opens the WebSocket /v1/pty/{id} with the bearer
+   * header (ADR 0015), so the socket never runs in the renderer.
+   */
+  ptyAttach(sessionId: string): Promise<void>;
+  ptyInput(sessionId: string, data: string): void;
+  ptyResize(sessionId: string, cols: number, rows: number): void;
+  ptyDetach(sessionId: string): void;
+  onPtyOutput(listener: (sessionId: string, data: Uint8Array) => void): () => void;
+  onPtyClosed(listener: (closed: PtyClosed) => void): () => void;
   browser: BrowserBridge;
 }

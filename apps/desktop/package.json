@@ -10,7 +10,7 @@
   "scripts": {
     "build:daemon": "go build -o ../../bin/calango ../../cmd/calango",
     "build:main": "tsc -p tsconfig.main.json",
-    "test:main": "npm run build:main && node --test test/startup.test.cjs test/a11y.test.cjs test/browser.test.cjs test/preview.test.cjs",
+    "test:main": "npm run build:main && node --test test/startup.test.cjs test/a11y.test.cjs test/browser.test.cjs test/preview.test.cjs test/pty.test.cjs",
     "build:renderer": "vite build",
     "build": "npm run build:daemon && npm run build:main && npm run build:renderer",
     "typecheck": "tsc -p tsconfig.renderer.json --noEmit",
@@ -23,6 +23,14 @@
     "package:mac": "npm run build:daemon:mac && npm run build:main && npm run build:renderer && electron-builder --mac --publish never && node ../../scripts/verify-desktop-package.mjs --resources release/mac/Calango.app/Contents/Resources && node ../../scripts/verify-desktop-package.mjs --resources release/mac-arm64/Calango.app/Contents/Resources",
     "test:e2e": "playwright test",
     "test:renderer": "vitest run"
+  },
+  "dependencies": {
+    "@calango/sdk-ts": "0.1.0",
+    "@xterm/addon-fit": "0.11.0",
+    "@xterm/xterm": "6.0.0",
+    "qrcode-generator": "2.0.4",
+    "react": "19.2.0",
+    "react-dom": "19.2.0"
   },
   "devDependencies": {
     "@calango/sdk-ts": "0.1.0",
@@ -51,8 +59,5 @@
     "tailwindcss": "4.3.5",
     "vite": "7.2.2",
     "vitest": "5.1.0"
-  },
-  "dependencies": {
-    "qrcode-generator": "2.0.4"
   }
 }
