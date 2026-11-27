@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 )
 
 const defaultAddr = "127.0.0.1:7317"
@@ -29,7 +30,9 @@ type Config struct {
 	// TrustedProxies are the peers whose X-Forwarded-For header counts toward the pairing limit.
 	TrustedProxies []netip.Prefix
 	// PriceTableFile is an optional versioned USD tariff file, not a credential.
-	PriceTableFile string
+	PriceTableFile         string
+	CapacityInterval       time.Duration
+	CapacityRoutingAllowed bool
 }
 
 // Load reads supported CALANGO_* environment variables and validates them.
@@ -37,12 +40,12 @@ func Load() (Config, error) {
 	return load(true)
 }
 
-// LoadForPrintToken ignores daemon-only tariff configuration.
+// LoadForPrintToken ignores daemon-only tariff and capacity configuration.
 func LoadForPrintToken() (Config, error) {
 	return load(false)
 }
 
-func load(withPrices bool) (Config, error) {
+func load(withDaemonConfig bool) (Config, error) {
 	addr := os.Getenv("CALANGO_ADDR")
 	if addr == "" {
 		addr = defaultAddr
@@ -84,8 +87,20 @@ func load(withPrices bool) (Config, error) {
 		VaultKeyPrevious: os.Getenv("CALANGO_VAULT_KEY_PREVIOUS"), VaultKeyPreviousFile: os.Getenv("CALANGO_VAULT_KEY_PREVIOUS_FILE"),
 		TrustedProxies: trustedProxies,
 	}
-	if withPrices {
+	if withDaemonConfig {
 		cfg.PriceTableFile = os.Getenv("CALANGO_PRICE_TABLE_FILE")
+		if raw := os.Getenv("CALANGO_CAPACITY_INTERVAL"); raw != "" {
+			cfg.CapacityInterval, err = time.ParseDuration(raw)
+			if err != nil || cfg.CapacityInterval < 30*time.Second || cfg.CapacityInterval > time.Hour {
+				return Config{}, fmt.Errorf("CALANGO_CAPACITY_INTERVAL: must be a duration from 30s to 1h")
+			}
+		}
+		if raw := os.Getenv("CALANGO_CAPACITY_ROUTING_ALLOWED"); raw != "" {
+			cfg.CapacityRoutingAllowed, err = strconv.ParseBool(raw)
+			if err != nil {
+				return Config{}, fmt.Errorf("CALANGO_CAPACITY_ROUTING_ALLOWED: must be a boolean")
+			}
+		}
 	}
 	if err := cfg.Validate(); err != nil {
 		return Config{}, err
@@ -134,6 +149,12 @@ func (c Config) Validate() error {
 	}
 	if c.PriceTableFile != "" && (!filepath.IsAbs(c.PriceTableFile) || strings.TrimSpace(c.PriceTableFile) != c.PriceTableFile || strings.ContainsRune(c.PriceTableFile, 0)) {
 		return fmt.Errorf("CALANGO_PRICE_TABLE_FILE: must be an absolute path without surrounding whitespace or NUL")
+	}
+	if c.CapacityInterval != 0 && (c.CapacityInterval < 30*time.Second || c.CapacityInterval > time.Hour) {
+		return fmt.Errorf("CALANGO_CAPACITY_INTERVAL: must be a duration from 30s to 1h")
+	}
+	if c.CapacityRoutingAllowed && (c.CapacityInterval == 0 || c.PriceTableFile == "") {
+		return fmt.Errorf("CALANGO_CAPACITY_ROUTING_ALLOWED: requires capacity monitor and an explicit tariff file")
 	}
 	if err := c.validateVaultKeys(); err != nil {
 		return err

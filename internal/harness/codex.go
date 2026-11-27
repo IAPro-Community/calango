@@ -14,8 +14,10 @@ import (
 	"calango/internal/core"
 	"calango/internal/gateway"
 
+	"github.com/IAPro-Community/IAPro-SDK/model"
 	"github.com/IAPro-Community/IAPro-SDK/providers"
 	sdkcodex "github.com/IAPro-Community/IAPro-SDK/providers/codex"
+	"github.com/IAPro-Community/IAPro-SDK/providers/process"
 	sdkruntime "github.com/IAPro-Community/IAPro-SDK/runtime"
 )
 
@@ -25,6 +27,16 @@ var ErrSignedOut = errors.New("harness: CLI is signed out; sign in again with th
 
 // ErrNotInstalled means the CLI binary was not found on PATH.
 var ErrNotInstalled = errors.New("harness: CLI is not installed or not on PATH")
+
+// ErrModelNotSupported means the requested model is outside this login's
+// catalog. The caller must choose another model; retrying cannot help.
+var ErrModelNotSupported = errors.New("harness: the model is not supported by this login")
+
+// ErrQuotaIdentityChanged is emitted only before a model dispatch.
+var ErrQuotaIdentityChanged = errors.New("harness: quota identity changed before dispatch")
+
+// ErrQuotaNotDispatched proves the model invocation was never started.
+var ErrQuotaNotDispatched = process.ErrNotDispatched
 
 // CodexName is the gateway provider name of the Codex CLI harness.
 const CodexName = core.ProviderKindCodex
@@ -43,7 +55,8 @@ type Codex struct {
 	workDir string
 	// home is the CODEX_HOME of this account. Empty means the person's default
 	// Codex home, which is ADR 0013's shared default.
-	home string
+	home            string
+	coordinateQuota bool
 }
 
 // NewCodex returns a Codex harness. bin is the CLI binary ("codex" when empty).
@@ -69,6 +82,9 @@ func (c *Codex) commandWithHome(ctx context.Context, home string, args ...string
 	cmd.Env = sdkruntime.EnvSet(safeCLIEnv(os.Environ()), overrides, "CALANGO_MCP_TOKEN")
 	return cmd
 }
+
+// CoordinateQuota serializes dedicated-home runs with quota maintenance.
+func (c *Codex) CoordinateQuota() { c.coordinateQuota = true }
 
 // Name implements gateway.Provider.
 func (c *Codex) Name() string { return CodexName }
@@ -103,15 +119,35 @@ func (c *Codex) Complete(ctx context.Context, req gateway.Request, stream func(g
 	if req.CodexHome != "" {
 		home = req.CodexHome
 	}
+	if c.coordinateQuota && home != "" {
+		release, err := lockQuotaHome(ctx, home)
+		if err != nil {
+			return gateway.Usage{}, errors.Join(ErrQuotaNotDispatched, err)
+		}
+		defer release()
+	}
 	status, err := c.available(ctx, home)
 	if err != nil {
-		return gateway.Usage{}, err
+		return gateway.Usage{}, errors.Join(ErrQuotaNotDispatched, err)
 	}
 	if !status.Installed {
 		return gateway.Usage{}, fmt.Errorf("%w: %s", ErrNotInstalled, c.bin)
 	}
 	if !status.SignedIn {
 		return gateway.Usage{}, ErrSignedOut
+	}
+
+	if req.AdmissionScope != nil {
+		adapter := QuotaAdapter{Codex: c}
+		current, err := adapter.Identity(req.AdmissionOwner, req.AdmissionScope.ProfileID)
+		if err != nil || current.Scope != *req.AdmissionScope || req.CodexHome != "" || req.CheckAdmission == nil {
+			return gateway.Usage{}, ErrQuotaIdentityChanged
+		}
+		if err := req.CheckAdmission(ctx); err != nil {
+			return gateway.Usage{}, ErrQuotaIdentityChanged
+		}
+	} else if req.CapacityRoute != nil {
+		return gateway.Usage{}, ErrQuotaIdentityChanged
 	}
 
 	// mcpTokenEnv names the variable that carries a turn's MCP bearer token.
@@ -161,6 +197,11 @@ func (c *Codex) Complete(ctx context.Context, req gateway.Request, stream func(g
 		}
 		return nil
 	})
+	// The SDK classifies the failure; the host only names the ones that are
+	// safe to retry elsewhere. A model the account cannot use is a caller fix.
+	if err != nil && result.Failure.Kind == model.FailureModelUnsupported {
+		return gateway.Usage{}, errors.Join(ErrModelNotSupported, err)
+	}
 	// A failed turn with complete measured usage must still be recorded. If
 	// usage is missing on failure, return zero so gateway charges its reservation.
 	if result.InputTokens != nil && result.OutputTokens != nil {

@@ -9,6 +9,7 @@ import (
 	"calango/internal/core"
 	"calango/internal/events"
 	"calango/internal/maestro"
+	"calango/internal/providers"
 )
 
 const (
@@ -121,6 +122,10 @@ func eventDataOf(ev events.Event) (any, bool) {
 				ID: d.ID, Seq: d.Seq, Kind: d.Kind, Payload: d.Payload, CreatedAt: d.CreatedAt,
 			},
 		}, true
+	case providers.CapacityView:
+		if ev.Type == events.TypeCapacityChanged {
+			return d, true
+		}
 	case maestro.Status, maestro.Release:
 		switch ev.Type {
 		case events.TypeMaestroUpdated, events.TypeMaestroUpdateAvailable:

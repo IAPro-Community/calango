@@ -58,3 +58,26 @@ func TestProviderAccountsCreateListAndDelete(t *testing.T) {
 	expectStatus(t, call(t, h, http.MethodDelete, "/v1/provider-accounts/"+spareAcc.ID, testToken, ""), http.StatusNoContent)
 	expectStatus(t, call(t, h, http.MethodDelete, "/v1/provider-accounts/"+spareAcc.ID, testToken, ""), http.StatusNotFound)
 }
+
+func TestProviderCapacityUnsupportedAndOwnerScoped(t *testing.T) {
+	h, _ := newTestEnv(t)
+	created := call(t, h, http.MethodPost, "/v1/provider-accounts", testToken, `{"kind":"anthropic","label":"quota-test"}`)
+	expectStatus(t, created, http.StatusCreated)
+	var acc providerAccountResponse
+	if err := json.Unmarshal(created.Body.Bytes(), &acc); err != nil {
+		t.Fatal(err)
+	}
+	if acc.Capacity.Status != "UNSUPPORTED" || len(acc.Capacity.Windows) != 0 {
+		t.Fatalf("unexpected capacity: %+v", acc.Capacity)
+	}
+	refreshed := call(t, h, http.MethodPost, "/v1/provider-accounts/"+acc.ID+"/capacity/refresh", testToken, "")
+	expectStatus(t, refreshed, http.StatusOK)
+	if err := json.Unmarshal(refreshed.Body.Bytes(), &acc); err != nil {
+		t.Fatal(err)
+	}
+	if acc.Capacity.Status != "UNSUPPORTED" || acc.Capacity.AccountID != acc.ID {
+		t.Fatalf("unexpected refresh: %+v", acc.Capacity)
+	}
+	expectStatus(t, call(t, h, http.MethodPost, "/v1/provider-accounts/missing/capacity/refresh", testToken, ""), http.StatusNotFound)
+	expectStatus(t, call(t, h, http.MethodPost, "/v1/provider-accounts/"+acc.ID+"/capacity/refresh", "", ""), http.StatusUnauthorized)
+}
