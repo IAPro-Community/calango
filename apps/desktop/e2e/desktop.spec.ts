@@ -20,6 +20,7 @@ test('onboarding cria conta, agente e mantém a fronteira IPC fechada', async ({
   }));
   expect(surface).toEqual({
     bridge: [
+      'browser',
       'getConnection',
       'getLoginItemSettings',
       'getState',
