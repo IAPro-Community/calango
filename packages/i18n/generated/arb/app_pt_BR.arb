@@ -264,6 +264,8 @@
   "browserClearProfile": "Limpar perfil",
   "browserClearProfileConfirm": "Apagar cookies, logins e dados de navegação deste agente? As abas dele serão fechadas.",
   "browserProfileCleared": "Perfil do agente limpo.",
+  "trayShortcutUnavailable": "O atalho Ctrl+Shift+Espaço não pôde ser registrado; outro aplicativo pode ter reservado essa combinação.",
+  "agentModelManual": "Digite o modelo (a conta não expõe catálogo)",
   "browserPreviewOption": "Preview do projeto",
   "browserPreviewNote": "O preview abre só servidores locais deste computador (localhost), num perfil separado dos agentes. Links para outros endereços ficam bloqueados.",
   "browserDetectServers": "Detectar servidores locais",

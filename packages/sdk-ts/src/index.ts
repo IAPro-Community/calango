@@ -13,6 +13,7 @@ export type RunDetail = Schemas['RunDetail'];
 export type Approval = Schemas['Approval'];
 export type ApprovalStatus = NonNullable<Approval['status']>;
 export type ProviderAccount = Schemas['ProviderAccount'];
+export type ProviderModel = Schemas['ProviderModel'];
 export type ProviderAccountInput = Schemas['ProviderAccountInput'];
 export type Routine = Schemas['Routine'];
 export type RoutineInput = Schemas['RoutineInput'];
@@ -63,6 +64,8 @@ export interface CalangoClient {
   resumeAll(): Promise<void>;
 
   listProviderAccounts(): Promise<ProviderAccount[]>;
+  /** Models one account can use; empty when the provider has no catalog endpoint. */
+  listProviderModels(accountId: string): Promise<ProviderModel[]>;
   createProviderAccount(input: ProviderAccountInput): Promise<ProviderAccount>;
   refreshProviderCapacity(accountId: string): Promise<ProviderAccount>;
   /** Stores a secret in the vault. The value is write-only; the API never returns it. */
@@ -169,6 +172,8 @@ export function createClient(options: ClientOptions): CalangoClient {
     resumeAll: () => request<void>('POST', '/v1/agents/resume-all'),
 
     listProviderAccounts: () => request<ProviderAccount[]>('GET', '/v1/provider-accounts'),
+    listProviderModels: (accountId) =>
+      request<ProviderModel[]>('GET', `/v1/provider-accounts/${encodeURIComponent(accountId)}/models`),
     createProviderAccount: (input) => request<ProviderAccount>('POST', '/v1/provider-accounts', input),
     refreshProviderCapacity: (accountId) =>
       request<ProviderAccount>('POST', `/v1/provider-accounts/${encodeURIComponent(accountId)}/capacity/refresh`),

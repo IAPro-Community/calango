@@ -233,6 +233,29 @@ output.muted {
   font-size: 13px;
 }
 
+/* A non-blocking notice from the main process, such as a taken shortcut. */
+.notice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding: 10px 14px;
+  border: 1px solid var(--calango-color-tangerine);
+  border-radius: 8px;
+  color: var(--calango-color-sand);
+  font-size: 13px;
+}
+
+.notice button {
+  border: 0;
+  background: transparent;
+  color: var(--calango-color-sand);
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+}
+
 .status {
   display: flex;
   flex-direction: column;

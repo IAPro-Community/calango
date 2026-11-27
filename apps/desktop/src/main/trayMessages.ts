@@ -3,17 +3,20 @@ export const messages = {
   "pt-BR": {
     "trayOpen": "Abrir Calango",
     "trayQuickConversation": "Nova conversa rápida",
-    "trayQuit": "Sair"
+    "trayQuit": "Sair",
+    "trayShortcutUnavailable": "O atalho Ctrl+Shift+Espaço não pôde ser registrado; outro aplicativo pode ter reservado essa combinação."
   },
   "en": {
     "trayOpen": "Open Calango",
     "trayQuickConversation": "Quick conversation",
-    "trayQuit": "Quit"
+    "trayQuit": "Quit",
+    "trayShortcutUnavailable": "Ctrl+Shift+Space could not be registered; another application may have claimed that combination."
   },
   "es": {
     "trayOpen": "Abrir Calango",
     "trayQuickConversation": "Conversación rápida",
-    "trayQuit": "Salir"
+    "trayQuit": "Salir",
+    "trayShortcutUnavailable": "No se pudo registrar Ctrl+Shift+Espacio; otra aplicación puede haber reservado esa combinación."
   }
 } as const;
 

@@ -231,3 +231,15 @@ func (c *Codex) Complete(ctx context.Context, req gateway.Request, stream func(g
 func estimateTokens(s string) int64 {
 	return (int64(len(s)) + 3) / 4
 }
+
+// Bin returns the CLI binary the harness runs.
+func (c *Codex) Bin() string { return c.bin }
+
+// Env returns the environment for a read-only probe: the process environment
+// plus the account home, exactly like a model turn. It carries no token.
+func (c *Codex) Env() []string {
+	if c.home == "" {
+		return nil
+	}
+	return []string{"CODEX_HOME=" + c.home}
+}
