@@ -943,7 +943,7 @@ export interface components {
             id: string;
             /** @description Display name from the provider catalog. */
             label: string;
-            /** @description Default reasoning effort declared by the provider */
+            /** @description Reasoning effort the provider uses by default, when it declares one. */
             default_reasoning?: string;
         };
         ProviderRef: {

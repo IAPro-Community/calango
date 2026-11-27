@@ -1051,7 +1051,7 @@ components:
       properties:
         id: { type: string, description: Model slug accepted by the provider CLI. }
         label: { type: string, description: Display name from the provider catalog. }
-        default_reasoning: { type: string, description: Default reasoning effort declared by the provider, when it declares one. }
+        default_reasoning: { type: string, description: "Reasoning effort the provider uses by default, when it declares one." }
     ProviderRef:
       type: object
       required: [account_id, model]
