@@ -38,6 +38,7 @@
 | [TECHNICAL_DELIVERY.md](TECHNICAL_DELIVERY.md) | technical flow, CI, release, migrations and rollback |
 | [CI_NATIVA.md](CI_NATIVA.md) | CI nativa Linux/Windows/macOS: matriz, smoke do daemon, skips e gates de homologação |
 | [BACKUP_RESTORE.md](BACKUP_RESTORE.md) | offline local data backup, vault-key requirements and restore-before-rollback procedure |
+| [INSTALADOR_WINDOWS_INTERNO.md](INSTALADOR_WINDOWS_INTERNO.md) | instalador Windows interno não assinado: como gerar, testar em VM e limitações (#116) |
 | [REVISAO_LICENCAS.md](REVISAO_LICENCAS.md) | revisão de originalidade e licenças, textos em third_party e check automático |
 | [E2E_DESKTOP.md](E2E_DESKTOP.md) | E2E do desktop com Playwright Electron, daemon real e provider fake |
 | [../api/openapi.yaml](../api/openapi.yaml) | API contract (source of the TS and Dart SDKs) |
