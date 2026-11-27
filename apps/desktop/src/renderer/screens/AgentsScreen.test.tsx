@@ -91,7 +91,7 @@ describe('AgentsScreen', () => {
     render(<AgentsScreen client={client} t={t} />);
     await user.type(await screen.findByLabelText(t('agentName')), 'Bia');
     await user.type(screen.getByLabelText(t('agentRole')), 'revisão');
-    await user.type(screen.getByLabelText(t('agentModel')), 'gpt-fake');
+    await user.type(screen.getByLabelText(t('agentModel'), { exact: false }), 'gpt-fake');
     await user.selectOptions(screen.getByLabelText(t('agentApprovalLevel')), 'always');
     await user.click(screen.getByRole('button', { name: t('agentCreate') }));
 

@@ -31,6 +31,7 @@ export function fakeClient(overrides: Partial<Methods<CalangoClient>> = {}) {
     'pauseAll',
     'resumeAll',
     'listProviderAccounts',
+    'listProviderModels',
     'createProviderAccount',
     'setVaultSecret',
     'listVaultItems',
@@ -208,6 +209,7 @@ function createFakeBridge() {
       quickListeners.add(listener);
       return () => quickListeners.delete(listener);
     },
+    onShortcutUnavailable: () => () => {},
     onState: (listener) => {
       stateListeners.add(listener);
       return () => stateListeners.delete(listener);

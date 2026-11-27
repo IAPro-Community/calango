@@ -89,7 +89,11 @@ export function App() {
             </button>
           </output>
         ) : null}
-        {client === null ? <DaemonStatusView state={state} t={t} /> : <SectionView section={section} client={client} t={t} />}
+        {client === null ? (
+          <DaemonStatusView state={state} t={t} />
+        ) : (
+          <SectionView section={section} client={client} t={t} />
+        )}
       </main>
     </div>
   );
