@@ -1,0 +1,101 @@
+/*
+ * Calango UI kit theme (issue #180, Figma Design System V1 from #175).
+ *
+ * Biome 2.2 cannot parse the Tailwind at-rules, so biome.json leaves this file out.
+ *
+ * Tailwind is imported without preflight so the current renderer styles keep working; they
+ * live in the "legacy" layer, below the utilities, until every screen uses the kit.
+ * Brand primitives come from packages/tokens (--calango-*). The semantic layer below mirrors
+ * the Figma "Color" (dark) and "Color Light" collections, which follow site/index.html.
+ * --cl-danger-text is lighter (dark) or darker (light) than the Figma danger so red text
+ * keeps WCAG AA contrast; borders keep the Figma value.
+ */
+@layer theme, legacy, base, components, utilities;
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities) source(none);
+
+@import "@fontsource-variable/bricolage-grotesque";
+@import "@fontsource-variable/instrument-sans";
+@import "@fontsource-variable/jetbrains-mono";
+
+/* Only the kit is scanned, so class names in the renderer never turn into utilities. */
+@source "../";
+
+:root,
+[data-theme="dark"] {
+  color-scheme: dark;
+  --cl-bg: var(--calango-color-night);
+  --cl-card: var(--calango-color-night-card);
+  --cl-paper: #2b2318;
+  --cl-ink: #fff4da;
+  --cl-ink-soft: #d6c3a2;
+  --cl-line: rgb(255 236 190 / 0.16);
+  --cl-moss-text: #9be07a;
+  --cl-warn-text: #ffb23a;
+  --cl-danger: #d9483b;
+  --cl-danger-text: #ff7b6b;
+  --cl-btn: #2d7a22;
+  --cl-on-btn: var(--calango-color-paper);
+  --cl-on-tone: var(--calango-color-ink);
+  --cl-shadow-paper: 0 1px 0 rgb(74 42 21 / 0.14), 0 6px 14px -4px rgb(74 42 21 / 0.22);
+}
+
+[data-theme="light"] {
+  color-scheme: light;
+  --cl-bg: #fff8e4;
+  --cl-card: #fffdf6;
+  --cl-paper: #f6ead0;
+  --cl-ink: var(--calango-color-ink);
+  --cl-ink-soft: var(--calango-color-ink-soft);
+  --cl-line: rgb(74 42 21 / 0.14);
+  --cl-moss-text: #2d6b1c;
+  --cl-warn-text: var(--calango-color-clay-deep);
+  --cl-danger: #b3382d;
+  --cl-danger-text: #a3302a;
+  --cl-btn: #2d7a22;
+  --cl-on-btn: var(--calango-color-paper);
+  --cl-on-tone: var(--calango-color-ink);
+  --cl-shadow-paper: var(--calango-shadow-paper);
+}
+
+@theme inline {
+  --color-bg: var(--cl-bg);
+  --color-card: var(--cl-card);
+  --color-paper: var(--cl-paper);
+  --color-ink: var(--cl-ink);
+  --color-ink-soft: var(--cl-ink-soft);
+  --color-line: var(--cl-line);
+  --color-moss-text: var(--cl-moss-text);
+  --color-warn-text: var(--cl-warn-text);
+  --color-danger: var(--cl-danger);
+  --color-danger-text: var(--cl-danger-text);
+  --color-btn: var(--cl-btn);
+  --color-on-btn: var(--cl-on-btn);
+  --color-on-tone: var(--cl-on-tone);
+  --color-postit: var(--calango-color-postit);
+  --color-postit-deep: var(--calango-color-postit-deep);
+  --color-leaf: var(--calango-color-leaf);
+  --color-tangerine: var(--calango-color-tangerine);
+  --color-clay: var(--calango-color-clay);
+  --color-ok-soft: color-mix(in srgb, var(--calango-color-leaf) 20%, transparent);
+  --color-warn-soft: color-mix(in srgb, var(--calango-color-tangerine) 22%, transparent);
+  --color-danger-soft: color-mix(in srgb, var(--cl-danger) 20%, transparent);
+
+  --font-display: "Bricolage Grotesque Variable", var(--calango-font-display), system-ui, sans-serif;
+  --font-body: "Instrument Sans Variable", var(--calango-font-body), system-ui, sans-serif;
+  --font-mono: "JetBrains Mono Variable", var(--calango-font-mono), ui-monospace, monospace;
+
+  --spacing-2xs: 4px;
+  --spacing-xs: 8px;
+  --spacing-sm: 12px;
+  --spacing-md: 16px;
+  --spacing-2xl: 32px;
+  --spacing-3xl: 48px;
+
+  --radius-xs: 6px;
+  --radius-sm: var(--calango-radius-sm);
+  --radius-md: var(--calango-radius-md);
+  --radius-lg: var(--calango-radius-lg);
+
+  --shadow-paper: var(--cl-shadow-paper);
+}
