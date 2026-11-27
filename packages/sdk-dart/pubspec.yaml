@@ -1,0 +1,14 @@
+name: calango_sdk
+description: Dart client for the Calango node API, generated from api/openapi.yaml.
+version: 0.1.0
+publish_to: none
+
+environment:
+  sdk: ^3.8.0
+
+dependencies:
+  http: ^1.6.0
+
+dev_dependencies:
+  lints: ^6.1.0
+  test: ^1.33.0

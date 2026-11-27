@@ -59,7 +59,6 @@ export interface BrowserTab {
 
 /** Owner id of preview tabs in the browser bridge (never a valid agent id). */
 export const PREVIEW_OWNER = '@preview';
-
 /** A local dev server answering HTTP on a loopback port. */
 export interface DevServer {
   port: number;

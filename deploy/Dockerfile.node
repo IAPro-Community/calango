@@ -1,19 +1,23 @@
 # Calango node image (server). Build from the repository root: docker build -f deploy/Dockerfile.node -t calango/calango .
-# Partially verified: build and /healthz passed with --network host; bridge networking not validated (see DEV/VERIFY.md).
+# The host and bridge-network smoke tests are recorded in `DEV/VERIFY.md`.
 FROM golang:1.23-alpine AS build
 WORKDIR /src
 COPY go.mod ./
 COPY . .
 RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/calango ./cmd/calango
+# distroless/static-debian12:nonroot uses UID/GID 65532.
+RUN mkdir -p /out/data && chown 65532:65532 /out/data
 
 FROM gcr.io/distroless/static-debian12:nonroot
 COPY --from=build /out/calango /usr/local/bin/calango
 COPY --from=build /src/LICENSE /usr/share/licenses/calango/LICENSE
 COPY --from=build /src/NOTICE /usr/share/licenses/calango/NOTICE
 COPY --from=build /src/third_party/ /usr/share/licenses/calango/third_party/
+COPY --from=build --chown=65532:65532 /out/data/ /data/
 # Dentro do container o servidor precisa escutar em todas as interfaces; o acesso externo
 # deve passar pelo proxy TLS, nunca direto.
-ENV CALANGO_ADDR=0.0.0.0:7317
+ENV CALANGO_ADDR=0.0.0.0:7317 \
+    CALANGO_DATA_DIR=/data
 EXPOSE 7317
 USER nonroot:nonroot
 ENTRYPOINT ["/usr/local/bin/calango"]
