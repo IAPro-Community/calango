@@ -114,6 +114,7 @@ func TestInstallVerifiesBeforeSwitchAndRollback(t *testing.T) {
 		"ORQUESTRADOR_MAESTRO_TELEMETRY=0",
 		"XDG_CONFIG_HOME=",
 		"CODEX_HOME=",
+		"USERPROFILE=",
 	} {
 		found := false
 		for _, value := range runner.activeEnv {
@@ -328,6 +329,10 @@ func TestHelperProcess(t *testing.T) {
 	if os.Getenv("MAESTRO_HELPER_PROCESS") != "1" {
 		t.Skip("helper process")
 	}
+	if os.Getenv("MAESTRO_HELPER_ENV") == "1" {
+		_, _ = os.Stdout.WriteString(os.Getenv("HOME") + "\n" + os.Getenv("USERPROFILE") + "\n")
+		os.Exit(0)
+	}
 	_, _ = os.Stdout.WriteString("\"1.1.1\"\n")
 	_, _ = os.Stderr.WriteString("npm notice New major version of npm available!\n")
 	if secret := os.Getenv("MAESTRO_HELPER_SECRET"); secret != "" {
@@ -364,5 +369,54 @@ func TestExecRunnerReturnsOnlyStdout(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "exit status 3") {
 		t.Fatalf("error lost the exit status: %v", err)
+	}
+}
+
+func TestEnvIsolatesUserProfileLikeHome(t *testing.T) {
+	m := newTestManager(t, &fakeRunner{}, nil, nil, nil)
+	home := filepath.Join(m.root, "versions", "1.1.1", "home")
+	vars := map[string]string{}
+	for _, value := range m.env(home) {
+		key, val, _ := strings.Cut(value, "=")
+		vars[key] = val
+	}
+	if vars["HOME"] != home || vars["USERPROFILE"] != home {
+		t.Fatalf("HOME=%q USERPROFILE=%q, want both %q", vars["HOME"], vars["USERPROFILE"], home)
+	}
+	if !controlledEnvironmentKey("userprofile") {
+		t.Fatal("USERPROFILE from the parent environment would reach Maestro")
+	}
+}
+
+func TestInheritedUserProfileCannotOverrideIsolatedHome(t *testing.T) {
+	t.Setenv("USERPROFILE", filepath.Join(t.TempDir(), "real-profile"))
+	t.Setenv("HOME", filepath.Join(t.TempDir(), "real-home"))
+	m, err := New(Config{DataDir: t.TempDir()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	root := m.root
+	registry, ok := m.registry.(npmRegistry)
+	if !ok {
+		t.Fatalf("default registry is %T", m.registry)
+	}
+	home := filepath.Join(root, "versions", "1.1.1", "home")
+	helper := []string{"-test.run=^TestHelperProcess$"}
+	for name, tc := range map[string]struct {
+		env  []string
+		want string
+	}{
+		"manager":  {m.env(home), home},
+		"registry": {registry.env, registry.root},
+	} {
+		env := append(append([]string{}, tc.env...), "MAESTRO_HELPER_PROCESS=1", "MAESTRO_HELPER_ENV=1")
+		out, err := execRunner{}.Run(context.Background(), t.TempDir(), env, os.Args[0], helper...)
+		if err != nil {
+			t.Fatalf("%s: %v", name, err)
+		}
+		got := strings.Split(strings.TrimSpace(string(out)), "\n")
+		if len(got) != 2 || got[0] != tc.want || got[1] != tc.want {
+			t.Fatalf("%s: HOME/USERPROFILE = %q, want both %q", name, got, tc.want)
+		}
 	}
 }
