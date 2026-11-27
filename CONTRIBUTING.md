@@ -11,8 +11,10 @@ O idioma operacional é **português brasileiro**: issues, PRs, revisões, descr
 1. Consulte [GitHub Issues](https://github.com/IAPro-Community/calango/issues), evite duplicatas e solicite atribuição de uma issue Ready.
 2. Atualize develop e crie uma branch temporária no formato `<tipo>/<numero-issue>-<descricao>`: feat, fix, refactor, docs, test, ci, chore, spike, hotfix. Colaboradores externos usam forks; sessões paralelas usam worktrees isoladas.
 3. Implemente somente o escopo, teste e abra draft PR vinculado para develop. ADR revisado para decisões arquiteturais.
-4. Solicite revisão humana independente, resolva conversas e aguarde CI. Mantenedor integra tarefas por squash na develop; branch temporária removida após merge. Promoção develop → main por PR e merge commit; preservar develop, sincronizar hotfixes da main. Nunca push direto nas branches permanentes.
+4. Resolva conversas e aguarde o quality-gate. A revisão humana na develop é opcional. Mantenedor integra tarefas por squash na develop; branch temporária removida após merge. Promoção develop → main por PR com quality-gate, revisão humana independente após o último push e merge commit; preservar develop, sincronizar hotfixes da main. Nunca push direto nas branches permanentes.
 5. Use Refs #N para entregas parciais e Closes #N somente quando o merge satisfaz todos os critérios; caso contrário encerre após validação.
+
+Para promover uma versão à main, siga o [guia de publicação de releases](DEV/RELEASE.md).
 
 O TODO V1 e roadmap antigos são referências históricas até migração completa. Não assumir atividades sem coordenação.
 
@@ -34,7 +36,7 @@ Siga [DEV/CONVENTIONS.md](DEV/CONVENTIONS.md). Alterações de API começam em a
 
 ## Pull requests
 
-Um assunto por PR. Título Conventional Commits, por exemplo `feat(vault): implementar rotacao de chaves`. Informar motivo, escopo, critérios, comandos/resultados reais, riscos e limitações. Incluir testes de domínio e documentação quando aplicável. Aceitar CLA no primeiro PR conforme processo confirmado pelo mantenedor. Informar assistência de IA quando relevante. Proibida autoaprovação.
+Um assunto por PR. Título Conventional Commits, por exemplo `feat(vault): implementar rotacao de chaves`. Informar motivo, escopo, critérios, comandos/resultados reais, riscos e limitações. Incluir testes de domínio e documentação quando aplicável. Aceitar CLA no primeiro PR conforme processo confirmado pelo mantenedor. Informar assistência de IA quando relevante. Na promoção para main, é proibido aprovar o próprio PR.
 
 ## Conduta e segurança
 

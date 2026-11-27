@@ -39,4 +39,4 @@ Após integração do PR #114 (issue #51), executar na raiz `npm ci`, `npm run f
 
 ## Após trabalhar
 
-Registre escopo, comandos, resultados reais, limitações e próximos passos na issue/PR. Atualize ADR/especificações quando afetados. Não atualize rotineiramente ACTIVE/HANDOFF/WORKLOG/VERIFY globais ou checkboxes do roadmap; preservar legados durante transição. Solicite revisão humana. Não encerre issue antes do aceite.
+Registre escopo, comandos, resultados reais, limitações e próximos passos na issue/PR. Atualize ADR/especificações quando afetados. Não atualize rotineiramente ACTIVE/HANDOFF/WORKLOG/VERIFY globais ou checkboxes do roadmap; preservar legados durante transição. Solicite revisão humana independente para promoção à main. Na develop, a revisão humana é opcional e o quality-gate é obrigatório. Não encerre issue antes do aceite.
