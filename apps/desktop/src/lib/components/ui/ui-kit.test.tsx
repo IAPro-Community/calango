@@ -89,6 +89,26 @@ describe('NavItem', () => {
     expect(screen.getByText('3')).toBeInTheDocument();
   });
 
+  it('keeps the label as the button name and describes the counter', () => {
+    render(
+      <NavItem count={2} countLabel="2 pendentes">
+        Aprovações
+      </NavItem>,
+    );
+    const button = screen.getByRole('button', { name: 'Aprovações' });
+    expect(button).toHaveAccessibleDescription('2 pendentes');
+  });
+
+  it('hides the counter at zero', () => {
+    render(
+      <NavItem count={0} countLabel="0 pendentes">
+        Aprovações
+      </NavItem>,
+    );
+    expect(screen.getByRole('button', { name: 'Aprovações' })).not.toHaveAttribute('aria-describedby');
+    expect(screen.queryByText('0')).not.toBeInTheDocument();
+  });
+
   it('hides a zero counter', () => {
     render(<NavItem count={0}>Conversas</NavItem>);
     expect(screen.queryByText('0')).not.toBeInTheDocument();

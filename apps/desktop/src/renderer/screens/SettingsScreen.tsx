@@ -3,7 +3,8 @@ import type { VaultItem } from '@calango/sdk-ts';
 import { bridge } from '../bridge';
 import { usePoll } from '../usePoll';
 import type { ScreenProps } from './props';
-import { Button, Card, Field, Input, PageHeader } from '@';
+import { Button, Card, Field, Input, PageHeader, Select } from '@';
+import { setThemePreference, useThemePreference, type ThemePreference } from '../theme';
 
 export function SettingsScreen({ client, t }: ScreenProps) {
   const load = useCallback(() => client.listVaultItems(), [client]);
@@ -21,6 +22,7 @@ export function SettingsScreen({ client, t }: ScreenProps) {
   const [launchAtLogin, setLaunchAtLogin] = useState<boolean | null>(null);
   const [launchError, setLaunchError] = useState<string | null>(null);
   const [launchBusy, setLaunchBusy] = useState(false);
+  const theme = useThemePreference();
 
   useEffect(() => {
     let active = true;
@@ -172,6 +174,15 @@ export function SettingsScreen({ client, t }: ScreenProps) {
               ))}
             </ul>
           )}
+        </Card>
+        <Card title={t('settingsAppearanceTitle')}>
+          <Field label={t('settingsTheme')} hint={t('settingsThemeHint')}>
+            <Select value={theme} onChange={(event) => setThemePreference(event.target.value as ThemePreference)}>
+              <option value="dark">{t('settingsThemeDark')}</option>
+              <option value="light">{t('settingsThemeLight')}</option>
+              <option value="system">{t('settingsThemeSystem')}</option>
+            </Select>
+          </Field>
         </Card>
         <Card title={t('settingsStartupTitle')}>
           <p className="muted">{t('settingsStartupDescription')}</p>

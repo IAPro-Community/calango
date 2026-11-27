@@ -20,5 +20,5 @@ The desktop renderer is styled by one hand-written `styles.css` over the `--cala
 
 - New runtime dependencies: `class-variance-authority`, `clsx`, `tailwind-merge`, `@radix-ui/react-slot` and the three font packages; `tailwindcss` and `@tailwindcss/vite` as dev dependencies.
 - The semantic theme values that are not primitives (for example the night text `#fff4da`) live in `theme.css` for now. Moving them into `packages/tokens/tokens.json` as themed tokens fits better once the Dart theme generator (#171) settles, so both apps read the same values.
-- Screens moved to the kit on the integration branch that gathers the open desktop PRs, so the change does not fight their conflicts one by one.
-- The light theme is ready in the tokens but the app has no switch yet; adding one is a separate change.
+- Screens moved to the kit in #191, after the desktop PRs that touched the renderer had landed.
+- The theme is chosen in Settings → Appearance (dark, solar light or follow the system), saved per computer in `localStorage` and applied as `data-theme` on `<html>` before the first render.

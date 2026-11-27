@@ -348,5 +348,12 @@
   "nodeStateOffline": "apagado",
   "approvalPendingEyebrow": "Aprobación pendiente",
   "usageTokensTotal": "Tokens en el período",
-  "usageUnknownHint": "filas sin precio conocido"
+  "usageUnknownHint": "filas sin precio conocido",
+  "navPending": "pendientes",
+  "settingsAppearanceTitle": "Apariencia",
+  "settingsTheme": "Tema",
+  "settingsThemeDark": "Oscuro",
+  "settingsThemeLight": "Claro solar",
+  "settingsThemeSystem": "Seguir el sistema",
+  "settingsThemeHint": "Solo se aplica a este equipo."
 }

@@ -349,7 +349,14 @@ export const messages = {
     "nodeStateOffline": "desligado",
     "approvalPendingEyebrow": "Aprovação pendente",
     "usageTokensTotal": "Tokens no período",
-    "usageUnknownHint": "linhas sem preço conhecido"
+    "usageUnknownHint": "linhas sem preço conhecido",
+    "navPending": "pendentes",
+    "settingsAppearanceTitle": "Aparência",
+    "settingsTheme": "Tema",
+    "settingsThemeDark": "Escuro",
+    "settingsThemeLight": "Claro solar",
+    "settingsThemeSystem": "Seguir o sistema",
+    "settingsThemeHint": "Vale só para este computador."
   },
   "en": {
     "appName": "Calango",
@@ -700,7 +707,14 @@ export const messages = {
     "nodeStateOffline": "off",
     "approvalPendingEyebrow": "Pending approval",
     "usageTokensTotal": "Tokens in period",
-    "usageUnknownHint": "rows without a known price"
+    "usageUnknownHint": "rows without a known price",
+    "navPending": "pending",
+    "settingsAppearanceTitle": "Appearance",
+    "settingsTheme": "Theme",
+    "settingsThemeDark": "Dark",
+    "settingsThemeLight": "Solar light",
+    "settingsThemeSystem": "Follow the system",
+    "settingsThemeHint": "Applies to this computer only."
   },
   "es": {
     "appName": "Calango",
@@ -1051,7 +1065,14 @@ export const messages = {
     "nodeStateOffline": "apagado",
     "approvalPendingEyebrow": "Aprobación pendiente",
     "usageTokensTotal": "Tokens en el período",
-    "usageUnknownHint": "filas sin precio conocido"
+    "usageUnknownHint": "filas sin precio conocido",
+    "navPending": "pendientes",
+    "settingsAppearanceTitle": "Apariencia",
+    "settingsTheme": "Tema",
+    "settingsThemeDark": "Oscuro",
+    "settingsThemeLight": "Claro solar",
+    "settingsThemeSystem": "Seguir el sistema",
+    "settingsThemeHint": "Solo se aplica a este equipo."
   }
 } as const;
 

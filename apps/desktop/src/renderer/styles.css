@@ -29,6 +29,10 @@ h2 {
   font-size: 16px;
 }
 
+a {
+  color: var(--cl-moss-text);
+}
+
 code,
 pre {
   font-family: var(--font-mono);
@@ -77,6 +81,11 @@ button:disabled {
 :focus-visible {
   outline: 3px solid var(--calango-color-sand);
   outline-offset: 2px;
+}
+
+/* Areia some no fundo claro; no tema solar o foco usa o post-it escuro. */
+[data-theme="light"] :focus-visible {
+  outline-color: var(--calango-color-postit-deep);
 }
 
 .sr-only {
