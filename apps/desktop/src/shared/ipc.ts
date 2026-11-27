@@ -15,6 +15,7 @@ export const channels = {
   ptyDetach: 'calango:pty-detach',
   ptyOutput: 'calango:pty-output',
   ptyClosed: 'calango:pty-closed',
+  shortcutUnavailable: 'calango:shortcut-unavailable',
   browserList: 'calango:browser-list',
   browserFocusAgent: 'calango:browser-focus-agent',
   browserOpenTab: 'calango:browser-open-tab',
@@ -137,6 +138,7 @@ export interface CalangoBridge {
   getLoginItemSettings(): Promise<LoginItemSettings>;
   setLaunchAtLogin(enabled: boolean): Promise<LoginItemSettings>;
   onQuickConversation(listener: () => void): () => void;
+  onShortcutUnavailable(listener: (message: string) => void): () => void;
   onState(listener: (state: DaemonState) => void): () => void;
   /**
    * Terminal sessions. The main process opens the WebSocket /v1/pty/{id} with the bearer

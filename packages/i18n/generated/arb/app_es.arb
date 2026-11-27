@@ -248,6 +248,8 @@
   "terminalExitCode": "Código de salida",
   "terminalDisconnected": "Se perdió la conexión con la terminal.",
   "terminalLimit": "Se alcanzó el límite de sesiones de terminal. Cierra una sesión para abrir otra.",
+  "trayShortcutUnavailable": "No se pudo registrar Ctrl+Shift+Espacio; otra aplicación puede haber reservado esa combinación.",
+  "agentModelManual": "Digite o modelo (a conta não expõe catálogo)",
   "browserPreviewOption": "Vista previa del proyecto",
   "browserPreviewNote": "La vista previa abre solo servidores locales de este equipo (localhost), en un perfil separado de los agentes. Los enlaces a otras direcciones quedan bloqueados.",
   "browserDetectServers": "Detectar servidores locales",

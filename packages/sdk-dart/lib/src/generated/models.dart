@@ -385,6 +385,39 @@ final class ProviderAccount {
   }
 }
 
+final class ProviderModel {
+  const ProviderModel({
+    required this.id,
+    required this.label,
+    this.defaultReasoning,
+  });
+
+  factory ProviderModel.fromJson(Map<String, Object?> json) {
+    return ProviderModel(
+      id: json['id'] as String,
+      label: json['label'] as String,
+      defaultReasoning: json['default_reasoning'] as String?,
+    );
+  }
+
+  /// Model slug accepted by the provider CLI.
+  final String id;
+
+  /// Display name from the provider catalog.
+  final String label;
+
+  /// Reasoning effort the provider uses by default, when it declares one.
+  final String? defaultReasoning;
+
+  Map<String, Object?> toJson() {
+    return <String, Object?>{
+      'id': id,
+      'label': label,
+      'default_reasoning': ?defaultReasoning,
+    };
+  }
+}
+
 final class ProviderRef {
   const ProviderRef({
     required this.accountId,

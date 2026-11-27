@@ -23,6 +23,20 @@ const PTY_RESIZE = 'calango:pty-resize';
 const PTY_DETACH = 'calango:pty-detach';
 const PTY_OUTPUT = 'calango:pty-output';
 const PTY_CLOSED = 'calango:pty-closed';
+const SHORTCUT_UNAVAILABLE = 'calango:shortcut-unavailable';
+const shortcutListeners = new Set<(message: string) => void>();
+let shortcutPending: string | null = null;
+
+ipcRenderer.on(SHORTCUT_UNAVAILABLE, (_event: unknown, message: string) => {
+  if (shortcutListeners.size === 0) {
+    shortcutPending = message;
+    return;
+  }
+  for (const listener of shortcutListeners) {
+    listener(message);
+  }
+});
+
 const BROWSER_TABS_CHANGED = 'calango:browser-tabs-changed';
 const BROWSER_PREVIEW_BLOCKED = 'calango:browser-preview-blocked';
 const quickConversationListeners = new Set<() => void>();
@@ -82,6 +96,17 @@ const bridge: CalangoBridge = {
     }
     return () => {
       quickConversationListeners.delete(listener);
+    };
+  },
+  onShortcutUnavailable: (listener) => {
+    shortcutListeners.add(listener);
+    if (shortcutPending !== null) {
+      const pending = shortcutPending;
+      shortcutPending = null;
+      listener(pending);
+    }
+    return () => {
+      shortcutListeners.delete(listener);
     };
   },
   onState: (listener) => {

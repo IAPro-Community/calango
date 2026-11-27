@@ -27,6 +27,7 @@ test('onboarding cria conta, agente e mantém a fronteira IPC fechada', async ({
       'onPtyClosed',
       'onPtyOutput',
       'onQuickConversation',
+      'onShortcutUnavailable',
       'onState',
       'ptyAttach',
       'ptyDetach',
