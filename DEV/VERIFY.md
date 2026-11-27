@@ -527,3 +527,20 @@ Limits:
 - Throwaway CLI probe in `/tmp/mtest` (not in the repo; `@iapro/orquestrador-maestro-cli` 1.1.0 and 1.1.1 installed in `/tmp`, no owner files touched): reinstall into the same home and version swaps 1.1.0 → 1.1.1 → 1.1.0 kept `.codex/auth.json`; `verify` exit 0 each time; 38 skills; `~/.codex/AGENTS.md` mtime unchanged.
 - Not exercised: a real Codex session on the stable home; installed agents and skills loading under it; the owner's `~/.codex`; the migration of earlier per-version logins.
 - Changes are uncommitted in `internal/maestro/manager.go`, `internal/maestro/manager_test.go`, and the docs above. Not committed or pushed: AGENTS.md requires an explicit owner request.
+
+## 2026-11-25 — Local pairing runtime acceptance (#58)
+
+Environment: Go 1.27.4, linux/amd64; disposable data directory, vault key and legacy API-token file.
+
+| Check | Result |
+|---|---|
+| `go test ./internal/devices ./internal/api ./internal/config -count=1` | PASS |
+| Built `cmd/calango` with a temporary vault key and imported temporary `api-token`; `/healthz` | HTTP 200 |
+| Live `POST /v1/pairing-codes` + unauthenticated `POST /v1/pair` | Full-scope device token issued; token authenticated `GET /v1/agents`; device list did not expose the token |
+| Reuse the same pairing code | HTTP 401 |
+| `read` scope | `GET /v1/agents` HTTP 200; `POST /v1/agents` HTTP 403 |
+| `approve_only` scope | `GET /v1/approvals` HTTP 200; `GET /v1/agents` HTTP 403 |
+| Owner revokes the full-scope device | `DELETE /v1/devices/{id}` HTTP 204; the same token then received HTTP 401 |
+| Pairing rate limit, same forwarded client behind configured trusted loopback peer | Five invalid codes returned HTTP 401; the sixth returned HTTP 429 `rate_limited` |
+
+The test used a live daemon and disposable credentials; all temporary files were removed. The trusted-proxy origin was exercised with a trusted loopback peer, not a real reverse proxy. Mobile QR pairing and remote transport remain phase-gated; no mobile client or VPS was tested.
