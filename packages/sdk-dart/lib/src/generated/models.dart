@@ -603,6 +603,339 @@ final class MaestroUpdateResult {
   }
 }
 
+final class DiscoveredSkill {
+  const DiscoveredSkill({
+    required this.sourceId,
+    required this.name,
+    required this.description,
+    required this.origin,
+    required this.root,
+    required this.path,
+    required this.hash,
+    this.license,
+    required this.licenseSource,
+    required this.requiresLicenseConfirmation,
+    required this.warnings,
+    required this.files,
+    required this.bytes,
+    required this.importStatus,
+  });
+
+  factory DiscoveredSkill.fromJson(Map<String, Object?> json) {
+    return DiscoveredSkill(
+      sourceId: json['source_id'] as String,
+      name: json['name'] as String,
+      description: json['description'] as String,
+      origin: SkillOrigin.fromJson(json['origin'] as String),
+      root: json['root'] as String,
+      path: json['path'] as String,
+      hash: json['hash'] as String,
+      license: json['license'] as String?,
+      licenseSource: DiscoveredSkillLicenseSource.fromJson(json['license_source'] as String),
+      requiresLicenseConfirmation: json['requires_license_confirmation'] as bool,
+      warnings: (json['warnings'] as List<Object?>).map((e) => SkillWarning.fromJson(e as String)).toList(),
+      files: json['files'] as int,
+      bytes: json['bytes'] as int,
+      importStatus: DiscoveredSkillImportStatus.fromJson(json['import_status'] as String),
+    );
+  }
+
+  /// Stable id of the skill directory; key of the imported copy.
+  final String sourceId;
+
+  final String name;
+
+  final String description;
+
+  final SkillOrigin origin;
+
+  final String root;
+
+  final String path;
+
+  /// sha256:<hex> over the sorted file list, sizes and contents.
+  final String hash;
+
+  /// Frontmatter license, or what a LICENSE/COPYING file next to SKILL.md says.
+  final String? license;
+
+  final DiscoveredSkillLicenseSource licenseSource;
+
+  final bool requiresLicenseConfirmation;
+
+  final List<SkillWarning> warnings;
+
+  final int files;
+
+  final int bytes;
+
+  final DiscoveredSkillImportStatus importStatus;
+
+  Map<String, Object?> toJson() {
+    return <String, Object?>{
+      'source_id': sourceId,
+      'name': name,
+      'description': description,
+      'origin': origin.toJson(),
+      'root': root,
+      'path': path,
+      'hash': hash,
+      'license': ?license,
+      'license_source': licenseSource.toJson(),
+      'requires_license_confirmation': requiresLicenseConfirmation,
+      'warnings': warnings.map((e) => e.toJson()).toList(),
+      'files': files,
+      'bytes': bytes,
+      'import_status': importStatus.toJson(),
+    };
+  }
+}
+
+final class SkippedSkill {
+  const SkippedSkill({
+    required this.origin,
+    required this.path,
+    required this.reason,
+  });
+
+  factory SkippedSkill.fromJson(Map<String, Object?> json) {
+    return SkippedSkill(
+      origin: SkillOrigin.fromJson(json['origin'] as String),
+      path: json['path'] as String,
+      reason: SkippedSkillReason.fromJson(json['reason'] as String),
+    );
+  }
+
+  final SkillOrigin origin;
+
+  final String path;
+
+  final SkippedSkillReason reason;
+
+  Map<String, Object?> toJson() {
+    return <String, Object?>{
+      'origin': origin.toJson(),
+      'path': path,
+      'reason': reason.toJson(),
+    };
+  }
+}
+
+final class SkillRoot {
+  const SkillRoot({
+    required this.origin,
+    required this.path,
+    required this.status,
+  });
+
+  factory SkillRoot.fromJson(Map<String, Object?> json) {
+    return SkillRoot(
+      origin: SkillOrigin.fromJson(json['origin'] as String),
+      path: json['path'] as String,
+      status: SkillRootStatus.fromJson(json['status'] as String),
+    );
+  }
+
+  final SkillOrigin origin;
+
+  final String path;
+
+  final SkillRootStatus status;
+
+  Map<String, Object?> toJson() {
+    return <String, Object?>{
+      'origin': origin.toJson(),
+      'path': path,
+      'status': status.toJson(),
+    };
+  }
+}
+
+final class SkillDiscovery {
+  const SkillDiscovery({
+    required this.roots,
+    required this.skills,
+    required this.skipped,
+    required this.truncated,
+  });
+
+  factory SkillDiscovery.fromJson(Map<String, Object?> json) {
+    return SkillDiscovery(
+      roots: (json['roots'] as List<Object?>).map((e) => SkillRoot.fromJson(e as Map<String, Object?>)).toList(),
+      skills: (json['skills'] as List<Object?>).map((e) => DiscoveredSkill.fromJson(e as Map<String, Object?>)).toList(),
+      skipped: (json['skipped'] as List<Object?>).map((e) => SkippedSkill.fromJson(e as Map<String, Object?>)).toList(),
+      truncated: json['truncated'] as bool,
+    );
+  }
+
+  final List<SkillRoot> roots;
+
+  final List<DiscoveredSkill> skills;
+
+  final List<SkippedSkill> skipped;
+
+  /// True when a limit stopped the scan early.
+  final bool truncated;
+
+  Map<String, Object?> toJson() {
+    return <String, Object?>{
+      'roots': roots.map((e) => e.toJson()).toList(),
+      'skills': skills.map((e) => e.toJson()).toList(),
+      'skipped': skipped.map((e) => e.toJson()).toList(),
+      'truncated': truncated,
+    };
+  }
+}
+
+final class ImportedSkill {
+  const ImportedSkill({
+    required this.id,
+    required this.name,
+    required this.description,
+    required this.origin,
+    required this.sourcePath,
+    required this.hash,
+    this.license,
+    required this.licenseSource,
+    required this.licenseConfirmed,
+    required this.warnings,
+    required this.files,
+    required this.bytes,
+    required this.importedAt,
+    required this.updatedAt,
+  });
+
+  factory ImportedSkill.fromJson(Map<String, Object?> json) {
+    return ImportedSkill(
+      id: json['id'] as String,
+      name: json['name'] as String,
+      description: json['description'] as String,
+      origin: SkillOrigin.fromJson(json['origin'] as String),
+      sourcePath: json['source_path'] as String,
+      hash: json['hash'] as String,
+      license: json['license'] as String?,
+      licenseSource: ImportedSkillLicenseSource.fromJson(json['license_source'] as String),
+      licenseConfirmed: json['license_confirmed'] as bool,
+      warnings: (json['warnings'] as List<Object?>).map((e) => SkillWarning.fromJson(e as String)).toList(),
+      files: json['files'] as int,
+      bytes: json['bytes'] as int,
+      importedAt: DateTime.parse(json['imported_at'] as String),
+      updatedAt: DateTime.parse(json['updated_at'] as String),
+    );
+  }
+
+  final String id;
+
+  final String name;
+
+  final String description;
+
+  final SkillOrigin origin;
+
+  final String sourcePath;
+
+  final String hash;
+
+  final String? license;
+
+  final ImportedSkillLicenseSource licenseSource;
+
+  /// The person confirmed importing without a usable license.
+  final bool licenseConfirmed;
+
+  final List<SkillWarning> warnings;
+
+  final int files;
+
+  final int bytes;
+
+  final DateTime importedAt;
+
+  final DateTime updatedAt;
+
+  Map<String, Object?> toJson() {
+    return <String, Object?>{
+      'id': id,
+      'name': name,
+      'description': description,
+      'origin': origin.toJson(),
+      'source_path': sourcePath,
+      'hash': hash,
+      'license': ?license,
+      'license_source': licenseSource.toJson(),
+      'license_confirmed': licenseConfirmed,
+      'warnings': warnings.map((e) => e.toJson()).toList(),
+      'files': files,
+      'bytes': bytes,
+      'imported_at': importedAt.toUtc().toIso8601String(),
+      'updated_at': updatedAt.toUtc().toIso8601String(),
+    };
+  }
+}
+
+final class SkillImportInput {
+  const SkillImportInput({
+    required this.sourceId,
+    required this.hash,
+    this.confirmLicense,
+    this.replace,
+  });
+
+  factory SkillImportInput.fromJson(Map<String, Object?> json) {
+    return SkillImportInput(
+      sourceId: json['source_id'] as String,
+      hash: json['hash'] as String,
+      confirmLicense: json['confirm_license'] as bool?,
+      replace: json['replace'] as bool?,
+    );
+  }
+
+  final String sourceId;
+
+  /// The hash seen in discovery; a changed skill is refused with skill_changed.
+  final String hash;
+
+  /// Server default: `false`.
+  final bool? confirmLicense;
+
+  /// Server default: `false`.
+  final bool? replace;
+
+  Map<String, Object?> toJson() {
+    return <String, Object?>{
+      'source_id': sourceId,
+      'hash': hash,
+      'confirm_license': ?confirmLicense,
+      'replace': ?replace,
+    };
+  }
+}
+
+final class SkillImportResult {
+  const SkillImportResult({
+    required this.skill,
+    required this.result,
+  });
+
+  factory SkillImportResult.fromJson(Map<String, Object?> json) {
+    return SkillImportResult(
+      skill: ImportedSkill.fromJson(json['skill'] as Map<String, Object?>),
+      result: SkillImportResultResult.fromJson(json['result'] as String),
+    );
+  }
+
+  final ImportedSkill skill;
+
+  final SkillImportResultResult result;
+
+  Map<String, Object?> toJson() {
+    return <String, Object?>{
+      'skill': skill.toJson(),
+      'result': result.toJson(),
+    };
+  }
+}
+
 final class Conversation {
   const Conversation({
     required this.id,
@@ -1459,6 +1792,81 @@ final class VaultSetInput {
   }
 }
 
+final class LicenseStatus {
+  const LicenseStatus({
+    required this.state,
+    required this.plan,
+    this.reason,
+    this.accountId,
+    this.licensePlan,
+    this.features,
+    this.nodesMax,
+    this.issuedAt,
+    this.expiresAt,
+    this.graceEndsAt,
+    required this.checkedAt,
+  });
+
+  factory LicenseStatus.fromJson(Map<String, Object?> json) {
+    return LicenseStatus(
+      state: LicenseStatusState.fromJson(json['state'] as String),
+      plan: LicenseStatusPlan.fromJson(json['plan'] as String),
+      reason: json['reason'] == null ? null : LicenseStatusReason.fromJson(json['reason'] as String),
+      accountId: json['account_id'] as String?,
+      licensePlan: json['license_plan'] == null ? null : LicenseStatusLicensePlan.fromJson(json['license_plan'] as String),
+      features: json['features'] == null ? null : (json['features'] as List<Object?>).map((e) => e as String).toList(),
+      nodesMax: json['nodes_max'] as int?,
+      issuedAt: json['issued_at'] == null ? null : DateTime.parse(json['issued_at'] as String),
+      expiresAt: json['expires_at'] == null ? null : DateTime.parse(json['expires_at'] as String),
+      graceEndsAt: json['grace_ends_at'] == null ? null : DateTime.parse(json['grace_ends_at'] as String),
+      checkedAt: DateTime.parse(json['checked_at'] as String),
+    );
+  }
+
+  /// none: no license installed. grace: past expires_at but before grace_ends_at; the plan still applies. expired and invalid run free.
+  final LicenseStatusState state;
+
+  /// Effective plan for this node now.
+  final LicenseStatusPlan plan;
+
+  /// Why the license was refused; only with state invalid.
+  final LicenseStatusReason? reason;
+
+  final String? accountId;
+
+  /// Plan in the license, even when it no longer applies
+  final LicenseStatusLicensePlan? licensePlan;
+
+  final List<String>? features;
+
+  /// VPS nodes allowed; -1 means unlimited
+  final int? nodesMax;
+
+  final DateTime? issuedAt;
+
+  final DateTime? expiresAt;
+
+  final DateTime? graceEndsAt;
+
+  final DateTime checkedAt;
+
+  Map<String, Object?> toJson() {
+    return <String, Object?>{
+      'state': state.toJson(),
+      'plan': plan.toJson(),
+      'reason': ?reason?.toJson(),
+      'account_id': ?accountId,
+      'license_plan': ?licensePlan?.toJson(),
+      'features': ?features,
+      'nodes_max': ?nodesMax,
+      'issued_at': ?issuedAt?.toUtc().toIso8601String(),
+      'expires_at': ?expiresAt?.toUtc().toIso8601String(),
+      'grace_ends_at': ?graceEndsAt?.toUtc().toIso8601String(),
+      'checked_at': checkedAt.toUtc().toIso8601String(),
+    };
+  }
+}
+
 final class UsageRow {
   const UsageRow({
     required this.key,
@@ -1928,6 +2336,46 @@ enum DeviceScope {
   String toJson() => value;
 }
 
+enum DiscoveredSkillImportStatus {
+  newValue('new'),
+  imported('imported'),
+  updateAvailable('update_available');
+
+  const DiscoveredSkillImportStatus(this.value);
+
+  /// Wire value in the API.
+  final String value;
+
+  static DiscoveredSkillImportStatus fromJson(String value) {
+    for (final candidate in DiscoveredSkillImportStatus.values) {
+      if (candidate.value == value) return candidate;
+    }
+    throw FormatException('Unknown DiscoveredSkillImportStatus value', value);
+  }
+
+  String toJson() => value;
+}
+
+enum DiscoveredSkillLicenseSource {
+  frontmatter('frontmatter'),
+  file('file'),
+  none('none');
+
+  const DiscoveredSkillLicenseSource(this.value);
+
+  /// Wire value in the API.
+  final String value;
+
+  static DiscoveredSkillLicenseSource fromJson(String value) {
+    for (final candidate in DiscoveredSkillLicenseSource.values) {
+      if (candidate.value == value) return candidate;
+    }
+    throw FormatException('Unknown DiscoveredSkillLicenseSource value', value);
+  }
+
+  String toJson() => value;
+}
+
 enum ErrorBodyErrorCode {
   budgetExceeded('budget_exceeded'),
   approvalRequired('approval_required'),
@@ -1940,6 +2388,9 @@ enum ErrorBodyErrorCode {
   conflict('conflict'),
   rateLimited('rate_limited'),
   connectorUnavailable('connector_unavailable'),
+  licenseConfirmationRequired('license_confirmation_required'),
+  replaceRequired('replace_required'),
+  skillChanged('skill_changed'),
   internal('internal');
 
   const ErrorBodyErrorCode(this.value);
@@ -1993,6 +2444,115 @@ enum GetUsageGroupBy {
       if (candidate.value == value) return candidate;
     }
     throw FormatException('Unknown GetUsageGroupBy value', value);
+  }
+
+  String toJson() => value;
+}
+
+enum ImportedSkillLicenseSource {
+  frontmatter('frontmatter'),
+  file('file'),
+  none('none');
+
+  const ImportedSkillLicenseSource(this.value);
+
+  /// Wire value in the API.
+  final String value;
+
+  static ImportedSkillLicenseSource fromJson(String value) {
+    for (final candidate in ImportedSkillLicenseSource.values) {
+      if (candidate.value == value) return candidate;
+    }
+    throw FormatException('Unknown ImportedSkillLicenseSource value', value);
+  }
+
+  String toJson() => value;
+}
+
+/// Plan in the license, even when it no longer applies
+enum LicenseStatusLicensePlan {
+  pro('pro'),
+  team('team'),
+  business('business');
+
+  const LicenseStatusLicensePlan(this.value);
+
+  /// Wire value in the API.
+  final String value;
+
+  static LicenseStatusLicensePlan fromJson(String value) {
+    for (final candidate in LicenseStatusLicensePlan.values) {
+      if (candidate.value == value) return candidate;
+    }
+    throw FormatException('Unknown LicenseStatusLicensePlan value', value);
+  }
+
+  String toJson() => value;
+}
+
+/// Effective plan for this node now.
+enum LicenseStatusPlan {
+  free('free'),
+  pro('pro'),
+  team('team'),
+  business('business');
+
+  const LicenseStatusPlan(this.value);
+
+  /// Wire value in the API.
+  final String value;
+
+  static LicenseStatusPlan fromJson(String value) {
+    for (final candidate in LicenseStatusPlan.values) {
+      if (candidate.value == value) return candidate;
+    }
+    throw FormatException('Unknown LicenseStatusPlan value', value);
+  }
+
+  String toJson() => value;
+}
+
+/// Why the license was refused; only with state invalid.
+enum LicenseStatusReason {
+  malformed('malformed'),
+  signature('signature'),
+  claims('claims'),
+  noPublicKey('no_public_key'),
+  unreadable('unreadable');
+
+  const LicenseStatusReason(this.value);
+
+  /// Wire value in the API.
+  final String value;
+
+  static LicenseStatusReason fromJson(String value) {
+    for (final candidate in LicenseStatusReason.values) {
+      if (candidate.value == value) return candidate;
+    }
+    throw FormatException('Unknown LicenseStatusReason value', value);
+  }
+
+  String toJson() => value;
+}
+
+/// none: no license installed. grace: past expires_at but before grace_ends_at; the plan still applies. expired and invalid run free.
+enum LicenseStatusState {
+  none('none'),
+  active('active'),
+  grace('grace'),
+  expired('expired'),
+  invalid('invalid');
+
+  const LicenseStatusState(this.value);
+
+  /// Wire value in the API.
+  final String value;
+
+  static LicenseStatusState fromJson(String value) {
+    for (final candidate in LicenseStatusState.values) {
+      if (candidate.value == value) return candidate;
+    }
+    throw FormatException('Unknown LicenseStatusState value', value);
   }
 
   String toJson() => value;
@@ -2194,6 +2754,120 @@ enum RunTrigger {
       if (candidate.value == value) return candidate;
     }
     throw FormatException('Unknown RunTrigger value', value);
+  }
+
+  String toJson() => value;
+}
+
+enum SkillImportResultResult {
+  created('created'),
+  unchanged('unchanged'),
+  replaced('replaced');
+
+  const SkillImportResultResult(this.value);
+
+  /// Wire value in the API.
+  final String value;
+
+  static SkillImportResultResult fromJson(String value) {
+    for (final candidate in SkillImportResultResult.values) {
+      if (candidate.value == value) return candidate;
+    }
+    throw FormatException('Unknown SkillImportResultResult value', value);
+  }
+
+  String toJson() => value;
+}
+
+enum SkillOrigin {
+  claude('claude'),
+  codex('codex'),
+  project('project');
+
+  const SkillOrigin(this.value);
+
+  /// Wire value in the API.
+  final String value;
+
+  static SkillOrigin fromJson(String value) {
+    for (final candidate in SkillOrigin.values) {
+      if (candidate.value == value) return candidate;
+    }
+    throw FormatException('Unknown SkillOrigin value', value);
+  }
+
+  String toJson() => value;
+}
+
+enum SkillRootStatus {
+  ok('ok'),
+  missing('missing'),
+  notDirectory('not_directory'),
+  unreadable('unreadable');
+
+  const SkillRootStatus(this.value);
+
+  /// Wire value in the API.
+  final String value;
+
+  static SkillRootStatus fromJson(String value) {
+    for (final candidate in SkillRootStatus.values) {
+      if (candidate.value == value) return candidate;
+    }
+    throw FormatException('Unknown SkillRootStatus value', value);
+  }
+
+  String toJson() => value;
+}
+
+/// Stable code; clients translate it.
+enum SkillWarning {
+  noLicense('no_license'),
+  licenseRestrictive('license_restrictive'),
+  missingFrontmatter('missing_frontmatter'),
+  invalidFrontmatter('invalid_frontmatter'),
+  missingName('missing_name'),
+  invalidName('invalid_name'),
+  missingDescription('missing_description'),
+  descriptionTruncated('description_truncated'),
+  symlinkSkipped('symlink_skipped'),
+  specialFileSkipped('special_file_skipped');
+
+  const SkillWarning(this.value);
+
+  /// Wire value in the API.
+  final String value;
+
+  static SkillWarning fromJson(String value) {
+    for (final candidate in SkillWarning.values) {
+      if (candidate.value == value) return candidate;
+    }
+    throw FormatException('Unknown SkillWarning value', value);
+  }
+
+  String toJson() => value;
+}
+
+enum SkippedSkillReason {
+  symlinkOutsideRoot('symlink_outside_root'),
+  brokenSymlink('broken_symlink'),
+  noSkillMd('no_skill_md'),
+  skillMdTooLarge('skill_md_too_large'),
+  tooManyFiles('too_many_files'),
+  tooLarge('too_large'),
+  tooDeep('too_deep'),
+  unreadable('unreadable');
+
+  const SkippedSkillReason(this.value);
+
+  /// Wire value in the API.
+  final String value;
+
+  static SkippedSkillReason fromJson(String value) {
+    for (final candidate in SkippedSkillReason.values) {
+      if (candidate.value == value) return candidate;
+    }
+    throw FormatException('Unknown SkippedSkillReason value', value);
   }
 
   String toJson() => value;

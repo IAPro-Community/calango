@@ -140,6 +140,48 @@ final class CalangoClient {
     return MaestroStatus.fromJson(response as Map<String, Object?>);
   }
 
+  /// Scan the authorized skill directories
+  ///
+  /// Read-only scan of the directories in CALANGO_SKILL_DIRS (default ~/.claude/skills and $CODEX_HOME/skills). Only direct subdirectories with a SKILL.md are skills; symlinks that resolve outside their root, hidden entries and anything over the size and count limits are skipped. Source files are never modified.
+  Future<SkillDiscovery> discoverSkills() async {
+    final response = await _transport.sendJson(
+      'GET',
+      '/v1/skill-imports/discover',
+    );
+    return SkillDiscovery.fromJson(response as Map<String, Object?>);
+  }
+
+  /// List skills imported into the node
+  Future<List<ImportedSkill>> listImportedSkills() async {
+    final response = await _transport.sendJson(
+      'GET',
+      '/v1/skill-imports',
+    );
+    return (response as List<Object?>).map((e) => ImportedSkill.fromJson(e as Map<String, Object?>)).toList();
+  }
+
+  /// Import one discovered skill
+  ///
+  /// Copies the skill into the node's data directory, versioned by content hash. Importing the same version again returns 200 with result unchanged. A different version needs replace. A skill without a usable declared license needs confirm_license. Requires a write-scope device.
+  Future<SkillImportResult> importSkill(SkillImportInput body) async {
+    final response = await _transport.sendJson(
+      'POST',
+      '/v1/skill-imports',
+      body: body.toJson(),
+    );
+    return SkillImportResult.fromJson(response as Map<String, Object?>);
+  }
+
+  /// Remove an imported copy
+  ///
+  /// Deletes only the node's copy; the source directory is not touched. Requires a write-scope device.
+  Future<void> removeImportedSkill(String id) async {
+    await _transport.sendJson(
+      'DELETE',
+      '/v1/skill-imports/${Uri.encodeComponent(id)}',
+    );
+  }
+
   /// List agents
   Future<List<Agent>> listAgents() async {
     final response = await _transport.sendJson(
@@ -590,6 +632,17 @@ final class CalangoClient {
       },
     );
     return response;
+  }
+
+  /// Evaluated node license and effective plan
+  ///
+  /// Reads the license file and verifies its Ed25519 signature offline. plan is the effective plan: the licensed plan while state is active or grace (up to 7 days after expires_at), free otherwise. A missing, invalid or expired license only lowers the plan to free; the node keeps running and no data is removed. License fields are present whenever the signature verified, including after expiry.
+  Future<LicenseStatus> getLicense() async {
+    final response = await _transport.sendJson(
+      'GET',
+      '/v1/license',
+    );
+    return LicenseStatus.fromJson(response as Map<String, Object?>);
   }
 
   /// Aggregated usage and cost

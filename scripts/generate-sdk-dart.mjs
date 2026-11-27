@@ -77,6 +77,13 @@ function identifier(text, where) {
   return name;
 }
 
+// enumMember maps an OpenAPI enum value to a Dart identifier, escaping reserved words.
+function enumMember(value, where) {
+  const name = camel(value);
+  if (!dartReserved.has(name)) return name;
+  return `${name}Value`;
+}
+
 function className(schemaName) {
   const name = pascal(schemaName);
   if (!/^[A-Z][A-Za-z0-9]*$/.test(name)) unsupported(schemaName, 'schema name is not a valid Dart class name');
@@ -157,9 +164,7 @@ function enumValues(schema, where) {
   }
   const members = schema.enum.map((value) => {
     if (typeof value !== 'string') unsupported(where, 'enum values must be strings');
-    const member = identifier(value, `${where} enum value ${value}`);
-    if (enumMemberReserved.has(member)) unsupported(where, `enum value ${value} clashes with a Dart enum member`);
-    return { value, member };
+    return { value, member: enumMember(value, where) };
   });
   if (new Set(members.map((entry) => entry.member)).size !== members.length) {
     unsupported(where, 'enum values collide after conversion to Dart names');
@@ -284,7 +289,7 @@ function defineClass(name, schema, where) {
     const resolved = deref(propertySchema, fieldWhere);
     placeholder.fields.push({
       key,
-      name: identifier(key, fieldWhere),
+      name: dartReserved.has(camel(key)) ? `${camel(key)}Value` : camel(key),
       type,
       required: isRequired,
       nullable: type.nullable || !isRequired,
@@ -436,7 +441,7 @@ function buildOperations() {
             const type = typeOf(propertySchema, owner, key, fieldWhere);
             return {
               key,
-              name: identifier(key, fieldWhere),
+              name: dartReserved.has(camel(key)) ? `${camel(key)}Value` : camel(key),
               type,
               required: requiredKeys.has(key),
               nullable: type.nullable || !requiredKeys.has(key),
@@ -840,6 +845,7 @@ try {
     );
   }
 } catch (error) {
+  if (error instanceof Error && error.stack) console.error(error.stack);
   console.error(`dart sdk generation: ${error instanceof Error ? error.message : String(error)}`);
   process.exitCode = 1;
 }
