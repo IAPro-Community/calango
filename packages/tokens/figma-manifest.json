@@ -1,0 +1,59 @@
+{
+	"$comment": "Mapa de IDs do Design System e telas V1 do Calango no Figma (gerado em 2026-11-26).",
+	"designFile": {
+		"fileKey": "vnna5rthWR8aXWBRYo85Tb",
+		"url": "https://www.figma.com/design/vnna5rthWR8aXWBRYo85Tb"
+	},
+	"figjamFile": {
+		"fileKey": "1Ndfzz7qgPHxLFbA9iEDr6",
+		"url": "https://www.figma.com/board/1Ndfzz7qgPHxLFbA9iEDr6"
+	},
+	"pages": {
+		"designSystem": "0:1",
+		"desktop": "6:2",
+		"mobile": "6:3"
+	},
+	"variableCollections": {
+		"primitives": "VariableCollectionId:6:4",
+		"colorDark": "VariableCollectionId:6:39",
+		"colorLight": "VariableCollectionId:6:40",
+		"scale": "VariableCollectionId:6:91"
+	},
+	"components": {
+		"Button": "7:133",
+		"Badge": "7:144",
+		"NodePill": "7:169",
+		"NavItem": "7:180",
+		"ApprovalCard": "7:205",
+		"StatCard": "7:206"
+	},
+	"screens": {
+		"desktopMvp": {
+			"D1_Dark": "9:7",
+			"D1_Light": "9:164",
+			"D2_InboxApprovals": "9:321",
+			"D3_AgentsProviderChain": "9:462",
+			"D4_Routines": "9:641",
+			"D5_UsageMemoryMCP": "9:823",
+			"D6_VaultAuditQR": "9:992"
+		},
+		"desktopAdvanced": {
+			"A1_HybridPlans": "14:42",
+			"A2_ADE": "14:98",
+			"A3_BrowserTakeover": "14:172",
+			"A4_ComputerUse": "14:223",
+			"A5_ChannelsTeamsRouter": "14:272"
+		},
+		"mobileFlutter": {
+			"M1_PairingQR": "11:7",
+			"M2_NodesStatus": "11:26",
+			"M3_PushLockscreen": "11:82",
+			"M4_ApprovalDetail": "11:113",
+			"M5_ForYouInbox": "11:169",
+			"M6_ConversationsSteps": "11:226",
+			"M7_RoutinesBoard": "11:274",
+			"M8_SettingsPlan": "11:346",
+			"M9_RemotePCControl": "11:399"
+		}
+	}
+}

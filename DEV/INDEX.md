@@ -25,6 +25,7 @@
 | [PRODUCT_HYBRID.md](PRODUCT_HYBRID.md) | PC + VPS + phone model, connections |
 | [MONETIZATION.md](MONETIZATION.md) | plans, add-ons, billing |
 | [BRAND/BRAND.md](BRAND/BRAND.md) | logo, palette, typography, motion |
+| [DESIGN_SYSTEM_V1.md](DESIGN_SYSTEM_V1.md) | Figma V1 Design System, 21 screens and FigJam architecture/flows |
 
 ## Engineering
 
@@ -43,6 +44,7 @@
 | [E2E_DESKTOP.md](E2E_DESKTOP.md) | E2E do desktop com Playwright Electron, daemon real e provider fake |
 | [../api/openapi.yaml](../api/openapi.yaml) | API contract (source of the TS and Dart SDKs) |
 | [../packages/tokens/tokens.json](../packages/tokens/tokens.json) | design tokens (source of CSS and ThemeData) |
+| [../packages/tokens/figma-manifest.json](../packages/tokens/figma-manifest.json) | Figma V1 collection, component and screen node IDs |
 | [../packages/i18n/messages.json](../packages/i18n/messages.json) | interface catalog in en/pt-BR/es, source of the TypeScript and ARB files |
 | [PACOTE_DESKTOP_LINUX_MACOS.md](PACOTE_DESKTOP_LINUX_MACOS.md) | pacotes do desktop: .deb/AppImage validados em contêiner, gate de LICENSE/NOTICE/third_party e DMG pendente de credenciais (#40) |
 
