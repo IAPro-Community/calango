@@ -61,6 +61,7 @@
 | [0015](ADR/0015-websocket-gorilla.md) | WebSocket `/v1/events` uses `github.com/gorilla/websocket` v1.5.3 (BSD-2-Clause); header auth only; in-memory fan-out with no replay |
 | [0016](ADR/0016-cadeia-de-provedores.md) | Agent has an ordered provider chain with fallback before first output; provider accounts are named rows, secrets stay in the vault or isolated CLI homes |
 | [0017](ADR/0017-rotina-dispara-execucao.md) | A routine fires one agent run per attempt in one DM per routine; the agent's reply ends with a `ROUTINE:` control line for news and finish |
+| [0025](ADR/0025-ui-kit-desktop.md) | Desktop UI kit in `apps/desktop/src/lib` (shadcn + Tailwind 4, `@` alias), semantic dark/light theme over the tokens, legacy styles in a lower cascade layer |
 
 ## Module specs (`SPECS/modules/`)
 
