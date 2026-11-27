@@ -45,8 +45,8 @@ flowchart LR
 | Node image build | Workflow builds the image; missing an HTTP execution gate for the image in CI. | `deploy/Dockerfile.node`, `.github/workflows/ci.yml` |
 | OpenAPI semantic lint | Implemented in CI with Redocly CLI 2.81.0 pinned; current local lint is valid with one non-blocking warning. Run 45188079827 passed on `dee8efa`; current uncommitted changes need a later authorized push for CI coverage. | `api/openapi.yaml`, `.github/workflows/ci.yml` |
 | Offline local backup/restore | Runbook covers the full data directory and key source; a pre-migration restore test passes. Previous-binary compatibility and OS-keyring recovery remain unverified. | `BACKUP_RESTORE.md`, `internal/store/backup_restore_test.go` |
-| Token generation and drift check | Implemented for CSS and TypeScript/Dart constants; `--check` runs in CI. | `scripts/generate-tokens.mjs`, `packages/tokens/generated/`, `.github/workflows/ci.yml` |
-| SDK and i18n generation | TypeScript SDK and i18n catalog generators are implemented with drift checks; Dart SDK is phase 2. | `api/`, `packages/sdk-ts`, `packages/i18n`, `DEV/TODO_V1.md` |
+| Token generation and drift check | Implemented for CSS, TypeScript/Dart constants and the typed Flutter theme tokens; `--check` runs in CI. | `scripts/generate-tokens.mjs`, `packages/tokens/generated/`, `packages/theme-flutter/`, `.github/workflows/ci.yml` |
+| SDK and i18n generation | TypeScript SDK, Dart SDK (F2-T03, phase 2 foundation brought forward, ADR 0024) and i18n catalog generators are implemented with drift checks; the `dart-packages` CI job analyzes and tests the Dart packages with Flutter 3.47.9. | `api/`, `packages/sdk-ts`, `packages/sdk-dart`, `packages/i18n`, `scripts/generate-sdk-dart.mjs` |
 | Desktop install, signing, update and rollback | Electron beta exists and runs on Linux; signed installers, Windows/macOS acceptance and signed app updates remain open. | `apps/desktop`, `SPECS/modules/desktop-electron.md`, TODO V1 |
 | Linux desktop packages and license gate | `.deb` and AppImage x64 with the embedded daemon; `verify-desktop-package.mjs` fails if `LICENSE`, `NOTICE` or `third_party/` are missing or differ; CI job `desktop-linux-package` installs, upgrades, runs the daemon and the app (Xvfb) and purges in clean Debian 12 and Ubuntu 24.04 containers, without uploading artifacts. Unsigned; macOS DMG configured but waits for Apple credentials and notarization. | `apps/desktop/electron-builder.yml`, `scripts/test-linux-package.sh`, `DEV/PACOTE_DESKTOP_LINUX_MACOS.md` |
 
@@ -71,7 +71,7 @@ flowchart LR
 ## Gaps to close
 
 - Revalidate the workflow on GitHub after the next authorized push; run 45188079827 on `dee8efa` succeeded.
-- Generate the Dart SDK in phase 2; TypeScript SDK and i18n drift checks are implemented.
+- Dart SDK and Flutter theme are generated with drift checks (ADR 0024); the WebSocket `/v1/events` client for Dart is still open (#67).
 - Make CI run the images and query their health checks; repeat locally once the Docker daemon is accessible.
 - Define tools and blocking levels for dependency analysis, SBOM and image scanning; document exceptions with an expiry date.
 - Implement the signing, provenance, publication and rollback chain before distributing the first public installer.
