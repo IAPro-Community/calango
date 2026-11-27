@@ -263,11 +263,18 @@ func (e *env) newServiceWith(parallel int) *conversations.Service {
 	return svc
 }
 
+// waitStatus also waits for runID to exist: a steer continuation is stored only
+// after the steered run is recorded as stopped, and GetRun reads without the
+// service lock, so a reader can see the stop before the continuation.
 func waitStatus(t *testing.T, e *env, runID string, want core.RunStatus) core.Run {
 	t.Helper()
 	deadline := time.Now().Add(5 * time.Second)
 	for {
 		detail, err := e.svc.GetRun(context.Background(), owner, runID)
+		if errors.Is(err, core.ErrNotFound) && time.Now().Before(deadline) {
+			time.Sleep(time.Millisecond)
+			continue
+		}
 		if err != nil {
 			t.Fatalf("get run %s: %v", runID, err)
 		}

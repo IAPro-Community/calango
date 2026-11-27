@@ -212,6 +212,27 @@ function createFakeBridge() {
       stateListeners.add(listener);
       return () => stateListeners.delete(listener);
     },
+    // The browser pane lives in Electron; component tests never mount it.
+    browser: {
+      listTabs: vi.fn(async () => []),
+      focusAgent: vi.fn(async () => []),
+      openTab: vi.fn(async (): Promise<never> => {
+        throw new Error('browser is not available in component tests');
+      }),
+      closeTab: vi.fn(async () => {}),
+      activate: vi.fn(async (): Promise<never> => {
+        throw new Error('browser is not available in component tests');
+      }),
+      navigate: vi.fn(async (): Promise<never> => {
+        throw new Error('browser is not available in component tests');
+      }),
+      back: vi.fn(async () => {}),
+      forward: vi.fn(async () => {}),
+      reload: vi.fn(async () => {}),
+      setBounds: vi.fn(async () => {}),
+      clearProfile: vi.fn(async () => {}),
+      onTabs: () => () => {},
+    },
   };
 
   return {

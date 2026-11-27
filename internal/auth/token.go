@@ -10,9 +10,11 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"sync"
 
@@ -45,7 +47,7 @@ func LoadOrCreateVaultToken(ctx context.Context, secrets *vault.Service) (string
 	return token, nil
 }
 
-// ImportFileToken moves a token from the legacy 0600 file in dir into the vault and then
+// ImportFileToken moves a token from the legacy owner-only file in dir into the vault and then
 // removes the file. It reports whether a file was imported. When the vault already holds
 // a different token, it refuses and leaves both untouched: silently dropping either token
 // would break a client that still uses it.
@@ -77,16 +79,37 @@ func ImportFileToken(ctx context.Context, dir string, secrets *vault.Service) (b
 	return true, nil
 }
 
-// readToken reads the legacy file and enforces its owner-only permissions.
+// readToken reads the legacy file. The file must be a regular file, not a link or a
+// special file, and on Unix it must be owner-only (0600).
 func readToken(path string) (string, error) {
-	info, err := os.Stat(path)
+	info, err := os.Lstat(path)
 	if err != nil {
 		return "", fmt.Errorf("stat api token: %w", err)
 	}
-	if info.Mode().Perm()&0o077 != 0 {
+	if !info.Mode().IsRegular() {
+		return "", fmt.Errorf("api token %s is not a regular file (link or special file); replace it with a regular file", path)
+	}
+	// On Windows the ACLs do not map to POSIX bits: os.Stat reports 0666 for any writable
+	// file, so the bits say nothing and the check would refuse every legacy file. There the
+	// default data dir (%APPDATA%\calango) is already private to the user through the
+	// profile ACL, so the check runs only on Unix, where it stays as strict as before.
+	if runtime.GOOS != "windows" && info.Mode().Perm()&0o077 != 0 {
 		return "", fmt.Errorf("api token %s is readable by other users; run chmod 600", path)
 	}
-	raw, err := os.ReadFile(path)
+	f, err := os.Open(path)
+	if err != nil {
+		return "", fmt.Errorf("read api token: %w", err)
+	}
+	defer func() { _ = f.Close() }()
+	// The opened file must be the one checked above, not a link swapped in between.
+	opened, err := f.Stat()
+	if err != nil {
+		return "", fmt.Errorf("stat api token: %w", err)
+	}
+	if !os.SameFile(info, opened) {
+		return "", fmt.Errorf("api token %s changed while it was being read", path)
+	}
+	raw, err := io.ReadAll(f)
 	if err != nil {
 		return "", fmt.Errorf("read api token: %w", err)
 	}
