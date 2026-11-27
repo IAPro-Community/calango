@@ -311,9 +311,9 @@
 - Linked agents already receive the stable home: `cmd/calango/main.go` passes `maestroManager.CodexHome` to the conversation service.
 - F1-T16 stays partial: no real Codex session has run against the stable home.
 
-## 2026-11-25 — Small site favicon
+## 2026-11-25 — Local pairing runtime acceptance (#58)
 
-- Worked on #49's icon scope: created a simplified SVG lizard silhouette in the brand's moss/post-it palette, linked it as the site favicon, and retained PNG fallback and Apple touch icon.
-- Updated `DEV/BRAND/BRAND.md`, TODO, handoff, context, and verification records. This does not publish the site or complete #49; Q27's domain/legal/pricing/HTTPS decisions remain open.
-- Verified a 32 px Chromium render and the built site serving the favicon with HTTP 200 (`image/svg+xml`); page title was present and browser errors were zero.
-- Issue #49 remains open; `feat/49-small-site-favicon` is published as PR #153, ready for review. Required CI passed; independent review was requested from @kyotodevIndie. Publication and remaining icon variants are outside this partial PR.
+- Selected the unassigned Phase 1 local-pairing verification issue. The issue's reprioritization keeps mobile QR and remote transport in later phases; this work does not implement or claim those flows.
+- Built and started the real `calango` daemon with a disposable data directory, vault key and legacy API token. Verified code redemption, single use, `full`/`read`/`approve_only` scopes, immediate revocation, token non-disclosure in device listing, and the per-client rate limit over HTTP.
+- Verified `go test ./internal/devices ./internal/api ./internal/config -count=1`. Runtime evidence and the trusted-proxy/mobile limitations are in `DEV/VERIFY.md`.
+- Updated the F1-T15 status in the roadmap, V1 TODO, handoff and current context. No production data, model call, mobile client or VPS was used.
