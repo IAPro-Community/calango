@@ -30,6 +30,10 @@ Delivered ahead of the phase 4 gate as a foundation (issue #84, ADR 0023). Phase
 - Desktop: Terminal screen with xterm.js 6 and the fit addon. The WebSocket runs in the Electron main process with the bearer header; the renderer exchanges bytes over IPC. Renderer CSP allows inline styles for xterm.js.
 - Not verified: Windows and macOS at runtime (both compile).
 
+## Current implementation status
+
+- Preview (F4-T06, #87, foundation ahead of the F4 acceptance): the desktop detects local dev servers on loopback and opens them in the internal browser, in a preview profile separate from the agents and confined to the chosen origin. Details and limits in `browser.md` ("Project preview"). It does not depend on projects or worktrees yet; `openPreview(target, { projectId })` is the hook for #82/#83.
+
 ## Acceptance
 - Two tasks in the same project run in parallel in different worktrees and produce two PRs.
 - The person can review the diff and the test results without relying on the agent's final message.

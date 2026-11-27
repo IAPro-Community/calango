@@ -7,6 +7,7 @@ import {
   nativeImage,
   protocol,
   session,
+  shell,
   Tray,
   type IpcMainEvent,
   WebContentsView,
@@ -17,7 +18,8 @@ import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { channels, type BrowserTab, type DaemonState } from '../shared/ipc';
 import { BrowserManager } from './browser/manager';
-import { parseBounds } from './browser/policy';
+import { isNavigableUrl, parseBounds } from './browser/policy';
+import { DEFAULT_PREVIEW_PORTS, detectDevServers } from './browser/preview';
 import { loadProfileKey } from './browser/profileKey';
 import { Daemon } from './daemon';
 import { PtyBridge } from './pty';
@@ -153,9 +155,21 @@ function assertTrusted(event: IpcMainInvokeEvent | IpcMainEvent): void {
   }
 }
 
+/** Ports a preview may never probe or open: the Calango daemon's own loopback port. */
+function reservedPreviewPorts(): number[] {
+  return [Number(addr.split(':')[1])];
+}
+
 function createBrowser(win: BrowserWindow, profileKey: Buffer): BrowserManager {
   return new BrowserManager({
     profileKey,
+    reservedPorts: reservedPreviewPorts(),
+    onPreviewBlocked: (blocked) => {
+      if (!win.isDestroyed()) win.webContents.send(channels.browserPreviewBlocked, blocked);
+    },
+    // Reached only through BrowserManager.openExternalBlocked: a URL a preview tab was just
+    // kept from, after the person clicks to open it outside.
+    openExternal: (url) => (isNavigableUrl(url) ? shell.openExternal(url) : undefined),
     fromPartition: (partition) => session.fromPartition(partition),
     createView: (options) => new WebContentsView(options),
     host: {
@@ -206,6 +220,17 @@ function registerBrowserIpc(): void {
   ipcMain.handle(channels.browserClearProfile, (event, agentId: unknown) =>
     requireBrowser(event).clearProfile(agentId),
   );
+  // Project preview (F4-T06). Detection probes a fixed short list of ports on loopback only.
+  ipcMain.handle(channels.browserDetectServers, (event) => {
+    assertTrusted(event);
+    return detectDevServers(DEFAULT_PREVIEW_PORTS, { exclude: reservedPreviewPorts() });
+  });
+  ipcMain.handle(channels.browserOpenPreview, (event, target: unknown, options: unknown) => {
+    const autoReload =
+      options !== null && typeof options === 'object' && (options as { autoReload?: unknown }).autoReload === true;
+    return requireBrowser(event).openPreview(target, { autoReload });
+  });
+  ipcMain.handle(channels.browserOpenExternal, (event, url: unknown) => requireBrowser(event).openExternalBlocked(url));
 }
 
 function linuxAutostartPath(): string {
