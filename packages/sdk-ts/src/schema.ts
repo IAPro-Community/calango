@@ -218,6 +218,91 @@ export interface paths {
         patch: operations["updateMaestroSettings"];
         trace?: never;
     };
+    "/v1/pty": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the calling device's terminal sessions
+         * @description Needs write scope. Sessions are bound to the device that created them; others are not listed.
+         */
+        get: operations["listPtySessions"];
+        put?: never;
+        /**
+         * Start a shell on a pseudo-terminal
+         * @description Needs write scope. The daemon picks the shell (the person's login shell on Unix, PowerShell or cmd.exe on Windows); clients cannot choose the program. `cwd` must resolve, after symlinks, to the daemon workspace or a directory below it; anything else is `400 invalid_input`. The child gets an allowlisted environment: no `CALANGO_*` variable, provider key or token reaches it. At most 8 sessions run per node (`429 rate_limited`). A session with no client attached and no input for 30 minutes is closed. Ending a session kills its whole process tree. Open and close are audited (`terminal.opened`, `terminal.closed`) without terminal content.
+         */
+        post: operations["createPtySession"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/skill-imports/discover": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Scan the authorized skill directories
+         * @description Read-only scan of the directories in CALANGO_SKILL_DIRS (default ~/.claude/skills and $CODEX_HOME/skills). Only direct subdirectories with a SKILL.md are skills; symlinks that resolve outside their root, hidden entries and anything over the size and count limits are skipped. Source files are never modified.
+         */
+        get: operations["discoverSkills"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/skill-imports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List skills imported into the node */
+        get: operations["listImportedSkills"];
+        put?: never;
+        /**
+         * Import one discovered skill
+         * @description Copies the skill into the node's data directory, versioned by content hash. Importing the same version again returns 200 with result unchanged. A different version needs replace. A skill without a usable declared license needs confirm_license. Requires a write-scope device.
+         */
+        post: operations["importSkill"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/skill-imports/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Remove an imported copy
+         * @description Deletes only the node's copy; the source directory is not touched. Requires a write-scope device.
+         */
+        delete: operations["removeImportedSkill"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/agents": {
         parameters: {
             query?: never;
@@ -318,6 +403,28 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/provider-accounts/{id}/models": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["Id"];
+            };
+            cookie?: never;
+        };
+        /**
+         * List the models one provider account can use
+         * @description Read-only probe of the provider CLI's own catalog. The daemon runs it with the account's isolated home. Accounts without a catalog (Anthropic) return an empty list, so the client keeps a free-form field.
+         */
+        get: operations["listProviderModels"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/provider-accounts/{id}": {
         parameters: {
             query?: never;
@@ -335,6 +442,25 @@ export interface paths {
          * @description Refused with conflict while an agent's provider chain uses it. Deleting a non-default codex account removes its isolated CODEX_HOME.
          */
         delete: operations["deleteProviderAccount"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/provider-accounts/{id}/capacity/refresh": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["Id"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Refresh provider capacity subject to cooldown */
+        post: operations["refreshProviderCapacity"];
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -824,6 +950,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/license": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Evaluated node license and effective plan
+         * @description Reads the license file and verifies its Ed25519 signature offline. plan is the effective plan: the licensed plan while state is active or grace (up to 7 days after expires_at), free otherwise. A missing, invalid or expired license only lowers the plan to free; the node keeps running and no data is removed. License fields are present whenever the signature verified, including after expiry.
+         */
+        get: operations["getLicense"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/usage": {
         parameters: {
             query?: never;
@@ -851,7 +997,7 @@ export interface components {
         Error: {
             error: {
                 /** @enum {string} */
-                code: "budget_exceeded" | "approval_required" | "not_found" | "invalid_input" | "unauthorized" | "forbidden" | "node_offline" | "harness_signed_out" | "conflict" | "rate_limited" | "connector_unavailable" | "internal";
+                code: "budget_exceeded" | "approval_required" | "not_found" | "invalid_input" | "unauthorized" | "forbidden" | "node_offline" | "harness_signed_out" | "conflict" | "rate_limited" | "connector_unavailable" | "license_confirmation_required" | "replace_required" | "skill_changed" | "internal";
                 message: string;
             };
         };
@@ -896,6 +1042,27 @@ export interface components {
         };
         /** @enum {string} */
         RunOn: "pc" | "vps" | "auto";
+        PtySessionInput: {
+            /** @description Working directory, relative to the daemon workspace or absolute inside it. Empty means the workspace. */
+            cwd?: string;
+            /** @description Defaults to 80 when cols and rows are both omitted. */
+            cols?: number;
+            /** @description Defaults to 24 when cols and rows are both omitted. */
+            rows?: number;
+        };
+        PtySession: {
+            /** @description 256 random bits, URL-safe base64 without padding (43 characters). */
+            id: string;
+            /** @description Absolute working directory on the node. */
+            cwd: string;
+            /** @description Absolute path of the shell program. */
+            shell: string;
+            cols: number;
+            rows: number;
+            attached: boolean;
+            /** Format: date-time */
+            created_at: string;
+        };
         ProviderAccountInput: {
             /** @enum {string} */
             kind: "codex" | "anthropic";
@@ -915,6 +1082,34 @@ export interface components {
             created_at: string;
             /** Format: date-time */
             updated_at: string;
+            capacity?: components["schemas"]["ProviderCapacity"];
+        };
+        ProviderCapacity: {
+            account_id: string;
+            status: string;
+            source: string;
+            reason: string;
+            /** Format: date-time */
+            observed_at?: string;
+            /** Format: date-time */
+            expires_at?: string;
+            windows: components["schemas"]["CapacityWindow"][];
+        };
+        CapacityWindow: {
+            group: string;
+            kind: string;
+            state: string;
+            remaining_percent?: number;
+            /** Format: date-time */
+            reset_at?: string;
+        };
+        ProviderModel: {
+            /** @description Model slug accepted by the provider CLI. */
+            id: string;
+            /** @description Display name from the provider catalog. */
+            label: string;
+            /** @description Reasoning effort the provider uses by default, when it declares one. */
+            default_reasoning?: string;
         };
         ProviderRef: {
             /** @description Id of a provider account of the same owner. */
@@ -941,6 +1136,8 @@ export interface components {
              * @default false
              */
             maestro_enabled: boolean;
+            /** @description Opt-in verified capacity routing before dispatch; no paid automatic fallback. */
+            capacity_routing?: boolean;
         };
         Agent: components["schemas"]["AgentInput"] & {
             id: string;
@@ -967,6 +1164,87 @@ export interface components {
         MaestroUpdateResult: {
             status: components["schemas"]["MaestroStatus"];
             updated: boolean;
+        };
+        /** @enum {string} */
+        SkillOrigin: "claude" | "codex" | "project";
+        /**
+         * @description Stable code; clients translate it.
+         * @enum {string}
+         */
+        SkillWarning: "no_license" | "license_restrictive" | "missing_frontmatter" | "invalid_frontmatter" | "missing_name" | "invalid_name" | "missing_description" | "description_truncated" | "symlink_skipped" | "special_file_skipped";
+        DiscoveredSkill: {
+            /** @description Stable id of the skill directory; key of the imported copy. */
+            source_id: string;
+            name: string;
+            description: string;
+            origin: components["schemas"]["SkillOrigin"];
+            root: string;
+            path: string;
+            /** @description sha256:<hex> over the sorted file list, sizes and contents. */
+            hash: string;
+            /** @description Frontmatter license, or what a LICENSE/COPYING file next to SKILL.md says. */
+            license?: string;
+            /** @enum {string} */
+            license_source: "frontmatter" | "file" | "none";
+            requires_license_confirmation: boolean;
+            warnings: components["schemas"]["SkillWarning"][];
+            files: number;
+            bytes: number;
+            /** @enum {string} */
+            import_status: "new" | "imported" | "update_available";
+        };
+        SkippedSkill: {
+            origin: components["schemas"]["SkillOrigin"];
+            path: string;
+            /** @enum {string} */
+            reason: "symlink_outside_root" | "broken_symlink" | "no_skill_md" | "skill_md_too_large" | "too_many_files" | "too_large" | "too_deep" | "unreadable";
+        };
+        SkillRoot: {
+            origin: components["schemas"]["SkillOrigin"];
+            path: string;
+            /** @enum {string} */
+            status: "ok" | "missing" | "not_directory" | "unreadable";
+        };
+        SkillDiscovery: {
+            roots: components["schemas"]["SkillRoot"][];
+            skills: components["schemas"]["DiscoveredSkill"][];
+            skipped: components["schemas"]["SkippedSkill"][];
+            /** @description True when a limit stopped the scan early. */
+            truncated: boolean;
+        };
+        ImportedSkill: {
+            id: string;
+            name: string;
+            description: string;
+            origin: components["schemas"]["SkillOrigin"];
+            source_path: string;
+            hash: string;
+            license?: string;
+            /** @enum {string} */
+            license_source: "frontmatter" | "file" | "none";
+            /** @description The person confirmed importing without a usable license. */
+            license_confirmed: boolean;
+            warnings: components["schemas"]["SkillWarning"][];
+            files: number;
+            bytes: number;
+            /** Format: date-time */
+            imported_at: string;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        SkillImportInput: {
+            source_id: string;
+            /** @description The hash seen in discovery; a changed skill is refused with skill_changed. */
+            hash: string;
+            /** @default false */
+            confirm_license: boolean;
+            /** @default false */
+            replace: boolean;
+        };
+        SkillImportResult: {
+            skill: components["schemas"]["ImportedSkill"];
+            /** @enum {string} */
+            result: "created" | "unchanged" | "replaced";
         };
         Conversation: {
             id: string;
@@ -1160,6 +1438,40 @@ export interface components {
         VaultSetInput: {
             /** @description The secret. Stored sealed; never returned. */
             value: string;
+        };
+        LicenseStatus: {
+            /**
+             * @description none: no license installed. grace: past expires_at but before grace_ends_at; the plan still applies. expired and invalid run free.
+             * @enum {string}
+             */
+            state: "none" | "active" | "grace" | "expired" | "invalid";
+            /**
+             * @description Effective plan for this node now.
+             * @enum {string}
+             */
+            plan: "free" | "pro" | "team" | "business";
+            /**
+             * @description Why the license was refused; only with state invalid.
+             * @enum {string}
+             */
+            reason?: "malformed" | "signature" | "claims" | "no_public_key" | "unreadable";
+            account_id?: string;
+            /**
+             * @description Plan in the license, even when it no longer applies
+             * @enum {string}
+             */
+            license_plan?: "pro" | "team" | "business";
+            features?: string[];
+            /** @description VPS nodes allowed; -1 means unlimited */
+            nodes_max?: number;
+            /** Format: date-time */
+            issued_at?: string;
+            /** Format: date-time */
+            expires_at?: string;
+            /** Format: date-time */
+            grace_ends_at?: string;
+            /** Format: date-time */
+            checked_at: string;
         };
         UsageRow: {
             key: string;
@@ -1487,6 +1799,161 @@ export interface operations {
             400: components["responses"]["Error"];
         };
     };
+    listPtySessions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PtySession"][];
+                };
+            };
+            401: components["responses"]["Error"];
+            403: components["responses"]["Error"];
+        };
+    };
+    createPtySession: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PtySessionInput"];
+            };
+        };
+        responses: {
+            /** @description Started */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PtySession"];
+                };
+            };
+            400: components["responses"]["Error"];
+            401: components["responses"]["Error"];
+            403: components["responses"]["Error"];
+            429: components["responses"]["Error"];
+        };
+    };
+    discoverSkills: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Discovered skills, skipped entries and root states */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SkillDiscovery"];
+                };
+            };
+        };
+    };
+    listImportedSkills: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Imported skills ordered by name */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportedSkill"][];
+                };
+            };
+        };
+    };
+    importSkill: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SkillImportInput"];
+            };
+        };
+        responses: {
+            /** @description Already imported (unchanged) or replaced by the new version */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SkillImportResult"];
+                };
+            };
+            /** @description Imported */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SkillImportResult"];
+                };
+            };
+            400: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+            /** @description license_confirmation_required, replace_required or skill_changed */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    removeImportedSkill: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["Id"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Removed */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            404: components["responses"]["Error"];
+        };
+    };
     listAgents: {
         parameters: {
             query?: never;
@@ -1687,6 +2154,29 @@ export interface operations {
             409: components["responses"]["Error"];
         };
     };
+    listProviderModels: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["Id"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProviderModel"][];
+                };
+            };
+            404: components["responses"]["Error"];
+        };
+    };
     deleteProviderAccount: {
         parameters: {
             query?: never;
@@ -1707,6 +2197,29 @@ export interface operations {
             };
             404: components["responses"]["Error"];
             409: components["responses"]["Error"];
+        };
+    };
+    refreshProviderCapacity: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["Id"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProviderAccount"];
+                };
+            };
+            404: components["responses"]["Error"];
         };
     };
     listConnectors: {
@@ -2521,6 +3034,26 @@ export interface operations {
                 };
             };
             400: components["responses"]["Error"];
+        };
+    };
+    getLicense: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LicenseStatus"];
+                };
+            };
         };
     };
     getUsage: {

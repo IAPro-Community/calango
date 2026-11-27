@@ -17,6 +17,8 @@ import (
 	"calango/internal/core"
 	"calango/internal/gateway"
 	"calango/internal/harness"
+
+	"github.com/IAPro-Community/IAPro-SDK/lease"
 )
 
 // Repository is the persistence the service needs. The SQLite store implements it.
@@ -41,11 +43,19 @@ type Config struct {
 	AnthropicBaseURL string
 	Now              func() time.Time
 	NewID            func(time.Time) (string, error)
+	CapacityInterval time.Duration
+	CapacityOwner    string
+	OnCapacity       func(string, CapacityView)
+	RoutingAllowed   bool
+	LeaseStore       lease.Store
+	Prices           gateway.PriceTable
 }
 
 // Service manages accounts and resolves them to gateway providers.
 type Service struct {
-	cfg Config
+	cfg      Config
+	capacity *capacityMonitor
+	leases   *lease.Coordinator
 }
 
 // NewService validates cfg and returns a Service.
@@ -59,7 +69,21 @@ func NewService(cfg Config) (*Service, error) {
 	if cfg.CodexWorkDir == "" || cfg.AccountsDir == "" {
 		return nil, errors.New("providers service needs the codex work directory and the accounts directory")
 	}
-	return &Service{cfg: cfg}, nil
+	s := &Service{cfg: cfg}
+	if cfg.CapacityInterval > 0 && cfg.CapacityOwner != "" {
+		s.capacity = newCapacityMonitor(s)
+	}
+	if cfg.RoutingAllowed {
+		if s.capacity == nil {
+			return nil, errors.New("capacity routing requires a configured monitor")
+		}
+		var err error
+		s.leases, err = lease.New(cfg.LeaseStore, cfg.Now)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return s, nil
 }
 
 // View is an account with the step that finishes its sign-in. Setup names the
@@ -67,8 +91,9 @@ func NewService(cfg Config) (*Service, error) {
 type View struct {
 	core.ProviderAccount
 	// Key is the gateway name the agent chain refers to: "<kind>/<label>".
-	Key   string
-	Setup string
+	Key      string
+	Setup    string
+	Capacity CapacityView
 }
 
 // Create stores a new account. A Codex account gets its own home directory.
@@ -125,8 +150,19 @@ func (s *Service) Delete(ctx context.Context, ownerID, id string) error {
 	if target == nil {
 		return fmt.Errorf("%w: provider account %s", core.ErrNotFound, id)
 	}
+	if s.capacity != nil {
+		select {
+		case s.capacity.gate <- struct{}{}:
+			defer func() { <-s.capacity.gate }()
+		case <-ctx.Done():
+			return ctx.Err()
+		}
+	}
 	if err := s.cfg.Repo.DeleteProviderAccount(ctx, ownerID, id); err != nil {
 		return err
+	}
+	if s.capacity != nil {
+		s.capacity.forget(*target)
 	}
 	if home := s.codexHome(*target); home != "" {
 		if err := os.RemoveAll(home); err != nil {
@@ -153,6 +189,12 @@ func (s *Service) Resolve(ctx context.Context, ownerID, key string) (gateway.Pro
 		p, err := harness.NewCodex(s.cfg.CodexBin, s.cfg.CodexWorkDir, s.codexHome(a))
 		if err != nil {
 			return nil, err
+		}
+		if s.capacity != nil && ownerID == s.cfg.CapacityOwner {
+			p.CoordinateQuota()
+		}
+		if s.capacity != nil && ownerID == s.cfg.CapacityOwner && a.Label != core.DefaultAccountLabel {
+			return &leasedCodex{service: s, account: a, cli: p}, nil
 		}
 		return p, nil
 	case core.ProviderKindAnthropic:
@@ -184,7 +226,7 @@ func keyItem(a core.ProviderAccount) string {
 }
 
 func (s *Service) view(a core.ProviderAccount) View {
-	return View{ProviderAccount: a, Key: a.Name(), Setup: s.setup(a)}
+	return View{ProviderAccount: a, Key: a.Name(), Setup: s.setup(a), Capacity: s.capacityView(a)}
 }
 
 func (s *Service) setup(a core.ProviderAccount) string {

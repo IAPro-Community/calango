@@ -46,6 +46,14 @@ textarea {
   border-radius: var(--calango-radius-sm);
   padding: 6px 10px;
 }
+
+/* Campos precisam de borda com 3:1 contra o fundo (WCAG 1.4.11); ink-soft fica abaixo disso. */
+input,
+select,
+textarea {
+  border-color: var(--calango-color-clay);
+}
+
 input[type="checkbox"] {
   width: 18px;
   min-height: 18px;
@@ -106,12 +114,30 @@ button.danger {
 .nav-item.active {
   background: var(--calango-color-night-card);
   border-color: var(--calango-color-ink-soft);
+  box-shadow: inset 4px 0 0 var(--calango-color-postit);
 }
 
 .content {
   min-width: 0;
   padding: 24px;
   overflow: auto;
+}
+
+/* O conteúdo recebe foco por script ao trocar de seção; o contorno ficaria em volta da tela inteira. */
+.content:focus {
+  outline: none;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 .screen {
@@ -205,6 +231,29 @@ output.muted {
 .error {
   color: var(--calango-color-tangerine);
   font-size: 13px;
+}
+
+/* A non-blocking notice from the main process, such as a taken shortcut. */
+.notice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding: 10px 14px;
+  border: 1px solid var(--calango-color-tangerine);
+  border-radius: 8px;
+  color: var(--calango-color-sand);
+  font-size: 13px;
+}
+
+.notice button {
+  border: 0;
+  background: transparent;
+  color: var(--calango-color-sand);
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
 }
 
 .status {
@@ -341,4 +390,178 @@ output.muted {
     width: 100%;
     min-height: 100px;
   }
+}
+
+.terminal-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.terminal-status {
+  margin: 0;
+}
+
+.terminal-host {
+  height: calc(100vh - 260px);
+  min-height: 320px;
+  padding: 8px;
+  background: var(--calango-color-night);
+  border: 1px solid var(--calango-color-ink-soft);
+  border-radius: var(--calango-radius-sm);
+  overflow: hidden;
+}
+
+.browser-screen {
+  height: calc(100vh - 48px);
+  min-height: 480px;
+}
+
+.browser-agent {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.browser-tabs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.browser-tablist {
+  display: flex;
+  flex: 1;
+  gap: 4px;
+  min-width: 0;
+  overflow-x: auto;
+}
+
+.browser-tab {
+  display: flex;
+  align-items: center;
+  max-width: 220px;
+  border: 1px solid var(--calango-color-ink-soft);
+  border-radius: var(--calango-radius-sm);
+}
+
+.browser-tab.active {
+  border-color: var(--calango-color-postit-deep);
+}
+
+.browser-tab > button {
+  background: transparent;
+  color: inherit;
+  border-color: transparent;
+}
+
+.browser-tab > button[role="tab"] {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.browser-icon {
+  min-width: 44px;
+}
+
+.browser-toolbar {
+  display: flex;
+  gap: 8px;
+}
+
+.browser-toolbar input {
+  flex: 1;
+  min-width: 0;
+}
+
+.browser-viewport {
+  flex: 1;
+  min-height: 240px;
+  border: 1px solid var(--calango-color-ink-soft);
+  border-radius: var(--calango-radius-md);
+  background: var(--calango-color-night-card);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.scope-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0 0 12px;
+  padding: 8px 12px;
+}
+
+.browser-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.browser-preview-row,
+.browser-preview-port,
+.browser-preview-reload,
+.browser-blocked {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.browser-preview-port input {
+  width: 160px;
+}
+
+.browser-preview-reload {
+  font-size: 13px;
+}
+
+.browser-servers {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.browser-servers li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 13px;
+}
+
+.browser-server-port {
+  font-variant-numeric: tabular-nums;
+  min-width: 48px;
+  font-weight: 600;
+}
+
+.browser-server-title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.browser-blocked code {
+  overflow-wrap: anywhere;
 }

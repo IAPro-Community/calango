@@ -17,6 +17,7 @@ type agentBody struct {
 	TokenLimitMonth int64          `json:"token_limit_month"`
 	ApprovalLevel   string         `json:"approval_level"`
 	MaestroEnabled  bool           `json:"maestro_enabled"`
+	CapacityRouting bool           `json:"capacity_routing"`
 	Providers       []providerBody `json:"providers"`
 }
 
@@ -47,6 +48,7 @@ func (b agentBody) toCore() core.Agent {
 		TokenLimitMonth: b.TokenLimitMonth,
 		ApprovalLevel:   core.ApprovalLevel(b.ApprovalLevel),
 		MaestroEnabled:  b.MaestroEnabled,
+		CapacityRouting: b.CapacityRouting,
 	}
 }
 
@@ -63,6 +65,7 @@ func agentResponseOf(v agents.View) agentResponse {
 			TokenLimitMonth: v.TokenLimitMonth,
 			ApprovalLevel:   string(v.ApprovalLevel),
 			MaestroEnabled:  v.MaestroEnabled,
+			CapacityRouting: v.CapacityRouting,
 		},
 		Paused:          v.Paused,
 		TokensUsedMonth: v.TokensUsedMonth,

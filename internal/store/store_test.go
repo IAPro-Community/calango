@@ -44,7 +44,7 @@ func TestOpenMemoryAppliesSchemaAndEnforcesConstraints(t *testing.T) {
 	if err := rows.Close(); err != nil {
 		t.Fatalf("close schema rows: %v", err)
 	}
-	wantTables := []string{"agent_providers", "agent_tools", "agents", "approval_rules", "approvals", "audit_checkpoints", "audit_log", "connectors", "conversation_members", "conversations", "devices", "memories", "messages", "node_state", "pairing_codes", "provider_accounts", "routine_runs", "routines", "run_steps", "runs", "schema_migrations", "usage", "vault_items"}
+	wantTables := []string{"account_leases", "agent_providers", "agent_tools", "agents", "approval_rules", "approvals", "audit_checkpoints", "audit_log", "connectors", "conversation_members", "conversations", "devices", "memories", "messages", "node_state", "pairing_codes", "provider_accounts", "routine_runs", "routines", "run_steps", "runs", "schema_migrations", "usage", "vault_items"}
 	if strings.Join(gotTables, ",") != strings.Join(wantTables, ",") {
 		t.Fatalf("schema tables = %v, want %v", gotTables, wantTables)
 	}

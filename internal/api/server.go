@@ -25,7 +25,9 @@ import (
 	"calango/internal/maestro"
 	"calango/internal/memory"
 	"calango/internal/providers"
+	"calango/internal/pty"
 	"calango/internal/routines"
+	"calango/internal/skills"
 	"calango/internal/tools"
 	"calango/internal/usage"
 )
@@ -52,10 +54,16 @@ type Config struct {
 	Tools *tools.Service
 	// Maestro manages the isolated official CLI. Nil disables its API routes.
 	Maestro *maestro.Manager
+	// Terminal runs integrated terminal sessions for /v1/pty. Nil disables its routes.
+	Terminal *pty.Manager
+	// Skills discovers and imports Claude Code and Codex skills. Nil disables its routes.
+	Skills *skills.Library
 	// Vault stores secrets and never returns a secret value.
 	Vault VaultStore
 	// Audit reads the audit chain and exports.
 	Audit AuditLedger
+	// License reports the evaluated node license for GET /v1/license.
+	License LicenseReader
 	// Token is the live local bearer token; it acts with full scope.
 	Token *auth.LocalToken
 	// OwnerID scopes all reads and writes to one owner.
@@ -76,12 +84,15 @@ type handler struct {
 	devices       *devices.Service
 	usage         *usage.Service
 	audit         AuditLedger
+	license       LicenseReader
 	vault         VaultStore
 	conversations *conversations.Service
 	events        *events.Hub
 	routines      *routines.Service
 	tools         *tools.Service
 	maestro       *maestro.Manager
+	terminal      *pty.Manager
+	skills        *skills.Library
 	localToken    *auth.LocalToken
 	ownerID       string
 	deviceID      string
@@ -92,8 +103,8 @@ type handler struct {
 // NewHandler validates cfg and returns the node's HTTP handler.
 func NewHandler(cfg Config) (http.Handler, error) {
 	switch {
-	case cfg.Agents == nil, cfg.Memories == nil, cfg.Approvals == nil, cfg.Devices == nil, cfg.Usage == nil, cfg.Vault == nil, cfg.Audit == nil, cfg.Conversations == nil, cfg.Events == nil, cfg.Accounts == nil, cfg.Routines == nil, cfg.Tools == nil:
-		return nil, errors.New("api: agents, memories, approvals, devices, usage, vault, audit, conversations, events, provider accounts, routines and tools services are required")
+	case cfg.Agents == nil, cfg.Memories == nil, cfg.Approvals == nil, cfg.Devices == nil, cfg.Usage == nil, cfg.Vault == nil, cfg.Audit == nil, cfg.Conversations == nil, cfg.Events == nil, cfg.Accounts == nil, cfg.Routines == nil, cfg.Tools == nil, cfg.License == nil:
+		return nil, errors.New("api: agents, memories, approvals, devices, usage, vault, audit, conversations, events, provider accounts, routines, tools and license services are required")
 	case cfg.Token == nil:
 		return nil, errors.New("api: bearer token is required")
 	case cfg.OwnerID == "", cfg.DeviceID == "":
@@ -103,9 +114,9 @@ func NewHandler(cfg Config) (http.Handler, error) {
 	h := &handler{
 		agents: cfg.Agents, memories: cfg.Memories, accounts: cfg.Accounts,
 		approvals: cfg.Approvals, devices: cfg.Devices, usage: cfg.Usage,
-		vault: cfg.Vault, audit: cfg.Audit, conversations: cfg.Conversations,
+		vault: cfg.Vault, audit: cfg.Audit, license: cfg.License, conversations: cfg.Conversations,
 		events: cfg.Events, routines: cfg.Routines, tools: cfg.Tools,
-		maestro: cfg.Maestro, localToken: cfg.Token, ownerID: cfg.OwnerID,
+		maestro: cfg.Maestro, terminal: cfg.Terminal, skills: cfg.Skills, localToken: cfg.Token, ownerID: cfg.OwnerID,
 		deviceID: cfg.DeviceID, pairLimit: newAttemptLimiter(pairAttemptsPerWindow, pairWindow, time.Now),
 		trusted: cfg.TrustedProxies,
 	}
@@ -121,15 +132,26 @@ func NewHandler(cfg Config) (http.Handler, error) {
 	h.registerConversations(v1)
 	h.registerEvents(v1)
 	h.registerProviderAccounts(v1)
+	h.registerProviderModels(v1)
 	h.registerRoutines(v1)
 	h.registerTools(v1)
+	h.registerLicense(v1)
 	if h.maestro != nil {
 		h.registerMaestro(v1)
+	}
+	if h.terminal != nil {
+		h.registerPTY(v1)
+	}
+	if h.skills != nil {
+		h.registerSkills(v1)
 	}
 
 	root := http.NewServeMux()
 	root.HandleFunc("GET /healthz", healthz)
-	root.HandleFunc("POST /v1/pair", h.pair)
+	root.HandleFunc("POST /v1/pair", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Cache-Control", "no-store")
+		h.pair(w, r)
+	})
 	root.Handle("/", h.authenticate(v1))
 	return allowCORS(cfg.CORSOrigins, root), nil
 }
@@ -159,6 +181,7 @@ func principalOf(ctx context.Context) principal {
 // constant time and acts with full scope. Any other token must belong to an active device.
 func (h *handler) authenticate(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Cache-Control", "no-store")
 		token := bearerToken(r)
 		if token == "" {
 			unauthorized(w)

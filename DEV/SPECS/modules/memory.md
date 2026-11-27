@@ -18,6 +18,8 @@ The agent remembers facts, preferences and decisions, and the person controls ev
 ## API
 `GET/POST /v1/memories`, `PATCH/DELETE /v1/memories/{id}`, `GET/POST /v1/skills`, `PATCH /v1/skills/{id}`.
 
+`/v1/skills` stays reserved for approved skills (issue #124). Skills imported from Claude Code and Codex use `/v1/skill-imports` and a file index, not the `skills` table (`SPECS/modules/skills.md`, ADR 0022); an import can later be promoted into `skills` with `source='import'`.
+
 ## Acceptance
 - A deleted memory does not appear in the next run.
 - A refused instruction proposal does not change the agent.

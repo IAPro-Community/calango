@@ -186,6 +186,16 @@ func (s *Service) Rotate(ctx context.Context) (int, error) {
 	if err != nil {
 		return 0, err
 	}
+	// Validate every envelope before changing any item. A restored key can
+	// have the right version and still be the wrong key. Refuse startup or
+	// rotation without modifying the restored database in that case.
+	for _, item := range stored {
+		plain, err := Open(item.Ciphertext, s.scope(), s.keys, item.KeyVersion)
+		if err != nil {
+			return 0, fmt.Errorf("vault: verify stored envelope before rotation: %w", err)
+		}
+		clear(plain)
+	}
 	current := s.keys.Current()
 	rotated := 0
 	for _, item := range stored {

@@ -280,8 +280,10 @@ func (s *Service) Execute(ctx context.Context, ownerID, id string, presented cor
 
 	runErr := run(ctx, a.Action)
 
+	// Keep the execution fenced until its receipt is durably stored. If
+	// recording fails, startup reconciliation must mark the outcome unknown;
+	// never allow the same action to execute twice in this process.
 	s.mu.Lock()
-	delete(s.executing, id)
 	outcome, reason := core.OutcomeCompleted, ""
 	if runErr != nil {
 		outcome, reason = core.OutcomeFailed, runErr.Error()
@@ -295,6 +297,9 @@ func (s *Service) Execute(ctx context.Context, ownerID, id string, presented cor
 	}
 	// Persist the receipt even if ctx was cancelled during the run.
 	persistErr := s.repo.CompleteApproval(context.WithoutCancel(ctx), id, outcome, reason, ev)
+	if persistErr == nil {
+		delete(s.executing, id)
+	}
 	s.mu.Unlock()
 	if persistErr != nil {
 		return core.Approval{}, fmt.Errorf("record receipt for approval %s: %w", id, persistErr)

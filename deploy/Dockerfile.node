@@ -1,19 +1,53 @@
-# Calango node image (server). Build from the repository root: docker build -f deploy/Dockerfile.node -t calango/calango .
-# Partially verified: build and /healthz passed with --network host; bridge networking not validated (see DEV/VERIFY.md).
+# Calango node image (server). Build from the repository root:
+#   docker build -f deploy/Dockerfile.node -t calango/calango .                        # mínima (padrão)
+#   docker build -f deploy/Dockerfile.node --target maestro -t calango/calango:maestro .  # com Node.js e npm
+# The host and bridge-network smoke tests are recorded in `DEV/VERIFY.md`.
 FROM golang:1.23-alpine AS build
 WORKDIR /src
 COPY go.mod ./
 COPY . .
 RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/calango ./cmd/calango
+# distroless/static-debian12:nonroot uses UID/GID 65532.
+RUN mkdir -p /out/data && chown 65532:65532 /out/data
 
-FROM gcr.io/distroless/static-debian12:nonroot
+# Variante "maestro": o mesmo binário com Node.js LTS e npm, para o internal/maestro instalar,
+# verificar e atualizar o Orquestrador Maestro (npm, engines node >= 20.19). Não dá para usar
+# distroless: o "verify" do Maestro chama bash scripts/verify-install.sh (grep, sed, find, tr,
+# wc), o CLI usa #!/usr/bin/env node e o npm roda scripts de instalação com /bin/sh. Por isso a base é
+# Debian slim; yarn e corepack saem para reduzir a superfície. Roda como o mesmo uid 65532 da
+# imagem mínima, então volume e chave do instalador servem às duas. Detalhes em DEV/DEPLOYMENT.md.
+FROM node:24-bookworm-slim AS maestro
+RUN rm -rf /opt/yarn-* /usr/local/bin/yarn /usr/local/bin/yarnpkg \
+		/usr/local/bin/corepack /usr/local/lib/node_modules/corepack \
+	&& groupadd --gid 65532 nonroot \
+	&& useradd --uid 65532 --gid 65532 --home-dir /home/nonroot --no-create-home --shell /usr/sbin/nologin nonroot \
+	&& install -d -o 65532 -g 65532 -m 0750 /home/nonroot \
+	&& install -d -o 65532 -g 65532 -m 0700 /data
 COPY --from=build /out/calango /usr/local/bin/calango
 COPY --from=build /src/LICENSE /usr/share/licenses/calango/LICENSE
 COPY --from=build /src/NOTICE /usr/share/licenses/calango/NOTICE
 COPY --from=build /src/third_party/ /usr/share/licenses/calango/third_party/
+LABEL calango.variant=maestro
+ENV CALANGO_ADDR=0.0.0.0:7317 \
+	NPM_CONFIG_UPDATE_NOTIFIER=false
+EXPOSE 7317
+USER 65532:65532
+WORKDIR /home/nonroot
+ENTRYPOINT ["/usr/local/bin/calango"]
+
+# Variante mínima (padrão, último estágio): só o binário estático, sem shell nem Node.js.
+# O Maestro não instala aqui; a atualização automática registra uma falha por dia no log.
+FROM gcr.io/distroless/static-debian12:nonroot AS minimal
+LABEL calango.variant=minimal
+COPY --from=build /out/calango /usr/local/bin/calango
+COPY --from=build /src/LICENSE /usr/share/licenses/calango/LICENSE
+COPY --from=build /src/NOTICE /usr/share/licenses/calango/NOTICE
+COPY --from=build /src/third_party/ /usr/share/licenses/calango/third_party/
+COPY --from=build --chown=65532:65532 /out/data/ /data/
 # Dentro do container o servidor precisa escutar em todas as interfaces; o acesso externo
 # deve passar pelo proxy TLS, nunca direto.
-ENV CALANGO_ADDR=0.0.0.0:7317
+ENV CALANGO_ADDR=0.0.0.0:7317 \
+    CALANGO_DATA_DIR=/data
 EXPOSE 7317
 USER nonroot:nonroot
 ENTRYPOINT ["/usr/local/bin/calango"]

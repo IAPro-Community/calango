@@ -23,11 +23,14 @@ import (
 	"calango/internal/devices"
 	"calango/internal/events"
 	"calango/internal/gateway"
+	"calango/internal/license"
 	"calango/internal/maestro"
 	"calango/internal/mcpgw"
 	"calango/internal/memory"
 	"calango/internal/providers"
+	"calango/internal/pty"
 	"calango/internal/routines"
+	"calango/internal/skills"
 	"calango/internal/store"
 	"calango/internal/tools"
 	"calango/internal/usage"
@@ -40,25 +43,42 @@ const (
 	approvalTTL          = 24 * time.Hour
 	routineTick          = 30 * time.Second
 	maestroCheckInterval = 24 * time.Hour
+	licenseCheckInterval = time.Hour
 )
 
 // desktopOrigin is the origin of the Electron desktop shell (apps/desktop, scheme app).
 const desktopOrigin = "app://calango"
 
 func main() {
-	cfg, err := config.Load()
+	printingToken := len(os.Args) > 1 && os.Args[1] == "print-token"
+	loadConfig := config.Load
+	if printingToken {
+		loadConfig = config.LoadForPrintToken
+	}
+	cfg, err := loadConfig()
 	if err != nil {
 		log.Fatalf("invalid configuration: %v", err)
 	}
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
-	if len(os.Args) > 1 && os.Args[1] == "print-token" {
+	if printingToken {
 		if err := printToken(ctx, cfg); err != nil {
 			log.Fatalf("print-token: %v", err)
 		}
 		return
 	}
+	if len(os.Args) > 1 && os.Args[1] == "healthcheck" {
+		if err := healthcheck(ctx, cfg.Addr, &http.Client{}); err != nil {
+			log.Fatalf("healthcheck: %v", err)
+		}
+		return
+	}
+	prices, err := gateway.LoadPriceTable(cfg.PriceTableFile)
+	if err != nil {
+		log.Fatalf("invalid price table: %v", err)
+	}
+
 	database, err := store.Open(ctx, filepath.Join(cfg.DataDir, "calango.db"))
 	if err != nil {
 		log.Fatalf("open store: %v", err)
@@ -142,12 +162,21 @@ func main() {
 	if err := os.MkdirAll(workDir, 0o700); err != nil {
 		log.Fatalf("conversations workspace: %v", err)
 	}
+	hub := events.NewHub()
 	providerSvc, err := providers.NewService(providers.Config{
 		Repo:             database,
 		Secrets:          secrets,
 		CodexBin:         "codex",
 		CodexWorkDir:     workDir,
 		AccountsDir:      filepath.Join(cfg.DataDir, "accounts"),
+		CapacityInterval: cfg.CapacityInterval,
+		CapacityOwner:    localOwnerID,
+		RoutingAllowed:   cfg.CapacityRoutingAllowed,
+		LeaseStore:       database.AccountLeases(),
+		Prices:           prices,
+		OnCapacity: func(owner string, view providers.CapacityView) {
+			hub.Publish(events.Event{Type: events.TypeCapacityChanged, OwnerID: owner, Data: view})
+		},
 		AnthropicBaseURL: anthropic.DefaultBaseURL,
 		Now:              time.Now,
 		NewID:            core.NewID,
@@ -161,13 +190,23 @@ func main() {
 	gw, err := gateway.New(gateway.Config{
 		Ledger:  database,
 		Resolve: resolve,
+		Prices:  prices,
 		Now:     time.Now,
 		NewID:   core.NewID,
 	})
 	if err != nil {
 		log.Fatalf("gateway: %v", err)
 	}
-	hub := events.NewHub()
+	capacityCtx, stopCapacity := context.WithCancel(ctx)
+	capacityDone := make(chan struct{})
+	go func() {
+		defer close(capacityDone)
+		providerSvc.RunCapacity(capacityCtx)
+	}()
+	defer func() {
+		stopCapacity()
+		<-capacityDone
+	}()
 	maestroManager, err := maestro.New(maestro.Config{
 		DataDir: cfg.DataDir,
 		ActiveRuns: func(ctx context.Context) (bool, error) {
@@ -202,13 +241,15 @@ func main() {
 		log.Fatalf("maestro manager: %v", err)
 	}
 	convSvc, err := conversations.NewService(conversations.Config{
-		Repo:        database,
-		Gateway:     gw,
-		Now:         time.Now,
-		NewID:       core.NewID,
-		Events:      hub,
-		MaestroHome: maestroManager.CodexHome,
-		Tools:       mcpGW,
+		Repo:           database,
+		Gateway:        gw,
+		CapacityRouter: providerSvc,
+		Memory:         memorySvc,
+		Now:            time.Now,
+		NewID:          core.NewID,
+		Events:         hub,
+		MaestroHome:    maestroManager.CodexHome,
+		Tools:          mcpGW,
 	})
 	if err != nil {
 		log.Fatalf("conversations service: %v", err)
@@ -234,6 +275,16 @@ func main() {
 	}
 	go routinesSvc.Run(ctx, routineTick, func(err error) { log.Printf("routines: %v", err) })
 	go runMaestroScheduler(ctx, maestroManager, hub)
+	licenseMgr := newLicenseManager(cfg)
+	go runLicenseWatch(ctx, licenseMgr)
+
+	terminal, err := newTerminal(workDir, database)
+	if err != nil {
+		log.Fatalf("terminal: %v", err)
+	}
+	// Kills every terminal process tree before the store closes (defers run in reverse).
+	defer func() { _ = terminal.Close() }()
+	skillLib := newSkillLibrary(cfg, database)
 
 	handler, err := api.NewHandler(api.Config{
 		Agents:         agentSvc,
@@ -248,7 +299,10 @@ func main() {
 		Events:         hub,
 		Routines:       routinesSvc,
 		Maestro:        maestroManager,
+		Skills:         skillLib,
 		Tools:          toolsSvc,
+		Terminal:       terminal,
+		License:        licenseMgr,
 		Token:          localToken,
 		OwnerID:        localOwnerID,
 		DeviceID:       localDeviceID,
@@ -272,12 +326,102 @@ func main() {
 		<-ctx.Done()
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
+		// Hijacked WebSockets outlive Shutdown, so end the terminals first.
+		_ = terminal.Close()
 		_ = srv.Shutdown(shutdownCtx)
 	}()
 
 	log.Printf("calango listening on %s (api token in the vault)", cfg.Addr)
 	if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		log.Fatal(err)
+	}
+}
+
+// newSkillLibrary opens the imported skills library under <data-dir>/skills. Discovery
+// reads only cfg.SkillRoots. A library that cannot open is logged and its routes stay
+// off, so a damaged index never blocks the daemon.
+func newSkillLibrary(cfg config.Config, database *store.Store) *skills.Library {
+	roots := make([]skills.Root, 0, len(cfg.SkillRoots))
+	for _, r := range cfg.SkillRoots {
+		roots = append(roots, skills.Root{Origin: skills.Origin(r.Origin), Path: r.Path})
+	}
+	lib, err := skills.New(skills.Config{
+		Dir:   filepath.Join(cfg.DataDir, "skills"),
+		Roots: roots,
+		Now:   time.Now,
+		Audit: func(ctx context.Context, action, subject string, facts map[string]any) error {
+			id, err := core.NewID(time.Now())
+			if err != nil {
+				return err
+			}
+			if err := database.AppendAudit(ctx, core.AuditEvent{
+				ID: id, At: time.Now(), ActorKind: "owner", ActorID: localOwnerID,
+				Action: action, Subject: subject, Facts: facts,
+			}); err != nil {
+				log.Printf("skills: audit %s: %v", action, err)
+				return err
+			}
+			return nil
+		},
+	})
+	if err != nil {
+		log.Printf("skills library disabled: %v", err)
+		return nil
+	}
+	return lib
+}
+
+func newLicenseManager(cfg config.Config) *license.Manager {
+	key, source, err := license.ResolvePublicKey(cfg.LicensePublicKey)
+	if err != nil {
+		log.Printf("license: public key unusable, running Free: %v", err)
+		key, source = nil, license.KeySourceNone
+	}
+	if source == license.KeySourceEmbedded && cfg.LicensePublicKey != "" {
+		log.Printf("license: CALANGO_LICENSE_PUBLIC_KEY ignored; this build embeds the license key")
+	}
+	mgr, err := license.NewManager(cfg.LicenseFile, key, time.Now)
+	if err != nil {
+		// Only a programming error reaches here: path and clock are always set.
+		log.Fatalf("license manager: %v", err)
+	}
+	return mgr
+}
+
+// runLicenseWatch logs the license state at startup and whenever it changes, so an
+// expiry or downgrade is visible in the node log. It never stops the node.
+func runLicenseWatch(ctx context.Context, mgr *license.Manager) {
+	var last license.State
+	check := func() {
+		st := mgr.Status()
+		if st.State == last {
+			return
+		}
+		last = st.State
+		switch st.State {
+		case license.StateActive:
+			log.Printf("license: %s plan active until %s", st.Plan, st.Claims.Expires().Format(time.RFC3339))
+		case license.StateGrace:
+			log.Printf("license: expired at %s; %s plan kept until %s, renew to avoid the Free plan",
+				st.Claims.Expires().Format(time.RFC3339), st.Plan, st.Claims.GraceEnds().Format(time.RFC3339))
+		case license.StateExpired:
+			log.Printf("license: tolerance ended at %s; running Free, no data was removed", st.Claims.GraceEnds().Format(time.RFC3339))
+		case license.StateInvalid:
+			log.Printf("license: %s refused (%s); running Free, no data was removed", mgr.Path(), st.Reason)
+		case license.StateNone:
+			log.Printf("license: none installed; running Free")
+		}
+	}
+	check()
+	ticker := time.NewTicker(licenseCheckInterval)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			check()
+		}
 	}
 }
 
@@ -291,7 +435,7 @@ func runMaestroScheduler(ctx context.Context, manager *maestro.Manager, hub *eve
 		if status.AutoUpdate {
 			installed, err := manager.RunAutoUpdate(ctx)
 			if err != nil {
-				log.Printf("maestro automatic update failed")
+				log.Printf("maestro automatic update failed: %v", err)
 				hub.Publish(events.Event{Type: events.TypeMaestroUpdateFailed, OwnerID: localOwnerID, Data: map[string]string{"result": "failed"}})
 				return
 			}
@@ -325,4 +469,38 @@ func runMaestroScheduler(ctx context.Context, manager *maestro.Manager, hub *eve
 			check()
 		}
 	}
+}
+
+// newTerminal builds the integrated terminal (F4-T03). Shells start only inside the
+// daemon workspace, with a filtered environment, and every open and close is audited
+// without any terminal content.
+func newTerminal(workDir string, database *store.Store) (*pty.Manager, error) {
+	dirs, err := pty.NewRootDir(workDir)
+	if err != nil {
+		return nil, err
+	}
+	return pty.NewManager(pty.Config{
+		Dirs: dirs,
+		OnEvent: func(ev pty.Event) {
+			id, err := core.NewID(time.Now())
+			if err != nil {
+				log.Printf("terminal audit: %v", err)
+				return
+			}
+			facts := map[string]any{"session": ev.Info.ID[:8], "shell": filepath.Base(ev.Info.Shell)}
+			if rel, err := filepath.Rel(dirs.Root(), ev.Info.Dir); err == nil {
+				facts["cwd"] = filepath.ToSlash(rel)
+			}
+			if ev.Action == pty.ActionClosed {
+				facts["reason"] = ev.Reason
+				facts["exit_code"] = ev.ExitCode
+			}
+			if err := database.AppendAudit(context.Background(), core.AuditEvent{
+				ID: id, At: time.Now(), ActorKind: "device", ActorID: ev.Info.DeviceID,
+				Action: ev.Action, Subject: "terminal", Facts: facts,
+			}); err != nil {
+				log.Printf("terminal audit: %v", err)
+			}
+		},
+	})
 }

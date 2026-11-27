@@ -171,7 +171,7 @@ func TestCallRecordsUnknownPriceAsNullNotZero(t *testing.T) {
 func TestCallMarksEstimatedTokensAsEstimatedCost(t *testing.T) {
 	ledger := &memLedger{limits: map[string]int64{"agent": 1000}}
 	provider := &fakeProvider{usage: Usage{TokensIn: 1_000_000, Estimated: true}}
-	prices := PriceTable{Models: map[string]Price{"fake/m": {InputPerMillion: 2_000_000}}}
+	prices := PriceTable{Version: "fixture", Models: map[string]Price{"fake/m": {InputPerMillion: 2_000_000}}}
 	g := newTestGateway(t, ledger, provider, prices, nil)
 
 	if _, err := g.Call(context.Background(), Caller{AgentID: "agent"}, fakeRequest("m", 10), nil); err != nil {

@@ -13,6 +13,7 @@ export type RunDetail = Schemas['RunDetail'];
 export type Approval = Schemas['Approval'];
 export type ApprovalStatus = NonNullable<Approval['status']>;
 export type ProviderAccount = Schemas['ProviderAccount'];
+export type ProviderModel = Schemas['ProviderModel'];
 export type ProviderAccountInput = Schemas['ProviderAccountInput'];
 export type Routine = Schemas['Routine'];
 export type RoutineInput = Schemas['RoutineInput'];
@@ -22,6 +23,18 @@ export type UsageRow = Schemas['UsageRow'];
 export type VaultItem = Schemas['VaultItem'];
 export type MaestroStatus = Schemas['MaestroStatus'];
 export type MaestroUpdateResult = Schemas['MaestroUpdateResult'];
+export type PtySession = Schemas['PtySession'];
+export type PtySessionInput = Schemas['PtySessionInput'];
+export type SkillDiscovery = Schemas['SkillDiscovery'];
+export type DiscoveredSkill = Schemas['DiscoveredSkill'];
+export type SkippedSkill = Schemas['SkippedSkill'];
+export type SkillWarning = Schemas['SkillWarning'];
+export type ImportedSkill = Schemas['ImportedSkill'];
+export type SkillImportInput = Schemas['SkillImportInput'];
+export type SkillImportResult = Schemas['SkillImportResult'];
+export type Device = Schemas['Device'];
+export type DeviceScope = Schemas['DeviceScope'];
+export type PairingCode = Schemas['PairingCode'];
 
 export interface ClientOptions {
   /** Base URL of the local daemon, for example http://127.0.0.1:7317. */
@@ -56,7 +69,10 @@ export interface CalangoClient {
   resumeAll(): Promise<void>;
 
   listProviderAccounts(): Promise<ProviderAccount[]>;
+  /** Models one account can use; empty when the provider has no catalog endpoint. */
+  listProviderModels(accountId: string): Promise<ProviderModel[]>;
   createProviderAccount(input: ProviderAccountInput): Promise<ProviderAccount>;
+  refreshProviderCapacity(accountId: string): Promise<ProviderAccount>;
   /** Stores a secret in the vault. The value is write-only; the API never returns it. */
   setVaultSecret(name: string, value: string): Promise<void>;
   /** Lists metadata only; secret values are never returned. */
@@ -86,6 +102,25 @@ export interface CalangoClient {
   updateMaestro(): Promise<MaestroUpdateResult>;
   rollbackMaestro(): Promise<MaestroStatus>;
   setMaestroAutoUpdate(enabled: boolean): Promise<MaestroStatus>;
+
+  /** Starts a shell in the daemon workspace. Terminal bytes flow over the WebSocket /v1/pty/{id}. */
+  createPtySession(input?: PtySessionInput): Promise<PtySession>;
+  listPtySessions(): Promise<PtySession[]>;
+  /** Ends the session and kills its whole process tree. */
+  deletePtySession(sessionId: string): Promise<void>;
+  /** Read-only scan of the authorized skill directories. */
+  discoverSkills(): Promise<SkillDiscovery>;
+  listImportedSkills(): Promise<ImportedSkill[]>;
+  /** Idempotent: the same version returns result "unchanged". */
+  importSkill(input: SkillImportInput): Promise<SkillImportResult>;
+  /** Issues a single-use pairing code (5 minutes). The code is returned only here. */
+  createPairingCode(scope: DeviceScope): Promise<PairingCode>;
+  /** Lists paired devices, revoked ones included. Token digests never leave the node. */
+  listDevices(): Promise<Device[]>;
+  /** Revokes a device token; its next call gets 401. */
+  revokeDevice(deviceId: string): Promise<void>;
+  /** Removes the node's copy only; the source directory is untouched. */
+  removeImportedSkill(skillId: string): Promise<void>;
 }
 
 export function createClient(options: ClientOptions): CalangoClient {
@@ -153,7 +188,11 @@ export function createClient(options: ClientOptions): CalangoClient {
     resumeAll: () => request<void>('POST', '/v1/agents/resume-all'),
 
     listProviderAccounts: () => request<ProviderAccount[]>('GET', '/v1/provider-accounts'),
+    listProviderModels: (accountId) =>
+      request<ProviderModel[]>('GET', `/v1/provider-accounts/${encodeURIComponent(accountId)}/models`),
     createProviderAccount: (input) => request<ProviderAccount>('POST', '/v1/provider-accounts', input),
+    refreshProviderCapacity: (accountId) =>
+      request<ProviderAccount>('POST', `/v1/provider-accounts/${encodeURIComponent(accountId)}/capacity/refresh`),
     setVaultSecret: (name, value) => request<void>('PUT', `/v1/vault/${encodeURIComponent(name)}`, { value }),
     listVaultItems: () => request<VaultItem[]>('GET', '/v1/vault'),
     deleteVaultSecret: (name) => request<void>('DELETE', `/v1/vault/${encodeURIComponent(name)}`),
@@ -198,5 +237,16 @@ export function createClient(options: ClientOptions): CalangoClient {
     rollbackMaestro: () => request<MaestroStatus>('POST', '/v1/maestro/rollback'),
     setMaestroAutoUpdate: (enabled) =>
       request<MaestroStatus>('PATCH', '/v1/maestro/settings', { auto_update: enabled }),
+    createPtySession: (input = {}) => request<PtySession>('POST', '/v1/pty', input),
+    listPtySessions: () => request<PtySession[]>('GET', '/v1/pty'),
+    deletePtySession: (sessionId) => request<void>('DELETE', `/v1/pty/${encodeURIComponent(sessionId)}`),
+
+    discoverSkills: () => request<SkillDiscovery>('GET', '/v1/skill-imports/discover'),
+    listImportedSkills: () => request<ImportedSkill[]>('GET', '/v1/skill-imports'),
+    importSkill: (input) => request<SkillImportResult>('POST', '/v1/skill-imports', input),
+    createPairingCode: (scope) => request<PairingCode>('POST', '/v1/pairing-codes', { scope }),
+    listDevices: () => request<Device[]>('GET', '/v1/devices'),
+    revokeDevice: (deviceId) => request<void>('DELETE', `/v1/devices/${encodeURIComponent(deviceId)}`),
+    removeImportedSkill: (skillId) => request<void>('DELETE', `/v1/skill-imports/${encodeURIComponent(skillId)}`),
   };
 }
