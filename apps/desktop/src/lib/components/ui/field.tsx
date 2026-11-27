@@ -28,7 +28,11 @@ export type FieldProps = Omit<ComponentProps<'label'>, 'children'> & {
 // Field wraps the control in its label, so the label names it without ids.
 export function Field({ label, hint, className, children, ...props }: FieldProps) {
   return (
-    <label className={cn('flex min-w-0 flex-col gap-2xs font-body text-[12.5px] leading-[18px] text-ink-soft', className)} {...props}>
+    // biome-ignore lint/a11y/noLabelWithoutControl: the control arrives as children, inside the label.
+    <label
+      className={cn('flex min-w-0 flex-col gap-2xs font-body text-[12.5px] leading-[18px] text-ink-soft', className)}
+      {...props}
+    >
       <span>{label}</span>
       {children}
       {hint !== undefined && <span className="text-[11.5px] text-ink-soft">{hint}</span>}

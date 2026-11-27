@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import type { Agent, ProviderAccount } from '@calango/sdk-ts';
 import { usePoll } from '../usePoll';
 import type { ScreenProps } from './props';
+import { Button, Card, Field, Input, PageHeader, Select, Textarea } from '@';
 
 const DEFAULT_LABEL = 'default';
 
@@ -47,36 +48,38 @@ export function AgentsScreen({ client, t }: ScreenProps) {
   }
 
   return (
-    <section className="screen">
-      <header className="screen-header">
-        <h1>{t('navAgents')}</h1>
-        <div className="actions">
-          <button
-            type="button"
-            onClick={() => {
-              setActionError(null);
-              void client
-                .pauseAll()
-                .then(refresh)
-                .catch((err) => setActionError(err instanceof Error ? err.message : String(err)));
-            }}
-          >
-            {t('agentPauseAll')}
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setActionError(null);
-              void client
-                .resumeAll()
-                .then(refresh)
-                .catch((err) => setActionError(err instanceof Error ? err.message : String(err)));
-            }}
-          >
-            {t('agentResumeAll')}
-          </button>
-        </div>
-      </header>
+    <section className="flex flex-col gap-md">
+      <PageHeader
+        title={t('navAgents')}
+        actions={
+          <>
+            <Button
+              variant="ghost"
+              onClick={() => {
+                setActionError(null);
+                void client
+                  .pauseAll()
+                  .then(refresh)
+                  .catch((err) => setActionError(err instanceof Error ? err.message : String(err)));
+              }}
+            >
+              {t('agentPauseAll')}
+            </Button>
+            <Button
+              variant="ghost"
+              onClick={() => {
+                setActionError(null);
+                void client
+                  .resumeAll()
+                  .then(refresh)
+                  .catch((err) => setActionError(err instanceof Error ? err.message : String(err)));
+              }}
+            >
+              {t('agentResumeAll')}
+            </Button>
+          </>
+        }
+      />
       {error && (
         <p className="error" role="alert">
           {error}
@@ -88,13 +91,11 @@ export function AgentsScreen({ client, t }: ScreenProps) {
         </p>
       )}
 
-      <div className="grid">
-        <div className="card">
-          <h2>{t('agentCreate')}</h2>
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(320px,1fr))] items-start gap-md">
+        <Card title={t('agentCreate')}>
           <AgentForm accounts={accounts} onCreated={refresh} client={client} t={t} />
-        </div>
-        <div className="card">
-          <h2>{t('accountCreate')}</h2>
+        </Card>
+        <Card title={t('accountCreate')}>
           <AccountForm onCreated={refresh} client={client} t={t} />
           <ul className="list">
             {accounts.map((account) => (
@@ -104,10 +105,10 @@ export function AgentsScreen({ client, t }: ScreenProps) {
               </li>
             ))}
           </ul>
-        </div>
+        </Card>
       </div>
 
-      <div className="card">
+      <Card>
         {agents.length === 0 ? (
           <p className="muted">{t('agentEmpty')}</p>
         ) : (
@@ -122,22 +123,22 @@ export function AgentsScreen({ client, t }: ScreenProps) {
                     {t(agent.paused ? 'agentStatusPaused' : 'agentStatusActive')}
                   </span>
                   {hasCodex && (
-                    <button
-                      type="button"
+                    <Button
+                      variant="ghost"
                       onClick={() => void toggleAgentMaestro(agent)}
                       disabled={maestroBusyAgent !== null}
                     >
                       {maestroBusyAgent === agent.id
                         ? t('commonLoading')
                         : t(agent.maestro_enabled ? 'agentMaestroUnlink' : 'agentMaestroLink')}
-                    </button>
+                    </Button>
                   )}
                 </li>
               );
             })}
           </ul>
         )}
-      </div>
+      </Card>
     </section>
   );
 }
@@ -168,34 +169,31 @@ function AccountForm({ client, t, onCreated }: ScreenProps & { onCreated: () => 
   }
 
   return (
-    <form className="form" onSubmit={(event) => void submit(event)}>
-      <label>
-        {t('accountKind')}
-        <select value={kind} onChange={(event) => setKind(event.target.value as 'codex' | 'anthropic')}>
+    <form className="flex flex-col gap-sm" onSubmit={(event) => void submit(event)}>
+      <Field label={t('accountKind')}>
+        <Select value={kind} onChange={(event) => setKind(event.target.value as 'codex' | 'anthropic')}>
           <option value="codex">Codex</option>
           <option value="anthropic">Anthropic</option>
-        </select>
-      </label>
-      <label>
-        {t('accountLabel')}
-        <input
+        </Select>
+      </Field>
+      <Field label={t('accountLabel')}>
+        <Input
           value={label}
           onChange={(event) => setLabel(event.target.value)}
           required
           pattern="[a-z0-9][a-z0-9-]{0,31}"
         />
-      </label>
+      </Field>
       {kind === 'anthropic' ? (
-        <label>
-          {t('accountAnthropicKey')}
-          <input
+        <Field label={t('accountAnthropicKey')}>
+          <Input
             type="password"
             value={secret}
             onChange={(event) => setSecret(event.target.value)}
             required
             autoComplete="off"
           />
-        </label>
+        </Field>
       ) : (
         <p className="muted">{t('accountCodexNote')}</p>
       )}
@@ -205,9 +203,9 @@ function AccountForm({ client, t, onCreated }: ScreenProps & { onCreated: () => 
           {formError}
         </p>
       )}
-      <button type="submit" disabled={busy}>
+      <Button type="submit" disabled={busy}>
         {t('accountCreate')}
-      </button>
+      </Button>
     </form>
   );
 }
@@ -269,22 +267,18 @@ function AgentForm({
   }
 
   return (
-    <form className="form" onSubmit={(event) => void submit(event)}>
-      <label>
-        {t('agentName')}
-        <input value={name} onChange={(event) => setName(event.target.value)} required />
-      </label>
-      <label>
-        {t('agentRole')}
-        <input value={role} onChange={(event) => setRole(event.target.value)} />
-      </label>
-      <label>
-        {t('agentInstructions')}
-        <textarea value={instructions} onChange={(event) => setInstructions(event.target.value)} rows={3} />
-      </label>
-      <label>
-        {t('agentProviderAccount')}
-        <select value={accountId} onChange={(event) => setAccountId(event.target.value)} required>
+    <form className="flex flex-col gap-sm" onSubmit={(event) => void submit(event)}>
+      <Field label={t('agentName')}>
+        <Input value={name} onChange={(event) => setName(event.target.value)} required />
+      </Field>
+      <Field label={t('agentRole')}>
+        <Input value={role} onChange={(event) => setRole(event.target.value)} />
+      </Field>
+      <Field label={t('agentInstructions')}>
+        <Textarea value={instructions} onChange={(event) => setInstructions(event.target.value)} rows={3} />
+      </Field>
+      <Field label={t('agentProviderAccount')}>
+        <Select value={accountId} onChange={(event) => setAccountId(event.target.value)} required>
           <option value="" disabled>
             —
           </option>
@@ -293,41 +287,37 @@ function AgentForm({
               {account.key}
             </option>
           ))}
-        </select>
-      </label>
-      <label>
-        {t('agentModel')}
-        <input value={model} onChange={(event) => setModel(event.target.value)} required />
-      </label>
-      <label>
-        {t('agentTokenLimit')}
-        <input
+        </Select>
+      </Field>
+      <Field label={t('agentModel')}>
+        <Input value={model} onChange={(event) => setModel(event.target.value)} required />
+      </Field>
+      <Field label={t('agentTokenLimit')}>
+        <Input
           type="number"
           min={1}
           value={tokenLimit}
           onChange={(event) => setTokenLimit(Number(event.target.value))}
           required
         />
-      </label>
-      <label>
-        {t('agentRunOn')}
-        <select value={runOn} onChange={(event) => setRunOn(event.target.value as 'auto' | 'pc' | 'vps')}>
+      </Field>
+      <Field label={t('agentRunOn')}>
+        <Select value={runOn} onChange={(event) => setRunOn(event.target.value as 'auto' | 'pc' | 'vps')}>
           <option value="auto">{t('runOnAuto')}</option>
           <option value="pc">{t('runOnPc')}</option>
           <option value="vps">{t('runOnVps')}</option>
-        </select>
-      </label>
-      <label>
-        {t('agentApprovalLevel')}
-        <select
+        </Select>
+      </Field>
+      <Field label={t('agentApprovalLevel')}>
+        <Select
           value={approvalLevel}
           onChange={(event) => setApprovalLevel(event.target.value as 'always' | 'sensitive' | 'trusted')}
         >
           <option value="always">{t('approvalAlways')}</option>
           <option value="sensitive">{t('approvalSensitive')}</option>
           <option value="trusted">{t('approvalTrusted')}</option>
-        </select>
-      </label>
+        </Select>
+      </Field>
       {selectedAccount?.kind === 'codex' && (
         <>
           <label className="check-label">
@@ -346,9 +336,9 @@ function AgentForm({
           {formError}
         </p>
       )}
-      <button type="submit" disabled={busy}>
+      <Button type="submit" disabled={busy}>
         {t('agentCreate')}
-      </button>
+      </Button>
     </form>
   );
 }

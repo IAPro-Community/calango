@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import type { Agent, Routine } from '@calango/sdk-ts';
 import { usePoll } from '../usePoll';
 import type { ScreenProps } from './props';
+import { Button, Card, Field, Input, PageHeader, Select, Textarea } from '@';
 
 export function RoutinesScreen({ client, t }: ScreenProps) {
   const load = useCallback(async () => {
@@ -24,10 +25,8 @@ export function RoutinesScreen({ client, t }: ScreenProps) {
   }
 
   return (
-    <section className="screen">
-      <header className="screen-header">
-        <h1>{t('navRoutines')}</h1>
-      </header>
+    <section className="flex flex-col gap-md">
+      <PageHeader title={t('navRoutines')} />
       {error && (
         <p className="error" role="alert">
           {error}
@@ -38,12 +37,11 @@ export function RoutinesScreen({ client, t }: ScreenProps) {
           {actionError}
         </p>
       )}
-      <div className="grid">
-        <div className="card">
-          <h2>{t('routineCreate')}</h2>
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(320px,1fr))] items-start gap-md">
+        <Card title={t('routineCreate')}>
           <RoutineForm client={client} t={t} agents={agents} onCreated={refresh} />
-        </div>
-        <div className="card">
+        </Card>
+        <Card>
           {routines.length === 0 ? (
             <p className="muted">{t('routineEmpty')}</p>
           ) : (
@@ -56,14 +54,14 @@ export function RoutinesScreen({ client, t }: ScreenProps) {
                       {t('routineSchedule')}: {routine.schedule} · {t('routineNextRun')}: {routine.next_run_at}
                     </div>
                   </div>
-                  <button type="button" onClick={() => void togglePaused(routine)}>
+                  <Button variant="ghost" onClick={() => void togglePaused(routine)}>
                     {routine.paused ? t('routineResume') : t('routinePause')}
-                  </button>
+                  </Button>
                 </li>
               ))}
             </ul>
           )}
-        </div>
+        </Card>
       </div>
     </section>
   );
@@ -110,10 +108,9 @@ function RoutineForm({ client, t, agents, onCreated }: ScreenProps & { agents: A
   }
 
   return (
-    <form className="form" onSubmit={(event) => void submit(event)}>
-      <label>
-        {t('routineAgent')}
-        <select value={agentId} onChange={(event) => setAgentId(event.target.value)} required>
+    <form className="flex flex-col gap-sm" onSubmit={(event) => void submit(event)}>
+      <Field label={t('routineAgent')}>
+        <Select value={agentId} onChange={(event) => setAgentId(event.target.value)} required>
           <option value="" disabled>
             —
           </option>
@@ -122,41 +119,36 @@ function RoutineForm({ client, t, agents, onCreated }: ScreenProps & { agents: A
               {agent.name}
             </option>
           ))}
-        </select>
-      </label>
-      <label>
-        {t('routineName')}
-        <input value={name} onChange={(event) => setName(event.target.value)} required />
-      </label>
-      <label>
-        {t('routinePrompt')}
-        <textarea value={prompt} onChange={(event) => setPrompt(event.target.value)} rows={3} required />
-      </label>
-      <label>
-        {t('routineTrigger')}
-        <select value={triggerKind} onChange={(event) => setTriggerKind(event.target.value as 'cron' | 'interval')}>
+        </Select>
+      </Field>
+      <Field label={t('routineName')}>
+        <Input value={name} onChange={(event) => setName(event.target.value)} required />
+      </Field>
+      <Field label={t('routinePrompt')}>
+        <Textarea value={prompt} onChange={(event) => setPrompt(event.target.value)} rows={3} required />
+      </Field>
+      <Field label={t('routineTrigger')}>
+        <Select value={triggerKind} onChange={(event) => setTriggerKind(event.target.value as 'cron' | 'interval')}>
           <option value="cron">{t('triggerCron')}</option>
           <option value="interval">{t('triggerInterval')}</option>
-        </select>
-      </label>
-      <label>
-        {t('routineSchedule')}
-        <input value={schedule} onChange={(event) => setSchedule(event.target.value)} required />
-      </label>
-      <label>
-        {t('routineNotify')}
-        <select value={notifyOn} onChange={(event) => setNotifyOn(event.target.value as 'always' | 'news' | 'failure')}>
+        </Select>
+      </Field>
+      <Field label={t('routineSchedule')}>
+        <Input value={schedule} onChange={(event) => setSchedule(event.target.value)} required />
+      </Field>
+      <Field label={t('routineNotify')}>
+        <Select value={notifyOn} onChange={(event) => setNotifyOn(event.target.value as 'always' | 'news' | 'failure')}>
           <option value="always">{t('notifyAlways')}</option>
           <option value="news">{t('notifyNews')}</option>
           <option value="failure">{t('notifyFailure')}</option>
-        </select>
-      </label>
+        </Select>
+      </Field>
       {formError && (
         <p className="error" role="alert">
           {formError}
         </p>
       )}
-      <button type="submit">{t('routineCreate')}</button>
+      <Button type="submit">{t('routineCreate')}</Button>
     </form>
   );
 }

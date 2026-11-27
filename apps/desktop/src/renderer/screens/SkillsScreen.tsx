@@ -9,6 +9,7 @@ import {
 } from '@calango/sdk-ts';
 import type { MessageKey } from '../i18n';
 import type { ScreenProps } from './props';
+import { Button, Card, PageHeader } from '@';
 
 const ORIGIN_KEYS: Record<DiscoveredSkill['origin'], MessageKey> = {
   claude: 'skillsOriginClaude',
@@ -126,15 +127,15 @@ export function SkillsScreen({ client, t }: ScreenProps) {
   }
 
   return (
-    <section className="screen">
-      <header className="screen-header">
-        <h1>{t('skillsTitle')}</h1>
-        <div className="actions">
-          <button type="button" onClick={() => void load()} disabled={busyId !== null}>
+    <section className="flex flex-col gap-md">
+      <PageHeader
+        title={t('skillsTitle')}
+        actions={
+          <Button variant="ghost" onClick={() => void load()} disabled={busyId !== null}>
             {t('skillsRefresh')}
-          </button>
-        </div>
-      </header>
+          </Button>
+        }
+      />
       <p className="muted">{t('skillsDescription')}</p>
       {loadError && (
         <p className="error" role="alert">
@@ -146,8 +147,7 @@ export function SkillsScreen({ client, t }: ScreenProps) {
           {actionError}
         </p>
       )}
-      <section className="card">
-        <h2>{t('skillsDiscoveredTitle')}</h2>
+      <Card title={t('skillsDiscoveredTitle')}>
         {discovery === null ? (
           loadError ? null : (
             <p className="muted">{t('commonLoading')}</p>
@@ -199,9 +199,8 @@ export function SkillsScreen({ client, t }: ScreenProps) {
             )}
           </>
         )}
-      </section>
-      <section className="card">
-        <h2>{t('skillsImportedTitle')}</h2>
+      </Card>
+      <Card title={t('skillsImportedTitle')}>
         <p className="muted">{t('skillsNotWired')}</p>
         {imported === null ? null : imported.length === 0 ? (
           <p className="muted">{t('skillsImportedEmpty')}</p>
@@ -218,19 +217,14 @@ export function SkillsScreen({ client, t }: ScreenProps) {
                     {new Date(skill.updated_at).toLocaleString()}
                   </span>
                 </span>
-                <button
-                  type="button"
-                  className="danger"
-                  onClick={() => void removeSkill(skill)}
-                  disabled={busyId !== null}
-                >
+                <Button variant="danger" onClick={() => void removeSkill(skill)} disabled={busyId !== null}>
                   {busyId === skill.id ? t('commonLoading') : t('skillsRemove')}
-                </button>
+                </Button>
               </li>
             ))}
           </ul>
         )}
-      </section>
+      </Card>
     </section>
   );
 }
@@ -278,13 +272,13 @@ function DiscoveredRow({ skill, t, busy, working, confirmed, onConfirm, onImport
       {skill.import_status === 'imported' ? (
         <span className="muted">{t('skillsStatusImported')}</span>
       ) : (
-        <button type="button" onClick={onImport} disabled={busy || (needsConfirm && !confirmed)}>
+        <Button variant="ghost" onClick={onImport} disabled={busy || (needsConfirm && !confirmed)}>
           {working
             ? t('commonLoading')
             : skill.import_status === 'update_available'
               ? t('skillsUpdate')
               : t('skillsImport')}
-        </button>
+        </Button>
       )}
     </li>
   );

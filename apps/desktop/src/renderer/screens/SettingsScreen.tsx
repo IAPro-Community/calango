@@ -3,6 +3,7 @@ import type { VaultItem } from '@calango/sdk-ts';
 import { bridge } from '../bridge';
 import { usePoll } from '../usePoll';
 import type { ScreenProps } from './props';
+import { Button, Card, Field, Input, PageHeader } from '@';
 
 export function SettingsScreen({ client, t }: ScreenProps) {
   const load = useCallback(() => client.listVaultItems(), [client]);
@@ -103,18 +104,14 @@ export function SettingsScreen({ client, t }: ScreenProps) {
   }
 
   return (
-    <section className="screen">
-      <header className="screen-header">
-        <h1>{t('navSettings')}</h1>
-      </header>
-      <div className="grid">
-        <section className="card">
-          <h2>{t('settingsSecretAddTitle')}</h2>
+    <section className="flex flex-col gap-md">
+      <PageHeader title={t('navSettings')} />
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(320px,1fr))] items-start gap-md">
+        <Card title={t('settingsSecretAddTitle')}>
           <p className="muted">{t('settingsVaultDescription')}</p>
-          <form className="form" onSubmit={(event) => void save(event)}>
-            <label>
-              {t('settingsSecretName')}
-              <input
+          <form className="flex flex-col gap-sm" onSubmit={(event) => void save(event)}>
+            <Field label={t('settingsSecretName')}>
+              <Input
                 value={name}
                 onChange={(event) => setName(event.target.value)}
                 required
@@ -122,10 +119,9 @@ export function SettingsScreen({ client, t }: ScreenProps) {
                 maxLength={63}
                 disabled={busy}
               />
-            </label>
-            <label>
-              {t('settingsSecretValue')}
-              <input
+            </Field>
+            <Field label={t('settingsSecretValue')}>
+              <Input
                 type="password"
                 value={secret}
                 onChange={(event) => setSecret(event.target.value)}
@@ -133,20 +129,19 @@ export function SettingsScreen({ client, t }: ScreenProps) {
                 autoComplete="off"
                 disabled={busy}
               />
-            </label>
+            </Field>
             {actionError && (
               <p className="error" role="alert">
                 {actionError}
               </p>
             )}
             {saved && <output className="muted">{t('settingsSecretSaved')}</output>}
-            <button type="submit" disabled={busy || name.trim() === '' || secret.length === 0}>
+            <Button type="submit" disabled={busy || name.trim() === '' || secret.length === 0}>
               {busy ? t('commonLoading') : t('commonSave')}
-            </button>
+            </Button>
           </form>
-        </section>
-        <section className="card">
-          <h2>{t('settingsVault')}</h2>
+        </Card>
+        <Card title={t('settingsVault')}>
           {loadError && (
             <p className="error" role="alert">
               {t('settingsVaultLoadError')}
@@ -169,17 +164,16 @@ export function SettingsScreen({ client, t }: ScreenProps) {
                   {item.name === 'api-token' ? (
                     <span className="muted">{t('settingsSecretProtected')}</span>
                   ) : (
-                    <button type="button" className="danger" onClick={() => void remove(item)} disabled={busy}>
+                    <Button variant="danger" onClick={() => void remove(item)} disabled={busy}>
                       {deletingName === item.name ? t('commonLoading') : t('commonDelete')}
-                    </button>
+                    </Button>
                   )}
                 </li>
               ))}
             </ul>
           )}
-        </section>
-        <section className="card">
-          <h2>{t('settingsStartupTitle')}</h2>
+        </Card>
+        <Card title={t('settingsStartupTitle')}>
           <p className="muted">{t('settingsStartupDescription')}</p>
           <label className="check-label">
             <input
@@ -195,9 +189,8 @@ export function SettingsScreen({ client, t }: ScreenProps) {
               {launchError}
             </p>
           )}
-        </section>
-        <section className="card">
-          <h2>{t('maestroTitle')}</h2>
+        </Card>
+        <Card title={t('maestroTitle')}>
           <p className="muted">{t('maestroDescription')}</p>
           <p className="muted">{t('maestroLoginNotice')}</p>
           {maestroLoadError && (
@@ -232,8 +225,8 @@ export function SettingsScreen({ client, t }: ScreenProps) {
                 {t('maestroAutoUpdate')}
               </label>
               <div className="actions">
-                <button
-                  type="button"
+                <Button
+                  variant="ghost"
                   onClick={() =>
                     void runMaestroAction(() =>
                       maestroStatus.update_available
@@ -244,15 +237,15 @@ export function SettingsScreen({ client, t }: ScreenProps) {
                   disabled={maestroBusy}
                 >
                   {maestroBusy ? t('commonLoading') : t(maestroStatus.installed ? 'maestroUpdate' : 'maestroInstall')}
-                </button>
+                </Button>
                 {maestroStatus.rollback_available && (
-                  <button
-                    type="button"
+                  <Button
+                    variant="ghost"
                     onClick={() => void runMaestroAction(() => client.rollbackMaestro())}
                     disabled={maestroBusy}
                   >
                     {t('maestroRollback')}
-                  </button>
+                  </Button>
                 )}
               </div>
             </>
@@ -262,7 +255,7 @@ export function SettingsScreen({ client, t }: ScreenProps) {
               {t('maestroAbout')}
             </a>
           </p>
-        </section>
+        </Card>
       </div>
     </section>
   );
