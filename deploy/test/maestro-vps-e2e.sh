@@ -13,17 +13,27 @@
 # só na rede do Compose e com CA de teste): uma 1.1.2 boa (a 1.1.1 reempacotada) e uma 1.1.3 com
 # verify quebrado. Opt-out, atualização manual, verify, rollback e versão que falha no verify.
 #
-# Remove tudo no fim (instalador --uninstall --purge). KEEP=1 mantém para inspeção.
+# Projeto do Compose próprio, único por execução (calango-e2e-*); recusa rodar se o volume
+# calango_calango-data (instalação real) existir. Remove tudo no fim (instalador --uninstall --purge). KEEP=1 mantém para inspeção.
 set -eu
 
 IMAGE=${1:?uso: maestro-vps-e2e.sh IMAGEM}
 CLI_IMAGE=${CLI_IMAGE:-docker:29-dind}
 REPO=$(cd "$(dirname "$0")/../.." && pwd)
+# Projeto do Compose só deste teste, único por execução. O instalador de produção usa "calango" e o
+# cleanup roda --purge, que apaga os volumes do projeto: esse nome nunca pode ser reaproveitado aqui.
+PROJECT=calango-e2e-$(date +%s)-$$
+# Guarda antes de qualquer cleanup: volume de produção neste host = instalação real, o teste não roda.
+volumes=$(docker volume ls -q)
+if printf '%s\n' "$volumes" | grep -qx calango_calango-data; then
+	printf '%s\n' "recusado: o volume calango_calango-data existe neste host (instalação real)." >&2
+	exit 1
+fi
 WORK=$(mktemp -d "${TMPDIR:-/tmp}/calango-maestro-e2e.XXXXXX")
 DIR=$WORK/calango
 FIX=$WORK/fixtures
 DOMAIN=calango.test
-NODE=calango-calango-1
+NODE=${PROJECT}-calango-1
 PKG=@iapro/orquestrador-maestro-cli
 BASE_VERSION=1.1.1
 TOKEN=""
@@ -46,6 +56,7 @@ cli() {
 	prog=$1
 	shift
 	docker run --rm --network host -v /var/run/docker.sock:/var/run/docker.sock \
+		-e CALANGO_PROJECT="$PROJECT" \
 		-v "$WORK:$WORK" -v "$REPO/deploy:$REPO/deploy:ro" --entrypoint "$prog" "$CLI_IMAGE" "$@"
 }
 
@@ -54,7 +65,7 @@ installer() {
 }
 
 compose() {
-	cli docker compose --project-name calango --project-directory "$DIR" -f "$DIR/docker-compose.yml" "$@"
+	cli docker compose --project-name "$PROJECT" --project-directory "$DIR" -f "$DIR/docker-compose.yml" "$@"
 }
 
 compose_fake() {

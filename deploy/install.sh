@@ -21,7 +21,8 @@ NODE_UID=65532
 # maestro: imagem X.Y.Z-maestro, com Node.js LTS e npm (o Maestro instala e atualiza sozinho).
 # minimal: imagem X.Y.Z, distroless sem Node.js (o Maestro não instala).
 DEFAULT_VARIANT=maestro
-PROJECT=calango
+# Nome do projeto do Compose e prefixo dos volumes. Produção usa o padrão; o e2e define o seu.
+PROJECT=${CALANGO_PROJECT:-calango}
 
 say() { printf '%s\n' "$*"; }
 warn() { printf 'aviso: %s\n' "$*" >&2; }
