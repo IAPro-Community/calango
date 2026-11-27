@@ -131,7 +131,7 @@ export function BrowserScreen({ client, t }: ScreenProps) {
           </label>
         )}
       </header>
-      {agentsError && <p className="error">{agentsError}</p>}
+      {agentsError && <p className="error" role="alert">{agentsError}</p>}
       {agents !== null && agentList.length === 0 && <p className="muted">{t('browserNoAgents')}</p>}
       {agentId !== null && (
         <>
