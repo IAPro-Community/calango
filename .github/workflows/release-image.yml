@@ -1,7 +1,9 @@
 # Publica a imagem oficial do nó (linux/amd64 e linux/arm64) no GHCR a partir de uma tag de
-# release vX.Y.Z revisada. Cada arquitetura é compilada nativamente no seu runner; o índice
-# multi-arquitetura recebe só a tag imutável X.Y.Z (sem latest) e a proveniência assinada do
-# GitHub. Pull requests não publicam: o build das duas arquiteturas roda no ci.yml.
+# release vX.Y.Z revisada, em duas variantes do deploy/Dockerfile.node: X.Y.Z (alvo minimal,
+# distroless) e X.Y.Z-maestro (alvo maestro, com Node.js e npm para o Orquestrador Maestro;
+# padrão do instalador). Cada arquitetura é compilada nativamente no seu runner; cada índice
+# multi-arquitetura recebe só a tag imutável (sem latest) e a proveniência assinada do GitHub.
+# Pull requests não publicam: o build das duas arquiteturas e variantes roda no ci.yml.
 name: release-image
 
 on:
@@ -49,7 +51,7 @@ jobs:
 
   build:
     needs: prepare
-    name: Build ${{ matrix.platform }}
+    name: Build ${{ matrix.variant }} ${{ matrix.platform }}
     runs-on: ${{ matrix.runner }}
     permissions:
       contents: read
@@ -60,8 +62,16 @@ jobs:
         include:
           - platform: linux/amd64
             runner: ubuntu-latest
+            variant: minimal
           - platform: linux/arm64
             runner: ubuntu-24.04-arm
+            variant: minimal
+          - platform: linux/amd64
+            runner: ubuntu-latest
+            variant: maestro
+          - platform: linux/arm64
+            runner: ubuntu-24.04-arm
+            variant: maestro
     steps:
       - uses: actions/checkout@v4
         with:
@@ -79,15 +89,16 @@ jobs:
           images: ${{ needs.prepare.outputs.image }}
           labels: |
             org.opencontainers.image.title=Calango
-            org.opencontainers.image.description=Nó do Calango (API, rotinas e dados) para VPS
+            org.opencontainers.image.description=Nó do Calango (API, rotinas e dados) para VPS, variante ${{ matrix.variant }}
             org.opencontainers.image.licenses=AGPL-3.0-only
-            org.opencontainers.image.version=${{ needs.prepare.outputs.version }}
+            org.opencontainers.image.version=${{ needs.prepare.outputs.version }}${{ matrix.variant == 'maestro' && '-maestro' || '' }}
       - name: Build e push por digest
         id: build
         uses: docker/build-push-action@v6
         with:
           context: .
           file: deploy/Dockerfile.node
+          target: ${{ matrix.variant }}
           platforms: ${{ matrix.platform }}
           labels: ${{ steps.meta.outputs.labels }}
           outputs: type=image,name=${{ needs.prepare.outputs.image }},push-by-digest=true,name-canonical=true,push=true
@@ -101,14 +112,23 @@ jobs:
           touch "$RUNNER_TEMP/digests/${DIGEST#sha256:}"
       - uses: actions/upload-artifact@v4
         with:
-          name: digests-${{ strategy.job-index }}
+          name: digests-${{ matrix.variant }}-${{ strategy.job-index }}
           path: ${{ runner.temp }}/digests/*
           if-no-files-found: error
           retention-days: 1
 
   merge:
     needs: [prepare, build]
+    name: Index ${{ matrix.variant }}
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - variant: minimal
+            suffix: ""
+          - variant: maestro
+            suffix: "-maestro"
     permissions:
       contents: read
       packages: write
@@ -118,7 +138,7 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           path: ${{ runner.temp }}/digests
-          pattern: digests-*
+          pattern: digests-${{ matrix.variant }}-*
           merge-multiple: true
       - uses: docker/setup-buildx-action@v3
       - uses: docker/login-action@v3
@@ -128,7 +148,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Recusar sobrescrever uma versão publicada
         env:
-          REF: ${{ needs.prepare.outputs.image }}:${{ needs.prepare.outputs.version }}
+          REF: ${{ needs.prepare.outputs.image }}:${{ needs.prepare.outputs.version }}${{ matrix.suffix }}
         run: |
           if docker buildx imagetools inspect "$REF" >/dev/null 2>&1; then
             echo "::error::$REF já existe; tags publicadas são imutáveis"; exit 1
@@ -137,7 +157,7 @@ jobs:
         working-directory: ${{ runner.temp }}/digests
         env:
           IMAGE: ${{ needs.prepare.outputs.image }}
-          VERSION: ${{ needs.prepare.outputs.version }}
+          VERSION: ${{ needs.prepare.outputs.version }}${{ matrix.suffix }}
           SOURCE: ${{ github.server_url }}/${{ github.repository }}
           REVISION: ${{ github.sha }}
         run: |
@@ -155,7 +175,7 @@ jobs:
       - name: Conferir plataformas e obter o digest
         id: index
         env:
-          REF: ${{ needs.prepare.outputs.image }}:${{ needs.prepare.outputs.version }}
+          REF: ${{ needs.prepare.outputs.image }}:${{ needs.prepare.outputs.version }}${{ matrix.suffix }}
         run: |
           docker buildx imagetools inspect "$REF"
           raw=$(docker buildx imagetools inspect "$REF" --raw)
@@ -174,12 +194,12 @@ jobs:
           push-to-registry: true
       - name: Resumo
         env:
-          REF: ${{ needs.prepare.outputs.image }}:${{ needs.prepare.outputs.version }}
+          REF: ${{ needs.prepare.outputs.image }}:${{ needs.prepare.outputs.version }}${{ matrix.suffix }}
           DIGEST: ${{ steps.index.outputs.digest }}
           IMAGE: ${{ needs.prepare.outputs.image }}
         run: |
           {
-            echo "### Imagem publicada"
+            echo "### Imagem publicada (${{ matrix.variant }})"
             echo
             echo "- Tag: \`$REF\`"
             echo "- Digest: \`$IMAGE@$DIGEST\`"
