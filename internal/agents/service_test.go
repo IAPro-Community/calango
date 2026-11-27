@@ -282,3 +282,29 @@ func TestMonthlyUsageCountsOnlyTheCurrentUTCMonth(t *testing.T) {
 		t.Fatalf("TokensUsedMonth = %d, want 42 (October excluded, 1 Nov inclusive)", view.TokensUsedMonth)
 	}
 }
+
+func TestCreateReturnsStoredChainStepFromAccount(t *testing.T) {
+	ctx := context.Background()
+	svc, _ := newService(t)
+	// The request carries kind and label; the store is the authority. Sending
+	// them empty is what a client that only knows the account id does.
+	created, err := svc.Create(ctx, "owner", core.Agent{
+		Name: "Assistant", Instructions: "Be brief", TokenLimitMonth: 1000,
+		Providers: []core.ProviderRef{{AccountID: accountIDFor("owner"), Model: "m-1"}},
+	})
+	if err != nil {
+		t.Fatalf("create: %v", err)
+	}
+	if created.Providers[0].Key() != "codex/default" {
+		t.Fatalf("create did not reread the stored account: %+v", created.Agent)
+	}
+	updated := created.Agent
+	updated.Providers = []core.ProviderRef{{AccountID: accountIDFor("owner"), Model: "m-2"}}
+	replaced, err := svc.Replace(ctx, "owner", created.ID, updated)
+	if err != nil {
+		t.Fatalf("replace: %v", err)
+	}
+	if replaced.Providers[0].Key() != "codex/default" || replaced.Providers[0].Model != "m-2" {
+		t.Fatalf("replace did not reread the stored account: %+v", replaced.Agent)
+	}
+}

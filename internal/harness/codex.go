@@ -14,6 +14,7 @@ import (
 	"calango/internal/core"
 	"calango/internal/gateway"
 
+	"github.com/IAPro-Community/IAPro-SDK/model"
 	"github.com/IAPro-Community/IAPro-SDK/providers"
 	sdkcodex "github.com/IAPro-Community/IAPro-SDK/providers/codex"
 	"github.com/IAPro-Community/IAPro-SDK/providers/process"
@@ -26,6 +27,10 @@ var ErrSignedOut = errors.New("harness: CLI is signed out; sign in again with th
 
 // ErrNotInstalled means the CLI binary was not found on PATH.
 var ErrNotInstalled = errors.New("harness: CLI is not installed or not on PATH")
+
+// ErrModelNotSupported means the requested model is outside this login's
+// catalog. The caller must choose another model; retrying cannot help.
+var ErrModelNotSupported = errors.New("harness: the model is not supported by this login")
 
 // ErrQuotaIdentityChanged is emitted only before a model dispatch.
 var ErrQuotaIdentityChanged = errors.New("harness: quota identity changed before dispatch")
@@ -192,6 +197,11 @@ func (c *Codex) Complete(ctx context.Context, req gateway.Request, stream func(g
 		}
 		return nil
 	})
+	// The SDK classifies the failure; the host only names the ones that are
+	// safe to retry elsewhere. A model the account cannot use is a caller fix.
+	if err != nil && result.Failure.Kind == model.FailureModelUnsupported {
+		return gateway.Usage{}, errors.Join(ErrModelNotSupported, err)
+	}
 	// A failed turn with complete measured usage must still be recorded. If
 	// usage is missing on failure, return zero so gateway charges its reservation.
 	if result.InputTokens != nil && result.OutputTokens != nil {

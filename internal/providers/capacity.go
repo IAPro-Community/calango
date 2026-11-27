@@ -151,10 +151,19 @@ func (m *capacityMonitor) invalidateIdentity(scope model.AccountScope) {
 	}
 }
 
+// forget drops observations of an account the owner removed. Removing the
+// account also removes quota evidence, so the change is announced instead of
+// leaving the UI with a stale projection.
 func (m *capacityMonitor) forget(a core.ProviderAccount) {
 	m.mu.Lock()
-	defer m.mu.Unlock()
+	_, existed := m.entries[a.ID]
 	delete(m.entries, a.ID)
+	m.mu.Unlock()
+	if !existed || m.service.cfg.OnCapacity == nil {
+		return
+	}
+	view := emptyCapacity(a, string(model.UsageUnsupported), "account_forgotten")
+	m.service.cfg.OnCapacity(a.OwnerID, view)
 }
 
 // markLeaseFailure removes quota evidence and makes an unsafe reservation

@@ -65,7 +65,13 @@ func (s *Service) Create(ctx context.Context, ownerID string, in core.Agent) (Vi
 	if err := s.repo.InsertAgent(ctx, a); err != nil {
 		return View{}, err
 	}
-	return s.view(ctx, a)
+	// Read the agent back: the store fills each chain step's kind and label
+	// from the account, which the request does not carry.
+	saved, err := s.repo.GetAgent(ctx, ownerID, a.ID)
+	if err != nil {
+		return View{}, err
+	}
+	return s.view(ctx, saved)
 }
 
 // Get returns one agent owned by ownerID.
@@ -120,7 +126,11 @@ func (s *Service) Replace(ctx context.Context, ownerID, id string, in core.Agent
 	if err := s.repo.ReplaceAgent(ctx, updated); err != nil {
 		return View{}, err
 	}
-	return s.view(ctx, updated)
+	saved, err := s.repo.GetAgent(ctx, ownerID, id)
+	if err != nil {
+		return View{}, err
+	}
+	return s.view(ctx, saved)
 }
 
 // Delete removes an agent without history. Agents with runs or usage are refused with core.ErrConflict.

@@ -71,12 +71,42 @@ func TestLeaseFailureInvalidatesQuotaAndPublishesOnce(t *testing.T) {
 	s.capacity = newCapacityMonitor(s)
 	s.capacity.entries[a.ID] = &capacityEntry{
 		snapshot: model.UsageSnapshot{FetchedAt: now},
-		view: CapacityView{Status: string(model.UsageLive)},
+		view:     CapacityView{Status: string(model.UsageLive)},
 	}
 	s.capacity.markLeaseFailure(a, "lease_reconciliation_required")
 	s.capacity.markLeaseFailure(a, "lease_reconciliation_required")
 	view := s.capacityView(a)
 	if view.Status != string(model.UsageError) || view.Reason != "lease_reconciliation_required" || len(view.Windows) != 0 || len(events) != 1 {
 		t.Fatalf("view=%+v events=%d", view, len(events))
+	}
+}
+
+func TestForgetPublishesRemovalAndStaysQuietWhenAbsent(t *testing.T) {
+	a := core.ProviderAccount{ID: "profile", OwnerID: "owner", Kind: core.ProviderKindCodex, Label: "work"}
+	var events []CapacityView
+	s := &Service{cfg: Config{
+		Now:              time.Now,
+		CapacityOwner:    a.OwnerID,
+		CapacityInterval: time.Minute,
+		OnCapacity: func(owner string, view CapacityView) {
+			if owner != a.OwnerID {
+				t.Fatal("wrong event owner")
+			}
+			events = append(events, view)
+		},
+	}}
+	s.capacity = newCapacityMonitor(s)
+	// Nothing cached: forgetting must not announce a phantom change.
+	s.capacity.forget(a)
+	if len(events) != 0 {
+		t.Fatalf("absent account published %d events", len(events))
+	}
+	s.capacity.entries[a.ID] = &capacityEntry{view: CapacityView{Status: string(model.UsageLive)}}
+	s.capacity.forget(a)
+	if _, ok := s.capacity.entries[a.ID]; ok {
+		t.Fatal("entry survived forget")
+	}
+	if len(events) != 1 || events[0].Status != string(model.UsageUnsupported) || events[0].Reason != "account_forgotten" {
+		t.Fatalf("unexpected events: %+v", events)
 	}
 }

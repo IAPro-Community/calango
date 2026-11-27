@@ -322,7 +322,7 @@ func runMaestroScheduler(ctx context.Context, manager *maestro.Manager, hub *eve
 		if status.AutoUpdate {
 			installed, err := manager.RunAutoUpdate(ctx)
 			if err != nil {
-				log.Printf("maestro automatic update failed")
+				log.Printf("maestro automatic update failed: %v", err)
 				hub.Publish(events.Event{Type: events.TypeMaestroUpdateFailed, OwnerID: localOwnerID, Data: map[string]string{"result": "failed"}})
 				return
 			}
