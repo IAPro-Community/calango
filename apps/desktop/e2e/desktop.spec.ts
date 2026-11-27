@@ -105,6 +105,9 @@ test('escrita por conector espera aprovação e segue depois de aprovada', async
   await send(page, 'Salve uma nota [e2e:tool]');
 
   await expect(page.locator('.run')).toContainText(t('runWaitingApproval'));
+  // The menu counts pending approvals in the description, so the button name stays the same.
+  const approvalsNav = page.getByRole('button', { name: t('navApprovals'), exact: true });
+  await expect(approvalsNav).toHaveAccessibleDescription(`1 ${t('navPending')}`);
   const approval = page.locator('li.approval');
   await expect(approval).toContainText(/notas\/.*\/create_note/);
   await approval.getByRole('button', { name: t('actionApprove'), exact: true }).click();
@@ -112,8 +115,47 @@ test('escrita por conector espera aprovação e segue depois de aprovada', async
   await expect(page.locator('.message').filter({ hasText: 'nota salva: nota do teste E2E' })).toBeVisible();
   await expect(page.locator('.run')).toContainText(t('runDone'));
 
-  await page.getByRole('button', { name: t('navApprovals'), exact: true }).click();
+  await approvalsNav.click();
   await expect(page.getByText(t('approvalEmpty'))).toBeVisible();
+  await expect(approvalsNav).toHaveAccessibleDescription('');
+});
+
+test('tema escolhido nas configurações vale na hora e depois de recarregar', async ({ desktop }) => {
+  const { page } = desktop;
+  const html = page.locator('html');
+  await expect(html).toHaveAttribute('data-theme', 'dark');
+
+  await page.getByRole('button', { name: t('navSettings'), exact: true }).click();
+  const theme = page.getByLabel(t('settingsTheme'));
+  await theme.selectOption('light');
+  await expect(html).toHaveAttribute('data-theme', 'light');
+
+  await page.reload();
+  await expect(html).toHaveAttribute('data-theme', 'light');
+
+  // "Follow the system" tracks prefers-color-scheme while the app is open.
+  await page.getByRole('button', { name: t('navSettings'), exact: true }).click();
+  await page.getByLabel(t('settingsTheme')).selectOption('system');
+  await page.emulateMedia({ colorScheme: 'dark' });
+  await expect(html).toHaveAttribute('data-theme', 'dark');
+  await page.emulateMedia({ colorScheme: 'light' });
+  await expect(html).toHaveAttribute('data-theme', 'light');
+});
+
+test('terminal abre um shell, executa um comando e encerra a sessão', async ({ desktop }) => {
+  const { page } = desktop;
+  await page.getByRole('button', { name: t('navTerminal'), exact: true }).click();
+  await expect(page.getByText(t('terminalEmpty'))).toBeVisible();
+
+  await page.getByRole('button', { name: t('terminalNew') }).click();
+  await expect(page.locator('.terminal-status')).toContainText(t('terminalConnected'));
+
+  // The arithmetic makes the shell's output differ from the echoed input.
+  await page.keyboard.type('echo calango-$((40+2))\n');
+  await expect(page.locator('.terminal-host')).toContainText('calango-42');
+
+  await page.getByRole('button', { name: t('terminalEnd') }).click();
+  await expect(page.getByText(t('terminalEmpty'))).toBeVisible();
 });
 
 test('rotina é criada, pausada e retomada', async ({ desktop }) => {

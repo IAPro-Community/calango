@@ -34,7 +34,9 @@ Cada teste recebe um ambiente novo, criado pela fixture `apps/desktop/e2e/app.ts
 | onboarding | conta Codex e agente criados pela interface; ponte `window.calango` só com os seis métodos esperados; sem `require`, `process` ou `ipcRenderer` no renderer; IPC rejeita argumento inválido; `window.open` e navegação para fora de `app://calango` são bloqueados |
 | chat e uso | mensagem enviada, resposta do provider fake exibida, execução `done` e linha de uso com tokens |
 | cancelamento | execução lenta parada pelo botão; status `stopped` e sem resposta |
-| aprovação | escrita pelo conector deixa a execução em `waiting_approval`; aprovação pela conversa conclui a execução com o resultado da ferramenta; fila de aprovações vazia depois |
+| aprovação | escrita pelo conector deixa a execução em `waiting_approval`; o item Aprovações do menu passa a descrever 1 pendente sem mudar o nome acessível; aprovação pela conversa conclui a execução com o resultado da ferramenta; fila e contador vazios depois |
+| tema | tema claro escolhido em Configurações aplica na hora e continua depois de recarregar; "seguir o sistema" acompanha o `prefers-color-scheme` |
+| terminal | sessão PTY aberta pela tela, comando executado no shell com a saída na tela, sessão encerrada |
 | rotinas | rotina por intervalo criada, pausada e retomada |
 | queda do daemon | `SIGKILL` no daemon; app mostra "tentando de novo", sobe outro processo, mantém os dados e a conversa funciona com o token novo |
 | segredos | chave Anthropic fake não aparece no DOM, no `localStorage`, no `sessionStorage`, na listagem do cofre nem nos logs; a chave do cofre e o token da API também não aparecem nos logs |
@@ -48,4 +50,4 @@ Só falhas guardam evidência em `apps/desktop/e2e-results/`: trace do Playwrigh
 - Só Linux. A fixture acha o processo do daemon com `pgrep`, e o wrapper `codex` é um script shell. A matriz nativa completa fica para a #120, e o instalador Windows tem smoke próprio na #116.
 - O provider é fake. A homologação com provider real é autorizada à parte, na #41.
 - O daemon tenta a atualização automática do Orquestrador Maestro ao iniciar. No perfil descartável ela falha e só deixa a linha `maestro automatic update failed` no log, sem afetar os testes.
-- O job `desktop-e2e` ainda não faz parte do `quality-gate`; a revisão decide se vira check obrigatório.
+- O job `desktop-e2e` faz parte do `quality-gate` desde que a suíte ficou estável na CI.

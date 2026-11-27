@@ -416,7 +416,7 @@ jobs:
   quality-gate:
     name: quality-gate
     if: ${{ always() }}
-    needs: [openapi, generated-contracts, dart-packages, go, cross-build, site-image, node-image, node-image-arm64, node-image-maestro, vps-installer, source-quality, desktop]
+    needs: [openapi, generated-contracts, dart-packages, go, cross-build, site-image, node-image, node-image-arm64, node-image-maestro, vps-installer, source-quality, desktop, desktop-e2e]
     runs-on: ubuntu-latest
     steps:
       - name: Exigir sucesso de todos os checks
