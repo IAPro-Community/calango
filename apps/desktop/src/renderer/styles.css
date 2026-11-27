@@ -387,6 +387,8 @@ output.muted {
   border: 1px solid var(--calango-color-ink-soft);
   border-radius: var(--calango-radius-sm);
   overflow: hidden;
+}
+
 .browser-screen {
   height: calc(100vh - 48px);
   min-height: 480px;

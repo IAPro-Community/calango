@@ -1019,6 +1019,8 @@ export interface components {
             cols: number;
             rows: number;
             attached: boolean;
+            /** Format: date-time */
+            created_at: string;
         };
         ProviderAccountInput: {
             /** @enum {string} */

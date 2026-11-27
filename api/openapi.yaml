@@ -1161,6 +1161,7 @@ components:
         cols: { type: integer }
         rows: { type: integer }
         attached: { type: boolean }
+        created_at: { type: string, format: date-time }
     ProviderAccountInput:
       type: object
       required: [kind, label]
