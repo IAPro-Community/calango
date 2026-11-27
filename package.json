@@ -31,6 +31,8 @@
     "licenses:check": "node scripts/third-party-licenses.mjs"
   },
   "devDependencies": {
+    "@types/chai": "5.2.3",
+    "chai": "6.3.0",
     "openapi-typescript": "7.13.0",
     "typescript": "5.9.3"
   },

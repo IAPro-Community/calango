@@ -42,7 +42,7 @@ describe('ConversationsScreen', () => {
       createConversation: async () => aConversation({ id: 'conv-9', title: 'Nova' }),
       listMessages: async () => [],
     });
-    await user.type(await screen.findByLabelText(t('conversationPlaceholder')), 'Nova');
+    await user.type(await screen.findByLabelText(t('conversationTitleLabel')), 'Nova');
     await user.click(screen.getByRole('button', { name: t('actionNewConversation') }));
     expect(client.createConversation).toHaveBeenCalledWith('agent-1', 'Nova');
     await waitFor(() => expect(client.listMessages).toHaveBeenCalledWith('conv-9'));
