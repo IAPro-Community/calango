@@ -39,4 +39,4 @@ Contrast: text is always `ink` on light backgrounds and `paper` on `moss`/`bark`
 
 ## Icon at small sizes
 
-The collage loses legibility below 48 px. Pending: a simplified version (lizard silhouette in `moss` on `postit`, no texture) for the favicon, tray and notifications.
+The website uses `site/assets/favicon.svg`: a flat moss lizard on post-it yellow, simplified for small rendering. Tray and notification variants remain pending.

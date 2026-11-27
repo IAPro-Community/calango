@@ -158,5 +158,16 @@
   "auditExportCsv": "Download CSV",
   "auditExportError": "Could not export the audit log.",
   "auditExportEmpty": "The export is empty.",
-  "auditEmptyChain": "The chain has no entries."
+  "auditEmptyChain": "The chain has no entries.",
+  "conversationMessageLabel": "Message",
+  "conversationMessagesLabel": "Conversation messages",
+  "conversationAuthorPerson": "You",
+  "conversationAuthorAgent": "Agent",
+  "conversationAuthorSystem": "System",
+  "usageGroupAgent": "Agent",
+  "usageGroupRoutine": "Routine",
+  "usageGroupProject": "Project",
+  "usageGroupNode": "Execution node",
+  "usageGroupModel": "Model",
+  "conversationTitleLabel": "Title (optional)"
 }

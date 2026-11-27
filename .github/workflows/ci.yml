@@ -120,6 +120,72 @@ jobs:
       - run: npm run desktop:package:linux
       - run: sha256sum apps/desktop/release/Calango-*-linux-*
       - run: npm run desktop:package:linux:test
+  # Build nativo da imagem arm64 (sem push) e execução do binário com /healthz.
+  node-image-arm64:
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build the node image (linux/arm64)
+        run: docker build -f deploy/Dockerfile.node -t calango/calango:ci-arm64 .
+      - name: Start the container and check /healthz
+        run: |
+          test "$(docker image inspect --format '{{.Architecture}}' calango/calango:ci-arm64)" = arm64
+          umask 077
+          key="$RUNNER_TEMP/vault.key"
+          head -c 32 /dev/urandom | base64 > "$key"
+          sudo chown 65532:65532 "$key"
+          docker run -d --name node -e CALANGO_DATA_DIR=/tmp/calango \
+            -e CALANGO_VAULT_KEY_FILE=/run/secrets/vault_key \
+            -v "$key:/run/secrets/vault_key:ro" calango/calango:ci-arm64
+          for _ in $(seq 1 30); do
+            docker exec node /usr/local/bin/calango healthcheck && exit 0
+            sleep 1
+          done
+          docker logs node
+          exit 1
+
+  # Instalador da VPS: lint, compose/Caddyfile iguais aos gerados e instalação limpa de ponta
+  # a ponta (CA interna do Caddy, imagem local), reinstalação e remoção preservando dados.
+  vps-installer:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Shellcheck
+        run: shellcheck -s sh deploy/install.sh
+      - name: Compose e Caddyfile versionados batem com o instalador
+        run: |
+          sh deploy/install.sh --print-compose | diff -u deploy/docker-compose.yml -
+          sh deploy/install.sh --print-caddyfile | diff -u deploy/Caddyfile -
+      - name: Build the node image
+        run: docker build -f deploy/Dockerfile.node -t calango/calango:ci .
+      - name: Instalação limpa
+        run: sudo sh deploy/install.sh --domain calango.test --image calango/calango:ci --no-pull --tls-internal
+      - name: Healthz pelo proxy, token e idempotência
+        run: |
+          c="sudo docker compose -f /opt/calango/docker-compose.yml"
+          curl -fsS -k --resolve calango.test:443:127.0.0.1 https://calango.test/healthz
+          if curl -fsS --max-time 3 http://127.0.0.1:7317/healthz; then
+            echo "::error::a porta do nó não deveria estar publicada"; exit 1
+          fi
+          key1=$(sudo sha256sum /opt/calango/secrets/vault.key)
+          tok1=$($c exec -T calango calango print-token | sha256sum)
+          code=$(curl -s -k -o /dev/null -w '%{http_code}' -H "Authorization: Bearer $($c exec -T calango calango print-token)" \
+            --resolve calango.test:443:127.0.0.1 https://calango.test/v1/devices)
+          test "$code" = 200
+          sudo sh deploy/install.sh --domain calango.test --image calango/calango:ci --no-pull --tls-internal
+          test "$key1" = "$(sudo sha256sum /opt/calango/secrets/vault.key)"
+          test "$tok1" = "$($c exec -T calango calango print-token | sha256sum)"
+          sudo sh deploy/install.sh --uninstall
+          docker volume inspect calango_calango-data >/dev/null
+          sudo sh deploy/install.sh --image calango/calango:ci --no-pull
+          test "$tok1" = "$($c exec -T calango calango print-token | sha256sum)"
+          curl -fsS -k --resolve calango.test:443:127.0.0.1 https://calango.test/healthz
+      - name: Logs em caso de falha
+        if: failure()
+        run: sudo docker compose -f /opt/calango/docker-compose.yml logs --no-color || true
+      - name: Remoção completa
+        if: always()
+        run: sudo sh deploy/install.sh --uninstall --purge --yes || true
 
   source-quality:
     runs-on: ubuntu-latest
@@ -147,14 +213,44 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run contracts:check
+      - name: Check third-party license texts and NOTICE
+        run: npm run licenses:check
       - run: npm run typecheck
       - run: npm run test:main -w apps/desktop
       - run: npm run desktop:build
 
+  # E2E do desktop com daemon real e provider fake (issue #119). Ainda fora do
+  # quality-gate até a revisão decidir se vira check obrigatório.
+  desktop-e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.23"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22.12.0"
+          cache: npm
+      - run: npm ci
+      - run: npm run desktop:build
+      - name: Run Playwright Electron E2E
+        run: xvfb-run -a npm run desktop:e2e
+      - name: Upload traces and screenshots of failures
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: desktop-e2e-falhas
+          path: |
+            apps/desktop/e2e-results/
+            apps/desktop/e2e-report/
+          retention-days: 7
+
   quality-gate:
     name: quality-gate
     if: ${{ always() }}
-    needs: [openapi, generated-contracts, go, cross-build, site-image, node-image, source-quality, desktop]
+    needs: [openapi, generated-contracts, go, cross-build, site-image, node-image, node-image-arm64, vps-installer, source-quality, desktop]
     runs-on: ubuntu-latest
     steps:
       - name: Exigir sucesso de todos os checks

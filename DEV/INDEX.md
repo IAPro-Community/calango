@@ -11,6 +11,7 @@
 | [TODO_V1.md](TODO_V1.md) | snapshot histórico; backlog operacional no GitHub |
 | [../CONTRIBUTING.md](../CONTRIBUTING.md) | how to contribute (public) |
 | [../LICENSE](../LICENSE), [../COMMERCIAL.md](../COMMERCIAL.md), [../CLA.md](../CLA.md), [../TRADEMARKS.md](../TRADEMARKS.md) | license, commercial license, contributor agreement and trademarks |
+| [../docs/guia/README.md](../docs/guia/README.md) | guia de uso em pt-BR: primeiros passos, pareamento, VPS, Maestro e privacidade |
 | [WORKLOG.md](WORKLOG.md) | short history of what was done |
 | [VERIFY.md](VERIFY.md) | what was verified |
 
@@ -35,7 +36,10 @@
 | [CONVENTIONS.md](CONVENTIONS.md) | code standards for Go, TS, Dart, tests |
 | [DEPLOYMENT.md](DEPLOYMENT.md) | Docker, VPS, TLS, Tailscale |
 | [TECHNICAL_DELIVERY.md](TECHNICAL_DELIVERY.md) | technical flow, CI, release, migrations and rollback |
+| [CI_NATIVA.md](CI_NATIVA.md) | CI nativa Linux/Windows/macOS: matriz, smoke do daemon, skips e gates de homologação |
 | [BACKUP_RESTORE.md](BACKUP_RESTORE.md) | offline local data backup, vault-key requirements and restore-before-rollback procedure |
+| [REVISAO_LICENCAS.md](REVISAO_LICENCAS.md) | revisão de originalidade e licenças, textos em third_party e check automático |
+| [E2E_DESKTOP.md](E2E_DESKTOP.md) | E2E do desktop com Playwright Electron, daemon real e provider fake |
 | [../api/openapi.yaml](../api/openapi.yaml) | API contract (source of the TS and Dart SDKs) |
 | [../packages/tokens/tokens.json](../packages/tokens/tokens.json) | design tokens (source of CSS and ThemeData) |
 | [../packages/i18n/messages.json](../packages/i18n/messages.json) | interface catalog in en/pt-BR/es, source of the TypeScript and ARB files |
@@ -99,6 +103,7 @@
 - [GOVERNANCE](../GOVERNANCE.md)
 - [Implantação da governança](GOVERNANCE_BOOTSTRAP.md)
 - [Auditoria retroativa](AUDITORIA_RETROATIVA.md)
+- [Auditoria de acessibilidade](AUDITORIA_ACESSIBILIDADE.md) — desktop e site: teclado, árvore de acessibilidade e contraste (issue #48)
 - [Planejamento de produto](PLANEJAMENTO_PRODUTO.md)
 - [GitHub Issues](https://github.com/IAPro-Community/calango/issues) — fonte operacional.
 - Qualidade e revisão técnica: PR #114 / issue #51.
