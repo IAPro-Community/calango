@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron';
-import type { CalangoBridge, DaemonConnection, DaemonState } from '../shared/ipc';
+import type { BrowserBridge, BrowserTabsEvent, CalangoBridge, DaemonConnection, DaemonState } from '../shared/ipc';
 
 // Sandboxed preloads cannot require local modules, so the channel names repeat
 // the ones in ../shared/ipc.ts.
@@ -22,6 +22,8 @@ ipcRenderer.on(SHORTCUT_UNAVAILABLE, (_event: unknown, message: string) => {
     listener(message);
   }
 });
+
+const BROWSER_TABS_CHANGED = 'calango:browser-tabs-changed';
 const quickConversationListeners = new Set<() => void>();
 let quickConversationPending = false;
 
@@ -34,6 +36,27 @@ ipcRenderer.on(QUICK_CONVERSATION, () => {
     listener();
   }
 });
+
+const browser: BrowserBridge = {
+  listTabs: (agentId) => ipcRenderer.invoke('calango:browser-list', agentId),
+  focusAgent: (agentId) => ipcRenderer.invoke('calango:browser-focus-agent', agentId),
+  openTab: (agentId, url) => ipcRenderer.invoke('calango:browser-open-tab', agentId, url),
+  closeTab: (tabId) => ipcRenderer.invoke('calango:browser-close-tab', tabId),
+  activate: (tabId) => ipcRenderer.invoke('calango:browser-activate', tabId),
+  navigate: (tabId, address) => ipcRenderer.invoke('calango:browser-navigate', tabId, address),
+  back: (tabId) => ipcRenderer.invoke('calango:browser-back', tabId),
+  forward: (tabId) => ipcRenderer.invoke('calango:browser-forward', tabId),
+  reload: (tabId) => ipcRenderer.invoke('calango:browser-reload', tabId),
+  setBounds: (bounds) => ipcRenderer.invoke('calango:browser-set-bounds', bounds),
+  clearProfile: (agentId) => ipcRenderer.invoke('calango:browser-clear-profile', agentId),
+  onTabs: (listener) => {
+    const handler = (_event: unknown, payload: BrowserTabsEvent) => listener(payload);
+    ipcRenderer.on(BROWSER_TABS_CHANGED, handler);
+    return () => {
+      ipcRenderer.removeListener(BROWSER_TABS_CHANGED, handler);
+    };
+  },
+};
 
 const bridge: CalangoBridge = {
   getConnection: () => ipcRenderer.invoke(CONNECTION) as Promise<DaemonConnection>,
@@ -68,6 +91,7 @@ const bridge: CalangoBridge = {
       ipcRenderer.removeListener(STATE_CHANGED, handler);
     };
   },
+  browser,
 };
 
 contextBridge.exposeInMainWorld('calango', bridge);
