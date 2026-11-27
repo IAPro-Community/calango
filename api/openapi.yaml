@@ -31,6 +31,8 @@ tags:
     description: Model usage and costs.
   - name: vault
     description: Secret names and dates. Values are never returned.
+  - name: skills
+    description: Discovery and import of Claude Code and Codex skills from authorized directories.
 paths:
   /healthz:
     get:
@@ -218,6 +220,78 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/MaestroStatus" }
         "400": { $ref: "#/components/responses/Error" }
+  /v1/skill-imports/discover:
+    get:
+      operationId: discoverSkills
+      tags: [skills]
+      summary: Scan the authorized skill directories
+      description: >
+        Read-only scan of the directories in CALANGO_SKILL_DIRS (default ~/.claude/skills and
+        $CODEX_HOME/skills). Only direct subdirectories with a SKILL.md are skills; symlinks
+        that resolve outside their root, hidden entries and anything over the size and count
+        limits are skipped. Source files are never modified.
+      responses:
+        "200":
+          description: Discovered skills, skipped entries and root states
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SkillDiscovery" }
+  /v1/skill-imports:
+    get:
+      operationId: listImportedSkills
+      tags: [skills]
+      summary: List skills imported into the node
+      responses:
+        "200":
+          description: Imported skills ordered by name
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/ImportedSkill" }
+    post:
+      operationId: importSkill
+      tags: [skills]
+      summary: Import one discovered skill
+      description: >
+        Copies the skill into the node's data directory, versioned by content hash. Importing
+        the same version again returns 200 with result unchanged. A different version needs
+        replace. A skill without a usable declared license needs confirm_license. Requires a
+        write-scope device.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SkillImportInput" }
+      responses:
+        "201":
+          description: Imported
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SkillImportResult" }
+        "200":
+          description: Already imported (unchanged) or replaced by the new version
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SkillImportResult" }
+        "400": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409":
+          description: license_confirmation_required, replace_required or skill_changed
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+  /v1/skill-imports/{id}:
+    delete:
+      operationId: removeImportedSkill
+      tags: [skills]
+      summary: Remove an imported copy
+      description: Deletes only the node's copy; the source directory is not touched. Requires a write-scope device.
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      responses:
+        "204": { description: Removed }
+        "404": { $ref: "#/components/responses/Error" }
   /v1/agents:
     get:
       operationId: listAgents
@@ -967,7 +1041,7 @@ components:
           properties:
             code:
               type: string
-              enum: [budget_exceeded, approval_required, not_found, invalid_input, unauthorized, forbidden, node_offline, harness_signed_out, conflict, rate_limited, connector_unavailable, internal]
+              enum: [budget_exceeded, approval_required, not_found, invalid_input, unauthorized, forbidden, node_offline, harness_signed_out, conflict, rate_limited, connector_unavailable, license_confirmation_required, replace_required, skill_changed, internal]
             message: { type: string }
     ConnectorInput:
       type: object
@@ -1096,6 +1170,97 @@ components:
       properties:
         status: { $ref: "#/components/schemas/MaestroStatus" }
         updated: { type: boolean }
+    SkillOrigin:
+      type: string
+      enum: [claude, codex, project]
+    SkillWarning:
+      type: string
+      description: Stable code; clients translate it.
+      enum: [no_license, license_restrictive, missing_frontmatter, invalid_frontmatter, missing_name, invalid_name, missing_description, description_truncated, symlink_skipped, special_file_skipped]
+    DiscoveredSkill:
+      type: object
+      required: [source_id, name, description, origin, root, path, hash, license_source, requires_license_confirmation, warnings, files, bytes, import_status]
+      properties:
+        source_id: { type: string, description: "Stable id of the skill directory; key of the imported copy." }
+        name: { type: string }
+        description: { type: string }
+        origin: { $ref: "#/components/schemas/SkillOrigin" }
+        root: { type: string }
+        path: { type: string }
+        hash: { type: string, description: "sha256:<hex> over the sorted file list, sizes and contents." }
+        license: { type: string, description: "Frontmatter license, or what a LICENSE/COPYING file next to SKILL.md says." }
+        license_source: { type: string, enum: [frontmatter, file, none] }
+        requires_license_confirmation: { type: boolean }
+        warnings:
+          type: array
+          items: { $ref: "#/components/schemas/SkillWarning" }
+        files: { type: integer }
+        bytes: { type: integer }
+        import_status: { type: string, enum: [new, imported, update_available] }
+    SkippedSkill:
+      type: object
+      required: [origin, path, reason]
+      properties:
+        origin: { $ref: "#/components/schemas/SkillOrigin" }
+        path: { type: string }
+        reason:
+          type: string
+          enum: [symlink_outside_root, broken_symlink, no_skill_md, skill_md_too_large, too_many_files, too_large, too_deep, unreadable]
+    SkillRoot:
+      type: object
+      required: [origin, path, status]
+      properties:
+        origin: { $ref: "#/components/schemas/SkillOrigin" }
+        path: { type: string }
+        status: { type: string, enum: [ok, missing, not_directory, unreadable] }
+    SkillDiscovery:
+      type: object
+      required: [roots, skills, skipped, truncated]
+      properties:
+        roots:
+          type: array
+          items: { $ref: "#/components/schemas/SkillRoot" }
+        skills:
+          type: array
+          items: { $ref: "#/components/schemas/DiscoveredSkill" }
+        skipped:
+          type: array
+          items: { $ref: "#/components/schemas/SkippedSkill" }
+        truncated: { type: boolean, description: "True when a limit stopped the scan early." }
+    ImportedSkill:
+      type: object
+      required: [id, name, description, origin, source_path, hash, license_source, license_confirmed, warnings, files, bytes, imported_at, updated_at]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        description: { type: string }
+        origin: { $ref: "#/components/schemas/SkillOrigin" }
+        source_path: { type: string }
+        hash: { type: string }
+        license: { type: string }
+        license_source: { type: string, enum: [frontmatter, file, none] }
+        license_confirmed: { type: boolean, description: "The person confirmed importing without a usable license." }
+        warnings:
+          type: array
+          items: { $ref: "#/components/schemas/SkillWarning" }
+        files: { type: integer }
+        bytes: { type: integer }
+        imported_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+    SkillImportInput:
+      type: object
+      required: [source_id, hash]
+      properties:
+        source_id: { type: string }
+        hash: { type: string, description: "The hash seen in discovery; a changed skill is refused with skill_changed." }
+        confirm_license: { type: boolean, default: false }
+        replace: { type: boolean, default: false }
+    SkillImportResult:
+      type: object
+      required: [skill, result]
+      properties:
+        skill: { $ref: "#/components/schemas/ImportedSkill" }
+        result: { type: string, enum: [created, unchanged, replaced] }
     Conversation:
       type: object
       required: [id, kind, title, created_at]
