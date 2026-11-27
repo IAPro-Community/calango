@@ -528,11 +528,19 @@ Limits:
 - Not exercised: a real Codex session on the stable home; installed agents and skills loading under it; the owner's `~/.codex`; the migration of earlier per-version logins.
 - Changes are uncommitted in `internal/maestro/manager.go`, `internal/maestro/manager_test.go`, and the docs above. Not committed or pushed: AGENTS.md requires an explicit owner request.
 
-## 2026-11-25 — Docker bridge validation
+## 2026-11-25 — Local pairing runtime acceptance (#58)
 
-- `docker build -t calango-site:issues .` and `docker build -f deploy/Dockerfile.node -t calango-node:issues .`: passed. Docker emitted a legacy-builder deprecation warning; both images completed successfully.
-- A disposable user-defined `bridge` network ran both images with loopback-published ports. Site `/healthz` returned `ok`; node `/healthz` returned `{"status":"ok"}`; the site container health check became `healthy`.
-- The node created `/data/calango.db` as UID/GID 65532 with mode `0600`. Recreating the node container with the same named volume preserved startup and `/healthz`. No vault key appeared in container logs; the base64 key, containers, network, and volume were disposable and removed.
-- The first runtime probe exposed a real image issue: `/data/calango.db` failed with `permission denied`, and the mounted data directory was not configured. `deploy/Dockerfile.node` now sets `CALANGO_DATA_DIR=/data` and provides `/data` owned by the distroless non-root UID/GID. A later smoke with a hex-formatted test key was rejected because vault keys must decode to 32 bytes; the final smoke used a temporary base64 key.
-- `deploy/docker-compose.yml` remains untested: neither the Docker Compose plugin nor the standalone `docker-compose` command is installed. The manual smoke does not validate Caddy/TLS or a public VPS.
-- The site container served its page in the 1280 px browser smoke; title was present and there were zero browser errors.
+Environment: Go 1.27.4, linux/amd64; disposable data directory, vault key and legacy API-token file.
+
+| Check | Result |
+|---|---|
+| `go test ./internal/devices ./internal/api ./internal/config -count=1` | PASS |
+| Built `cmd/calango` with a temporary vault key and imported temporary `api-token`; `/healthz` | HTTP 200 |
+| Live `POST /v1/pairing-codes` + unauthenticated `POST /v1/pair` | Full-scope device token issued; token authenticated `GET /v1/agents`; device list did not expose the token |
+| Reuse the same pairing code | HTTP 401 |
+| `read` scope | `GET /v1/agents` HTTP 200; `POST /v1/agents` HTTP 403 |
+| `approve_only` scope | `GET /v1/approvals` HTTP 200; `GET /v1/agents` HTTP 403 |
+| Owner revokes the full-scope device | `DELETE /v1/devices/{id}` HTTP 204; the same token then received HTTP 401 |
+| Pairing rate limit, same forwarded client behind configured trusted loopback peer | Five invalid codes returned HTTP 401; the sixth returned HTTP 429 `rate_limited` |
+
+The test used a live daemon and disposable credentials; all temporary files were removed. The trusted-proxy origin was exercised with a trusted loopback peer, not a real reverse proxy. Mobile QR pairing and remote transport remain phase-gated; no mobile client or VPS was tested.

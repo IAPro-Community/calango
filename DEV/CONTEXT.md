@@ -1,6 +1,6 @@
 # Current context
 
-Updated: 2026-11-25.
+- Updated: 2026-11-25.
 
 - **Phase:** 1 (local desktop MVP) in progress; Phase 0 complete. Phase 1 exit is not met; do not start Phases 2–6 until it is.
 - **Core verified:** Go daemon; immutable SQLite migrations `0001`–`0014`; vault/auth; gateway and Anthropic/Codex providers; agents; conversations/runs; approvals; routines; memory plus `memory_save` and purge scheduler; MCP gateway; audit verify/export; usage; pairing/devices; `/v1/events`.
@@ -10,6 +10,5 @@ Updated: 2026-11-25.
 - **Reuse:** AgenticOS (Apache-2.0) ports follow ADR 0011 with per-file attribution; audit chain and vault envelope were ported.
 - **Open owner decisions:** D1b legal review/name/contacts; D5 written Tailscale clearance or alternate transport; pricing/domain/Terms and website claims; permission to delete `/tmp/agenticos`. D3, D2, D4 and D6 are answered.
 - **Research:** competitive map is in `DEV/COMPETITIVE_LANDSCAPE.md`; D5 findings and sources are in ADR 0005.
-- **Next:** resolve the Maestro `CODEX_HOME` mismatch with ADR 0014; finish remaining Phase 1 acceptance only with owner authorization/platform access; do not begin Phase 2–6 before the Phase 1 exit.
-- **Recent verification:** `go test -race ./... -count=1 -timeout 300s`, `go vet ./...`, desktop typecheck/build, i18n drift check and `npm run test:main -w apps/desktop` passed. Isolated Linux Electron smoke used `/tmp` profile/data/key and no model call; site reviewed at desktop/mobile widths in light/dark. No commit or push.
-- 2026-11-25: Docker site/node builds and a named-bridge smoke passed. The node database remained available after container recreation with a named volume. Compose/Caddy/TLS was not exercised.
+- **Next:** finish remaining Phase 1 acceptance only with owner authorization and platform access: Windows installation, an authorized real Codex/MCP action, verified provider pricing, OS keyring runtime, and F1-T16 migration/session acceptance. Do not start Phases 2–6 before the Phase 1 exit.
+- **Recent verification:** targeted local pairing tests passed on 2026-11-25, including a live-daemon smoke for code exchange, scopes, revocation and per-client rate limiting (`DEV/VERIFY.md`). Earlier Go, desktop and site results are recorded there. No real model call or external action was performed in this pairing validation.

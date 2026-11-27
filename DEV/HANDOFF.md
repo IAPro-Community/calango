@@ -1,6 +1,6 @@
 # Handoff
 
-Updated: 2026-11-25.
+- Updated: 2026-11-25.
 
 ## Confirmed state
 
@@ -19,14 +19,14 @@ Updated: 2026-11-25.
 - Vault HTTP (F1-T10, Q29): `GET /v1/vault` (names and dates), `PUT /v1/vault/{name}` (set) and `DELETE /v1/vault/{name}`. Full scope only. No route returns a value. `api-token` is reserved: PUT and DELETE return 409; it changes only through `POST /v1/auth/rotate-token`. Tests in `internal/api/vault_test.go`.
 - Startup change (ADR 0012): the daemon refuses to start without a master key. Set `CALANGO_VAULT_KEY_FILE` (or `CALANGO_VAULT_KEY`) or unlock the OS keyring. Owner acknowledged (2026-11-23).
 - Master-key rotation at startup (Q31, ADR 0012 amendment): `CALANGO_VAULT_KEY_VERSION`, `CALANGO_VAULT_KEY_PREVIOUS[_FILE]`; `Service.Rotate` runs before serving and audits each re-wrap as `vault.rewrap`; startup refuses rows whose version has no configured key. Smoke-tested on the built binary (`DEV/VERIFY.md`, 2026-11-23).
-- F1-T15 (partial): device pairing. A one-time 8-character code (5 min, `POST /v1/pairing-codes`) is redeemed at `POST /v1/pair` for a 256-bit device token. Migration `0007_devices.sql`; only SHA-256 digests are stored; the scope comes from the code (`full`, `approve_only`, `read`); revocation takes effect on the next call. QR, mobile app and administrator password pending. See `DEV/SPECS/modules/pairing-auth.md`.
+- F1-T15 (partial): device pairing. The local live-daemon flow passed on 2026-11-25: one-time code exchange, `full`/`read`/`approve_only` scopes, immediate revocation and per-client attempt limit; device listings do not expose tokens. Details in `DEV/VERIFY.md` (#58). Mobile QR, remote transport and the VPS administrator password remain phase-gated. See `DEV/SPECS/modules/pairing-auth.md`.
 - F1-T17 (partial): REST and desktop usage panel exist; fake-run E2E shows token counts and an unknown-cost row. No verified Codex price or real provider cost yet; project group has no V1 projects table.
 - F1-T18: audit hash chain, verify/export routes and desktop screen are implemented. Isolated UI smoke verified the chain and downloaded JSONL/CSV. Pre-0008 rows still verify as breaks from the first row, accepted pre-release.
 - Smoke check of the binary passed: `/healthz` 200; `/v1/agents` 401 without token and with a wrong token; create 201 and list 200 with the token.
 - Desktop fake-provider E2E passes agent creation, pause/resume, visible chat reply, routine create/toggle and usage. Settings/audit UI and Linux startup-at-login were exercised in an isolated Electron profile; no real model, production data or actual provider cost was used.
 - The desktop was restarted with the same isolated profile/data directory already in use; `/healthz` on `127.0.0.1:7317` returned 200, CDP disabled. The default `~/.config/calango` database was not opened or modified.
 - Research and positioning: `DEV/COMPETITIVE_LANDSCAPE.md`. Technical delivery pipeline: `DEV/TECHNICAL_DELIVERY.md`. TODO: `DEV/TODO_V1.md`.
-- Docker: site and node images built and smoke-tested on a user-defined bridge. Both `/healthz` endpoints passed; `/data/calango.db` persisted through container recreation in a named volume. Caddy/TLS Compose and public VPS deployment remain unverified.
+- Docker: build and health check history in `DEV/VERIFY.md`; not revalidated because the sandbox denied access to the daemon. Bridge networking test still pending.
 - License AGPL-3.0 + commercial license (ADR 0010). CLA and contacts still need owner review before publication.
 - Publication: `main` pushed to `origin` on the owner's request on 2026-11-23 (`git log origin/main -1` gives the pushed head). The earlier note that the owner chose not to commit is superseded. `/tmp/agenticos` is kept until P1–P3 are done (owner, 2026-11-23).
 - AgenticOS port (ADR 0011): `third_party/agenticos/LICENSE` and `NOTICE` copied byte for byte; root `NOTICE` has the entry; port checklist is item 10 of ADR 0011. ADR 0011 is accepted by the owner (Q01); legal review (D1b) is still open.
@@ -41,7 +41,7 @@ Updated: 2026-11-25.
 3. Obtain owner authorization for a real Codex/MCP run and an external approval action; configure verified provider pricing only with authorization.
 4. Complete platform acceptance: Windows installer/signing and Windows/macOS keyring/login runtime. Linux startup toggle is verified; OS-level shortcut activation is not.
 - Owner blockers: D1b legal review, D5 written Tailscale clearance or alternate transport, site terms/prices/domain/copy, permission before deleting `/tmp/agenticos`, memory capture/retention design, and authorization for live provider/action checks.
-- **Platform blockers:** Windows/macOS keyring; F1-T24 OS shortcut/tray and platform login; F1-T25 signed installer/update and platform verification; OS shortcut activation. GitHub run 45188079827 passed on `dee8efa`; it does not cover current changes.
+- Platform blockers: Windows/macOS keyring, login and signed installer/update; Docker bridge test; OS shortcut activation. GitHub run 45188079827 passed on `dee8efa`, but current uncommitted changes are not covered.
 - Remaining implementable engineering: Codex JSONL/other V1 harnesses, MCP connector credentials/built-ins/result durability, previous-binary and OS-keyring backup/restore acceptance, personal-data export/deletion, user docs, accessibility, reference-code review and site icon. The offline runbook and migration restore test exist.
 - Phase 1 exit remains unmet; do not report V1 complete.
 - Resume steps, checks and launch commands: `DEV/TODO_V1.md`, section "Status and resume point (2026-11-23)".

@@ -311,9 +311,9 @@
 - Linked agents already receive the stable home: `cmd/calango/main.go` passes `maestroManager.CodexHome` to the conversation service.
 - F1-T16 stays partial: no real Codex session has run against the stable home.
 
-## 2026-11-25 — Docker bridge validation
+## 2026-11-25 — Local pairing runtime acceptance (#58)
 
-- Worked on #45. Fixed the node image's data-volume contract: it now defaults to `/data` and makes that directory writable for its distroless non-root UID/GID; this addresses the observed startup failure with a named volume.
-- Documented the reproducible bridge smoke in `DEV/DEPLOYMENT.md`; updated TODO, handoff, context, and verification records.
-- Verified both Docker builds, site/node `/healthz`, Docker healthcheck, named-volume ownership/persistence across node container recreation, and no key in logs. Compose/Caddy/TLS remains unverified because Compose CLI is unavailable.
-- Issue #45 remains open; `fix/45-docker-bridge-volume` is published as PR #154, ready for review. Required CI passed; independent review was requested from @kyotodevIndie. Merge requires that approval. Compose/Caddy/TLS remains unverified.
+- Selected the unassigned Phase 1 local-pairing verification issue. The issue's reprioritization keeps mobile QR and remote transport in later phases; this work does not implement or claim those flows.
+- Built and started the real `calango` daemon with a disposable data directory, vault key and legacy API token. Verified code redemption, single use, `full`/`read`/`approve_only` scopes, immediate revocation, token non-disclosure in device listing, and the per-client rate limit over HTTP.
+- Verified `go test ./internal/devices ./internal/api ./internal/config -count=1`. Runtime evidence and the trusted-proxy/mobile limitations are in `DEV/VERIFY.md`.
+- Updated the F1-T15 status in the roadmap, V1 TODO, handoff and current context. No production data, model call, mobile client or VPS was used.
