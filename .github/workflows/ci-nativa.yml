@@ -1,0 +1,120 @@
+# CI nativa do Calango (issue #120): testes Go, testes do desktop e smoke do daemon
+# executados em Linux, Windows e macOS. Complementa o workflow ci (quality-gate e builds
+# cruzados), sem substituí-lo. Passar aqui não homologa Linux nem macOS: ver DEV/CI_NATIVA.md.
+name: ci-nativa
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-nativa-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  nativo:
+    name: Nativo ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 40
+    # Uma plataforma marcada como não obrigatória pode falhar sem bloquear o gate.
+    continue-on-error: ${{ !matrix.obrigatoria }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        obrigatoria: [true]
+    env:
+      ELECTRON_SKIP_BINARY_DOWNLOAD: "1"
+      # O detector de corrida do Go exige cgo; os três runners têm compilador C.
+      CGO_ENABLED: "1"
+    defaults:
+      run:
+        shell: bash
+    steps:
+      # Sem conversão CRLF no Windows: testes comparam arquivos gerados byte a byte.
+      - run: git config --global core.autocrlf false
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - uses: actions/setup-node@v4
+        with:
+          # Piso de engines.node no package.json, igual aos demais jobs.
+          node-version: "22.12.0"
+          cache: npm
+      - run: npm ci
+
+      - name: Testes Go com -race
+        id: go
+        run: go test ./... -race -count=1 -timeout 20m -json > "$RUNNER_TEMP/go-test.json"
+
+      - name: Testes do desktop (main)
+        id: desktop
+        if: ${{ !cancelled() && steps.go.conclusion != 'skipped' }}
+        run: npm run test:main -w apps/desktop
+
+      - name: Smoke do daemon
+        id: smoke
+        if: ${{ !cancelled() && steps.go.conclusion != 'skipped' }}
+        run: node scripts/daemon-smoke.mjs --summary "$RUNNER_TEMP/smoke.md"
+
+      - name: Assinatura (isolada; pulada sem artefato assinado)
+        id: assinatura
+        if: ${{ !cancelled() && steps.go.conclusion != 'skipped' }}
+        run: node --test scripts/signature-check.test.mjs
+
+      - name: Resumo da plataforma
+        if: ${{ always() }}
+        env:
+          OS: ${{ matrix.os }}
+          GO: ${{ steps.go.outcome }}
+          DESKTOP: ${{ steps.desktop.outcome }}
+          SMOKE: ${{ steps.smoke.outcome }}
+          ASSINATURA: ${{ steps.assinatura.outcome }}
+        run: |
+          {
+            echo "## CI nativa — $OS"
+            echo
+            echo "| Etapa | Resultado |"
+            echo "|---|---|"
+            echo "| Testes Go (-race) | ${GO:-não executada} |"
+            echo "| Testes do desktop (main) | ${DESKTOP:-não executada} |"
+            echo "| Smoke do daemon | ${SMOKE:-não executada} |"
+            echo "| Assinatura (isolada) | ${ASSINATURA:-não executada} |"
+            echo
+            if [ -s "$RUNNER_TEMP/go-test.json" ]; then
+              node scripts/go-test-summary.mjs "$RUNNER_TEMP/go-test.json" "Testes Go — $OS"
+            fi
+            if [ -s "$RUNNER_TEMP/smoke.md" ]; then
+              cat "$RUNNER_TEMP/smoke.md"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Publicar resultados da plataforma
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: ci-nativa-${{ matrix.os }}
+          path: |
+            ${{ runner.temp }}/go-test.json
+            ${{ runner.temp }}/smoke.md
+          if-no-files-found: ignore
+          retention-days: 30
+
+  gate:
+    name: ci-nativa-gate
+    if: ${{ always() }}
+    needs: [nativo]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Exigir sucesso das plataformas obrigatórias
+        env:
+          RESULTADO: ${{ needs.nativo.result }}
+        run: |
+          echo "Resultado agregado da matriz nativa: $RESULTADO" >> "$GITHUB_STEP_SUMMARY"
+          test "$RESULTADO" = "success"
