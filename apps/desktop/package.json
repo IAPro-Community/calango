@@ -20,22 +20,28 @@
     "build:daemon:linux": "node ../../scripts/build-daemon.mjs --goos linux --goarch amd64 --out bin/linux-x64/calango",
     "package:linux": "npm run build:daemon:linux && npm run build:main && npm run build:renderer && umask 022 && electron-builder --linux --publish never && node ../../scripts/verify-desktop-package.mjs --resources release/linux-unpacked/resources --daemon calango",
     "build:daemon:mac": "node ../../scripts/build-daemon.mjs --goos darwin --goarch amd64 --out bin/darwin-x64/calango && node ../../scripts/build-daemon.mjs --goos darwin --goarch arm64 --out bin/darwin-arm64/calango",
-    "package:mac": "npm run build:daemon:mac && npm run build:main && npm run build:renderer && electron-builder --mac --publish never && node ../../scripts/verify-desktop-package.mjs --resources release/mac/Calango.app/Contents/Resources && node ../../scripts/verify-desktop-package.mjs --resources release/mac-arm64/Calango.app/Contents/Resources"
-,
-    "test:e2e": "playwright test"
+    "package:mac": "npm run build:daemon:mac && npm run build:main && npm run build:renderer && electron-builder --mac --publish never && node ../../scripts/verify-desktop-package.mjs --resources release/mac/Calango.app/Contents/Resources && node ../../scripts/verify-desktop-package.mjs --resources release/mac-arm64/Calango.app/Contents/Resources",
+    "test:e2e": "playwright test",
+    "test:renderer": "vitest run"
   },
   "devDependencies": {
     "@calango/sdk-ts": "0.1.0",
     "@playwright/test": "1.65.0",
+    "@testing-library/dom": "10.4.2",
+    "@testing-library/jest-dom": "7.0.1",
+    "@testing-library/react": "16.3.3",
+    "@testing-library/user-event": "14.6.8",
     "@types/node": "24.10.1",
     "@types/react": "19.2.2",
     "@types/react-dom": "19.2.2",
     "@vitejs/plugin-react": "5.1.0",
     "electron": "45.4.1",
     "electron-builder": "26.18.1",
+    "jsdom": "28.1.0",
     "react": "19.2.0",
     "react-dom": "19.2.0",
-    "vite": "7.2.2"
+    "vite": "7.2.2",
+    "vitest": "5.1.0"
   },
   "dependencies": {
     "qrcode-generator": "2.0.4"

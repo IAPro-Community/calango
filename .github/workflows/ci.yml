@@ -257,6 +257,7 @@ jobs:
         run: npm run licenses:check
       - run: npm run typecheck
       - run: npm run test:main -w apps/desktop
+      - run: npm run test:renderer -w apps/desktop
       - run: npm run desktop:build
 
   # E2E do desktop com daemon real e provider fake (issue #119). Ainda fora do
