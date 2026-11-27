@@ -488,6 +488,26 @@ output.muted {
   justify-content: center;
 }
 
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.scope-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0 0 12px;
+  padding: 8px 12px;
+}
+
 .browser-preview {
   display: flex;
   flex-direction: column;

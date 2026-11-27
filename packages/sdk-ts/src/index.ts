@@ -32,6 +32,9 @@ export type SkillWarning = Schemas['SkillWarning'];
 export type ImportedSkill = Schemas['ImportedSkill'];
 export type SkillImportInput = Schemas['SkillImportInput'];
 export type SkillImportResult = Schemas['SkillImportResult'];
+export type Device = Schemas['Device'];
+export type DeviceScope = Schemas['DeviceScope'];
+export type PairingCode = Schemas['PairingCode'];
 
 export interface ClientOptions {
   /** Base URL of the local daemon, for example http://127.0.0.1:7317. */
@@ -109,6 +112,12 @@ export interface CalangoClient {
   listImportedSkills(): Promise<ImportedSkill[]>;
   /** Idempotent: the same version returns result "unchanged". */
   importSkill(input: SkillImportInput): Promise<SkillImportResult>;
+  /** Issues a single-use pairing code (5 minutes). The code is returned only here. */
+  createPairingCode(scope: DeviceScope): Promise<PairingCode>;
+  /** Lists paired devices, revoked ones included. Token digests never leave the node. */
+  listDevices(): Promise<Device[]>;
+  /** Revokes a device token; its next call gets 401. */
+  revokeDevice(deviceId: string): Promise<void>;
   /** Removes the node's copy only; the source directory is untouched. */
   removeImportedSkill(skillId: string): Promise<void>;
 }
@@ -232,6 +241,9 @@ export function createClient(options: ClientOptions): CalangoClient {
     discoverSkills: () => request<SkillDiscovery>('GET', '/v1/skill-imports/discover'),
     listImportedSkills: () => request<ImportedSkill[]>('GET', '/v1/skill-imports'),
     importSkill: (input) => request<SkillImportResult>('POST', '/v1/skill-imports', input),
+    createPairingCode: (scope) => request<PairingCode>('POST', '/v1/pairing-codes', { scope }),
+    listDevices: () => request<Device[]>('GET', '/v1/devices'),
+    revokeDevice: (deviceId) => request<void>('DELETE', `/v1/devices/${encodeURIComponent(deviceId)}`),
     removeImportedSkill: (skillId) => request<void>('DELETE', `/v1/skill-imports/${encodeURIComponent(skillId)}`),
   };
 }

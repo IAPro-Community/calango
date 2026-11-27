@@ -205,6 +205,7 @@ function createFakeBridge() {
       login = { openAtLogin: enabled };
       return login;
     }),
+    getNodeInfo: vi.fn(async () => ({})),
     onQuickConversation: (listener) => {
       quickListeners.add(listener);
       return () => quickListeners.delete(listener);
