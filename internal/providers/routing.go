@@ -82,6 +82,7 @@ func (s *Service) SelectCapacityRoute(ctx context.Context, agent core.Agent, run
 
 	candidates := make([]routing.Account, 0, len(agent.Providers)-1)
 	refs := make(map[model.AccountScope]core.ProviderRef)
+	seen := make(map[lease.Key]struct{})
 	for _, ref := range agent.Providers[1:] {
 		if ref.Model != first.Model {
 			continue
@@ -90,9 +91,11 @@ func (s *Service) SelectCapacityRoute(ctx context.Context, agent core.Agent, run
 		if err != nil {
 			continue
 		}
-		if _, exists := refs[candidate.Scope]; exists {
+		key := lease.PhysicalKey(agent.OwnerID, candidate.Scope)
+		if _, exists := seen[key]; exists {
 			continue
 		}
+		seen[key] = struct{}{}
 		refs[candidate.Scope] = ref
 		candidates = append(candidates, candidate)
 	}
