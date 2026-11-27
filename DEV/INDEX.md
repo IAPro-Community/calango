@@ -36,6 +36,7 @@
 | [CONVENTIONS.md](CONVENTIONS.md) | code standards for Go, TS, Dart, tests |
 | [DEPLOYMENT.md](DEPLOYMENT.md) | Docker, VPS, TLS, Tailscale |
 | [TECHNICAL_DELIVERY.md](TECHNICAL_DELIVERY.md) | technical flow, CI, release, migrations and rollback |
+| [CI_NATIVA.md](CI_NATIVA.md) | CI nativa Linux/Windows/macOS: matriz, smoke do daemon, skips e gates de homologação |
 | [BACKUP_RESTORE.md](BACKUP_RESTORE.md) | offline local data backup, vault-key requirements and restore-before-rollback procedure |
 | [INSTALADOR_WINDOWS_INTERNO.md](INSTALADOR_WINDOWS_INTERNO.md) | instalador Windows interno não assinado: como gerar, testar em VM e limitações (#116) |
 | [REVISAO_LICENCAS.md](REVISAO_LICENCAS.md) | revisão de originalidade e licenças, textos em third_party e check automático |
@@ -102,6 +103,7 @@
 - [GOVERNANCE](../GOVERNANCE.md)
 - [Implantação da governança](GOVERNANCE_BOOTSTRAP.md)
 - [Auditoria retroativa](AUDITORIA_RETROATIVA.md)
+- [Auditoria de acessibilidade](AUDITORIA_ACESSIBILIDADE.md) — desktop e site: teclado, árvore de acessibilidade e contraste (issue #48)
 - [Planejamento de produto](PLANEJAMENTO_PRODUTO.md)
 - [GitHub Issues](https://github.com/IAPro-Community/calango/issues) — fonte operacional.
 - Qualidade e revisão técnica: PR #114 / issue #51.
