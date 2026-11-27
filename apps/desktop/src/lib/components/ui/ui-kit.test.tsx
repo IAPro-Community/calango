@@ -1,7 +1,19 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
-import { ApprovalCard, Badge, Button, NavItem, NodePill, StatCard } from '@/index';
+import {
+  ApprovalCard,
+  Badge,
+  Button,
+  Card,
+  Field,
+  Input,
+  NavItem,
+  NodePill,
+  PageHeader,
+  Select,
+  StatCard,
+} from '@/index';
 
 describe('Button', () => {
   it('is a non-submitting button by default and calls onClick', async () => {
@@ -123,5 +135,59 @@ describe('StatCard', () => {
     expect(screen.getByRole('heading', { name: 'Gasto mensal' })).toBeInTheDocument();
     expect(screen.getByText('R$ 18,40')).toBeInTheDocument();
     expect(screen.getByText('36% do limite').className).toContain('text-warn-text');
+  });
+});
+
+describe('Card', () => {
+  it('names the region by its title', () => {
+    render(
+      <Card title="Criar rotina" aside={<Badge>ativa</Badge>}>
+        corpo
+      </Card>,
+    );
+    expect(screen.getByRole('region', { name: 'Criar rotina' })).toHaveTextContent('corpo');
+    expect(screen.getByText('ativa')).toBeInTheDocument();
+  });
+
+  it('has no heading or name without a title', () => {
+    render(<Card>só corpo</Card>);
+    expect(screen.queryByRole('heading')).not.toBeInTheDocument();
+    expect(screen.queryByRole('region')).not.toBeInTheDocument();
+  });
+});
+
+describe('Field', () => {
+  it('labels the control it wraps', async () => {
+    render(
+      <Field label="Nome" hint="Como aparece no menu">
+        <Input />
+      </Field>,
+    );
+    const input = screen.getByLabelText(/Nome/);
+    await userEvent.type(input, 'Ana');
+    expect(input).toHaveValue('Ana');
+    expect(screen.getByText('Como aparece no menu')).toBeInTheDocument();
+  });
+
+  it('works with Select', async () => {
+    render(
+      <Field label="Disparo">
+        <Select defaultValue="cron">
+          <option value="cron">Cron</option>
+          <option value="interval">Intervalo</option>
+        </Select>
+      </Field>,
+    );
+    await userEvent.selectOptions(screen.getByLabelText('Disparo'), 'interval');
+    expect(screen.getByLabelText('Disparo')).toHaveValue('interval');
+  });
+});
+
+describe('PageHeader', () => {
+  it('renders the page heading, meta line and actions', () => {
+    render(<PageHeader title="Conversas" meta="nó: Auto (PC)" actions={<Button>Nova conversa</Button>} />);
+    expect(screen.getByRole('heading', { level: 1, name: 'Conversas' })).toBeInTheDocument();
+    expect(screen.getByText('nó: Auto (PC)')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Nova conversa' })).toBeInTheDocument();
   });
 });

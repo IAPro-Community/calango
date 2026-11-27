@@ -6,6 +6,7 @@ import '@xterm/xterm/css/xterm.css';
 import { bridge } from '../bridge';
 import type { Translate } from '../i18n';
 import type { ScreenProps } from './props';
+import { Button, PageHeader } from '@';
 
 type Status = 'connecting' | 'connected' | 'ended' | 'disconnected';
 
@@ -83,22 +84,19 @@ export function TerminalScreen({ client, t }: ScreenProps) {
 
   return (
     <section className="screen terminal-screen">
-      <header className="screen-header">
-        <h1>{t('navTerminal')}</h1>
-        <div className="actions">
-          <button type="button" onClick={() => void openSession()} disabled={session !== null && !sessionEnded}>
-            {t('terminalNew')}
-          </button>
-          <button
-            type="button"
-            className="danger"
-            onClick={() => void endSession()}
-            disabled={session === null || sessionEnded}
-          >
-            {t('terminalEnd')}
-          </button>
-        </div>
-      </header>
+      <PageHeader
+        title={t('navTerminal')}
+        actions={
+          <>
+            <Button variant="ghost" onClick={() => void openSession()} disabled={session !== null && !sessionEnded}>
+              {t('terminalNew')}
+            </Button>
+            <Button variant="danger" onClick={() => void endSession()} disabled={session === null || sessionEnded}>
+              {t('terminalEnd')}
+            </Button>
+          </>
+        }
+      />
       <p className="muted">{t('terminalIntro')}</p>
       {error && <p className="error">{error}</p>}
       {session === null ? (
