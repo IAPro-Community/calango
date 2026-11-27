@@ -1,10 +1,11 @@
-import { lazy, type ReactNode, Suspense, useEffect, useMemo, useRef, useState } from 'react';
+import { lazy, type ReactNode, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createClient, type CalangoClient } from '@calango/sdk-ts';
 import { NavItem, NodePill, type NodeState } from '@';
 import type { DaemonState } from '../shared/ipc';
 import { bridge } from './bridge';
 import { detectLocale, translator, type Translate, type MessageKey } from './i18n';
 import { useDaemon } from './useDaemon';
+import { usePoll } from './usePoll';
 import { AgentsScreen } from './screens/AgentsScreen';
 import { ApprovalsScreen } from './screens/ApprovalsScreen';
 import { ConversationsScreen } from './screens/ConversationsScreen';
@@ -97,6 +98,14 @@ export function App() {
 
   const node = NODE_STATE[state.status];
 
+  // Contador do menu: aprovações esperando decisão.
+  const loadPending = useCallback(
+    async () => (client === null ? 0 : (await client.listApprovals('pending')).length),
+    [client],
+  );
+  const { data: pendingApprovals } = usePoll(loadPending, 5_000);
+  const counts: Partial<Record<Section, number>> = { approvals: pendingApprovals ?? 0 };
+
   return (
     <div className="grid h-screen grid-cols-[248px_minmax(0,1fr)] bg-bg font-body text-ink">
       <nav
@@ -114,7 +123,12 @@ export function App() {
           <NavGroup key={group.key} title={t(group.key)}>
             {group.items.map((item) => (
               <li key={item.id}>
-                <NavItem active={item.id === section} onClick={() => openSection(item.id)}>
+                <NavItem
+                  active={item.id === section}
+                  count={counts[item.id]}
+                  countLabel={`${counts[item.id] ?? 0} ${t('navPending')}`}
+                  onClick={() => openSection(item.id)}
+                >
                   {t(item.key)}
                 </NavItem>
               </li>

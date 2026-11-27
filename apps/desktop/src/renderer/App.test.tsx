@@ -2,7 +2,7 @@ import type { CalangoClient } from '@calango/sdk-ts';
 import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { anAgent, anAccount, fakeBridge, fakeClient, tr } from './test/fakes';
+import { anAgent, anAccount, anApproval, fakeBridge, fakeClient, tr } from './test/fakes';
 
 const sdk = vi.hoisted(() => ({ createClient: vi.fn() }));
 vi.mock('@calango/sdk-ts', () => sdk);
@@ -75,6 +75,23 @@ describe('App', () => {
     await user.keyboard('{Enter}');
     expect(conversations).toHaveAttribute('aria-current', 'page');
     expect(agents).not.toHaveAttribute('aria-current');
+  });
+
+  it('conta as aprovações pendentes no menu sem mudar o nome do item', async () => {
+    const listApprovals = vi.fn(async () => [anApproval(), anApproval({ id: 'apr-2' })]);
+    sdk.createClient.mockImplementation(() =>
+      fakeClient({
+        listAgents: async () => [anAgent()],
+        listProviderAccounts: async () => [anAccount()],
+        listApprovals,
+      }),
+    );
+    await renderApp();
+    act(() => fakeBridge.emitState({ status: 'running' }, { baseUrl: 'http://127.0.0.1:7317', token: 't' }));
+
+    const approvals = screen.getByRole('button', { name: en('navApprovals') });
+    await waitFor(() => expect(approvals).toHaveAccessibleDescription(`2 ${en('navPending')}`));
+    expect(listApprovals).toHaveBeenCalledWith('pending');
   });
 
   it('abre conversas pelo atalho de conversa rápida', async () => {

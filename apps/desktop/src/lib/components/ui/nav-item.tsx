@@ -1,4 +1,4 @@
-import type { ComponentProps } from 'react';
+import { type ComponentProps, useId } from 'react';
 import { cn } from '@/utils';
 
 // Figma "NavItem" (7:180): side navigation item of the desktop shell.
@@ -6,13 +6,18 @@ export type NavItemProps = ComponentProps<'button'> & {
   active?: boolean;
   /** Pending items shown in a post-it counter; hidden when zero or absent. */
   count?: number;
+  /** Screen-reader text for the counter, e.g. "3 pending": the number leaves the button name and becomes its description. */
+  countLabel?: string;
 };
 
-export function NavItem({ active = false, count, className, children, type, ...props }: NavItemProps) {
+export function NavItem({ active = false, count, countLabel, className, children, type, ...props }: NavItemProps) {
+  const countId = useId();
+  const showCount = count !== undefined && count > 0;
   return (
     <button
       type={type ?? 'button'}
       aria-current={active ? 'page' : undefined}
+      aria-describedby={showCount && countLabel !== undefined ? countId : undefined}
       className={cn(
         'flex h-[38px] w-full cursor-pointer items-center justify-between gap-xs rounded-sm border px-sm py-xs text-left font-body text-[14px] text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-postit',
         active
@@ -26,10 +31,20 @@ export function NavItem({ active = false, count, className, children, type, ...p
         <span aria-hidden="true" className={cn('size-2 shrink-0 rounded-[2px]', active ? 'bg-leaf' : 'bg-clay')} />
         <span className="truncate">{children}</span>
       </span>
-      {count !== undefined && count > 0 && (
-        <span className="shrink-0 rounded-full bg-postit px-xs py-2xs font-mono text-[11.5px] leading-[15px] font-medium text-on-tone">
-          {count}
-        </span>
+      {showCount && (
+        <>
+          <span
+            aria-hidden={countLabel !== undefined ? true : undefined}
+            className="shrink-0 rounded-full bg-postit px-xs py-2xs font-mono text-[11.5px] leading-[15px] font-medium text-on-tone"
+          >
+            {count}
+          </span>
+          {countLabel !== undefined && (
+            <span id={countId} hidden>
+              {countLabel}
+            </span>
+          )}
+        </>
       )}
     </button>
   );

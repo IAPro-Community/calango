@@ -3,6 +3,9 @@ import { createRoot } from 'react-dom/client';
 import '../../../../packages/tokens/generated/tokens.css';
 import './app.css';
 import { App } from './App';
+import { initTheme } from './theme';
+
+initTheme();
 
 const root = document.getElementById('root');
 if (root === null) {
