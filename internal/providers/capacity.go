@@ -97,7 +97,7 @@ func (s *Service) capacityView(a core.ProviderAccount) CapacityView {
 		return emptyCapacity(a, string(model.UsageUnknown), "identity_changed")
 	}
 	now := s.cfg.Now()
-	if view.ExpiresAt == nil || !now.Before(*view.ExpiresAt) {
+	if view.ExpiresAt == nil || !sdk.ObservationFresh(snap, now, s.cfg.CapacityInterval) {
 		view.Status, view.Reason = "STALE", "observation_expired"
 		view.Windows = []CapacityWindow{}
 		return view
@@ -115,7 +115,7 @@ func projectCapacity(a core.ProviderAccount, snap model.UsageSnapshot, previous 
 		expires = *snap.ExpiresAt
 	}
 	view.ExpiresAt = &expires
-	if !now.Before(expires) {
+	if !sdk.ObservationFresh(snap, now, ttl) {
 		view.Status, view.Reason = "STALE", "observation_expired"
 		return view
 	}

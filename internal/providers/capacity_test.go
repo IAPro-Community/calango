@@ -132,3 +132,17 @@ func TestCapacityProbeFailureUsesSDKAuthDiagnostic(t *testing.T) {
 		}
 	}
 }
+
+func TestCapacityRejectsFutureObservationAndProviderExpiry(t *testing.T) {
+	now := time.Now()
+	a := core.ProviderAccount{ID: "profile", OwnerID: "owner", Kind: core.ProviderKindCodex}
+	future := model.UsageSnapshot{Status: model.UsageLive, FetchedAt: now.Add(time.Second)}
+	if got := projectCapacity(a, future, nil, now, time.Minute); got.Status != "STALE" || len(got.Windows) != 0 {
+		t.Fatalf("future observation: %+v", got)
+	}
+	expired := now
+	snap := model.UsageSnapshot{Status: model.UsageLive, FetchedAt: now.Add(-time.Second), ExpiresAt: &expired}
+	if got := projectCapacity(a, snap, nil, now, time.Minute); got.Status != "STALE" || len(got.Windows) != 0 {
+		t.Fatalf("provider expiry: %+v", got)
+	}
+}

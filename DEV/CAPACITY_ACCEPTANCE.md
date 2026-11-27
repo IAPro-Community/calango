@@ -33,3 +33,9 @@ Audited Nexus release/v1.0.0 at 0ceff448b1d5ac10e0268fc04fc7656b94deff7c, not on
 | 3e5b75de11 | Shared noncredential build caches are not quota logic; require separate security and tenant-boundary review before any opt-in. |
 
 This is partial functional parity, not proof of full Nexus migration, real provider acceptance or cross-product locking.
+
+## Shared-consumer migration follow-up
+
+Nexus PR IAPro-Community/nexus#243 removes its independent Codex RPC and quota parser, version cache, identity-hint algorithm and idle freshness calculation. Calango now pins the identical SDK candidate `v0.0.0-20261127234402-2b78728e4d48` (consumer-pin job 140789624649) and calls the SDK observation freshness contract for both the read model and projection. Calango's dedicated quota adapter already uses the same SDK RPC, parser and credential-scope implementation. The Nexus-specific display/duplicate hint is not proof of identity and must never be used to authorize Calango account switching or removal. Calango has no repeated CLI-version endpoint, so it does not create unnecessary version subprocesses merely to consume the SDK version cache.
+
+The remaining Nexus-specific quota cache, additional provider identity adapters and interprocess coordination are not certified as migrated. The original Nexus ephemeral credential-home policy is not introduced into Calango. Both consumers require exact-SHA CI and independent review before merge.
