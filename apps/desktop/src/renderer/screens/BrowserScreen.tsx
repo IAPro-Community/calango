@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type FormEvent } from 'react';
-import type { BrowserTab } from '../../shared/ipc';
+import { type BrowserTab, type DevServer, PREVIEW_OWNER } from '../../shared/ipc';
 import { bridge } from '../bridge';
 import { usePoll } from '../usePoll';
 import type { ScreenProps } from './props';
@@ -7,6 +7,8 @@ import type { ScreenProps } from './props';
 // Internal browser panel (F5-T01). The page itself is a native WebContentsView placed by the
 // main process over the viewport element below; this screen only sends its bounds and
 // drives tabs through the preload bridge. Page content never reaches the renderer.
+// The "Project preview" owner (F4-T06) shows preview tabs: local dev servers on loopback,
+// in their own profile, confined to the chosen origin by the main process.
 export function BrowserScreen({ client, t }: ScreenProps) {
   const browser = bridge.browser;
   const load = useCallback(() => client.listAgents(), [client]);
@@ -17,15 +19,22 @@ export function BrowserScreen({ client, t }: ScreenProps) {
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [confirmingClear, setConfirmingClear] = useState(false);
+  const [servers, setServers] = useState<DevServer[] | null>(null);
+  const [detecting, setDetecting] = useState(false);
+  const [port, setPort] = useState('');
+  const [autoReload, setAutoReload] = useState(false);
+  const [blockedUrl, setBlockedUrl] = useState<string | null>(null);
+  const isPreview = agentId === PREVIEW_OWNER;
   const viewportRef = useRef<HTMLDivElement>(null);
   const agentRef = useRef<string | null>(null);
   agentRef.current = agentId;
 
   useEffect(() => {
-    if (agentId === null && agents !== null && agents.length > 0) {
-      setAgentId(agents[0]?.id ?? null);
+    // Without agents (or without the daemon) the preview still works: it needs neither.
+    if (agentId === null && (agents !== null || agentsError)) {
+      setAgentId(agents?.[0]?.id ?? PREVIEW_OWNER);
     }
-  }, [agents, agentId]);
+  }, [agents, agentsError, agentId]);
 
   useEffect(
     () =>
@@ -35,10 +44,19 @@ export function BrowserScreen({ client, t }: ScreenProps) {
     [browser],
   );
 
+  useEffect(
+    () =>
+      browser.onPreviewBlocked((event) => {
+        if (agentRef.current === PREVIEW_OWNER) setBlockedUrl(event.url);
+      }),
+    [browser],
+  );
+
   useEffect(() => {
     setConfirmingClear(false);
     setError(null);
     setNotice(null);
+    setBlockedUrl(null);
     if (agentId === null) {
       setTabs([]);
       return;
@@ -59,7 +77,17 @@ export function BrowserScreen({ client, t }: ScreenProps) {
 
   // Keep the native view over the viewport element; hide it when this screen unmounts.
   // Messages above the viewport move it, so they re-run the sync too.
-  const layoutKey = [agentId, activeId, error, notice, confirmingClear, active?.loading].join('|');
+  const layoutKey = [
+    agentId,
+    activeId,
+    error,
+    notice,
+    confirmingClear,
+    active?.loading,
+    blockedUrl,
+    detecting,
+    servers?.length,
+  ].join('|');
   // biome-ignore lint/correctness/useExhaustiveDependencies: layoutKey muda a posição do viewport sem mudar o tamanho.
   useLayoutEffect(() => {
     const element = viewportRef.current;
@@ -87,6 +115,7 @@ export function BrowserScreen({ client, t }: ScreenProps) {
   async function run(action: () => Promise<unknown>, failure?: string): Promise<boolean> {
     setError(null);
     setNotice(null);
+    setBlockedUrl(null);
     try {
       await action();
       return true;
@@ -101,7 +130,7 @@ export function BrowserScreen({ client, t }: ScreenProps) {
     if (agentId === null || address.trim() === '') return;
     void run(
       () => (active === null ? browser.openTab(agentId, address) : browser.navigate(active.id, address)),
-      t('browserInvalidAddress'),
+      t(isPreview ? 'browserPreviewOutside' : 'browserInvalidAddress'),
     );
   }
 
@@ -109,8 +138,28 @@ export function BrowserScreen({ client, t }: ScreenProps) {
     if (agentId === null) return;
     setConfirmingClear(false);
     if (await run(() => browser.clearProfile(agentId))) {
-      setNotice(t('browserProfileCleared'));
+      setNotice(t(isPreview ? 'browserPreviewCleared' : 'browserProfileCleared'));
     }
+  }
+
+  async function detectServers() {
+    setDetecting(true);
+    await run(async () => setServers(await browser.detectServers()));
+    setDetecting(false);
+  }
+
+  function openPreview(target: string | number) {
+    void run(() => browser.openPreview(target, { autoReload }), t('browserInvalidPort'));
+  }
+
+  function submitPort(event: FormEvent) {
+    event.preventDefault();
+    if (port.trim() !== '') openPreview(port.trim());
+  }
+
+  function openOutside(url: string) {
+    setBlockedUrl(null);
+    void run(() => browser.openExternal(url));
   }
 
   const agentList = agents ?? [];
@@ -118,18 +167,17 @@ export function BrowserScreen({ client, t }: ScreenProps) {
     <section className="screen browser-screen">
       <header className="screen-header">
         <h1>{t('navBrowser')}</h1>
-        {agentList.length > 0 && (
-          <label className="browser-agent">
-            <span>{t('browserAgentLabel')}</span>
-            <select value={agentId ?? ''} onChange={(event) => setAgentId(event.target.value)}>
-              {agentList.map((agent) => (
-                <option key={agent.id} value={agent.id}>
-                  {agent.name}
-                </option>
-              ))}
-            </select>
-          </label>
-        )}
+        <label className="browser-agent">
+          <span>{t('browserAgentLabel')}</span>
+          <select value={agentId ?? ''} onChange={(event) => setAgentId(event.target.value)}>
+            {agentList.map((agent) => (
+              <option key={agent.id} value={agent.id}>
+                {agent.name}
+              </option>
+            ))}
+            <option value={PREVIEW_OWNER}>{t('browserPreviewOption')}</option>
+          </select>
+        </label>
       </header>
       {agentsError && (
         <p className="error" role="alert">
@@ -139,7 +187,57 @@ export function BrowserScreen({ client, t }: ScreenProps) {
       {agents !== null && agentList.length === 0 && <p className="muted">{t('browserNoAgents')}</p>}
       {agentId !== null && (
         <>
-          <p className="muted">{t('browserIsolationNote')}</p>
+          <p className="muted">{t(isPreview ? 'browserPreviewNote' : 'browserIsolationNote')}</p>
+          {isPreview && (
+            <div className="browser-preview">
+              <div className="browser-preview-row">
+                <button type="button" disabled={detecting} onClick={() => void detectServers()}>
+                  {t('browserDetectServers')}
+                </button>
+                <form className="browser-preview-port" onSubmit={submitPort}>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    aria-label={t('browserPortLabel')}
+                    placeholder={t('browserPortLabel')}
+                    value={port}
+                    spellCheck={false}
+                    autoComplete="off"
+                    onChange={(event) => setPort(event.target.value)}
+                  />
+                  <button type="submit">{t('browserOpenPreview')}</button>
+                </form>
+                <label className="browser-preview-reload">
+                  <input
+                    type="checkbox"
+                    checked={autoReload}
+                    onChange={(event) => setAutoReload(event.target.checked)}
+                  />
+                  <span>{t('browserAutoReload')}</span>
+                </label>
+              </div>
+              {detecting && <output className="muted">{t('browserDetecting')}</output>}
+              {!detecting && servers !== null && servers.length === 0 && (
+                <p className="muted">{t('browserNoServers')}</p>
+              )}
+              {!detecting && servers !== null && servers.length > 0 && (
+                <ul className="browser-servers">
+                  {servers.map((server) => (
+                    <li key={server.origin}>
+                      <span className="browser-server-port">{server.port}</span>
+                      <span className="browser-server-title">{server.title || t('browserServerUntitled')}</span>
+                      <span className="muted">
+                        {server.kind} · HTTP {server.status}
+                      </span>
+                      <button type="button" onClick={() => openPreview(server.origin)}>
+                        {t('browserOpenPreview')}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
           <div className="browser-tabs">
             <div role="tablist" aria-label={t('browserTabs')} className="browser-tablist">
               {tabs.map((tab) => {
@@ -168,9 +266,11 @@ export function BrowserScreen({ client, t }: ScreenProps) {
                 );
               })}
             </div>
-            <button type="button" onClick={() => void run(() => browser.openTab(agentId))}>
-              {t('browserNewTab')}
-            </button>
+            {!isPreview && (
+              <button type="button" onClick={() => void run(() => browser.openTab(agentId))}>
+                {t('browserNewTab')}
+              </button>
+            )}
           </div>
           <form className="browser-toolbar" onSubmit={submitAddress}>
             <button
@@ -207,7 +307,7 @@ export function BrowserScreen({ client, t }: ScreenProps) {
               type="text"
               inputMode="url"
               aria-label={t('browserAddress')}
-              placeholder="https://"
+              placeholder={isPreview ? 'http://localhost:' : 'https://'}
               value={address}
               spellCheck={false}
               autoComplete="off"
@@ -229,7 +329,21 @@ export function BrowserScreen({ client, t }: ScreenProps) {
               </button>
             )}
           </form>
-          {confirmingClear && <p role="alert">{t('browserClearProfileConfirm')}</p>}
+          {confirmingClear && (
+            <p role="alert">{t(isPreview ? 'browserClearPreviewConfirm' : 'browserClearProfileConfirm')}</p>
+          )}
+          {blockedUrl && (
+            <div className="browser-blocked" role="alert">
+              <span>{t('browserPreviewBlocked')}</span>
+              <code>{blockedUrl}</code>
+              <button type="button" onClick={() => openOutside(blockedUrl)}>
+                {t('browserOpenInSystem')}
+              </button>
+              <button type="button" onClick={() => setBlockedUrl(null)}>
+                {t('commonCancel')}
+              </button>
+            </div>
+          )}
           {error && (
             <p className="error" role="alert">
               {error}
@@ -238,7 +352,7 @@ export function BrowserScreen({ client, t }: ScreenProps) {
           {notice && <output className="muted">{notice}</output>}
           {active?.loading && <output className="muted">{t('browserLoading')}</output>}
           <div className="browser-viewport" ref={viewportRef}>
-            {active === null && <p className="muted">{t('browserEmpty')}</p>}
+            {active === null && <p className="muted">{t(isPreview ? 'browserPreviewEmpty' : 'browserEmpty')}</p>}
           </div>
         </>
       )}
