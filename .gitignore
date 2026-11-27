@@ -42,3 +42,5 @@ apps/desktop/dist/
 
 # instalador interno do desktop (npm run desktop:package:win)
 apps/desktop/release/
+apps/desktop/e2e-results/
+apps/desktop/e2e-report/

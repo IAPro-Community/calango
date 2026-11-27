@@ -132,6 +132,34 @@ jobs:
       - run: npm run test:main -w apps/desktop
       - run: npm run desktop:build
 
+  # E2E do desktop com daemon real e provider fake (issue #119). Ainda fora do
+  # quality-gate até a revisão decidir se vira check obrigatório.
+  desktop-e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.23"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22.12.0"
+          cache: npm
+      - run: npm ci
+      - run: npm run desktop:build
+      - name: Run Playwright Electron E2E
+        run: xvfb-run -a npm run desktop:e2e
+      - name: Upload traces and screenshots of failures
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: desktop-e2e-falhas
+          path: |
+            apps/desktop/e2e-results/
+            apps/desktop/e2e-report/
+          retention-days: 7
+
   # Instalador interno não assinado (#116). Instala em silêncio no runner descartável,
   # sobe o daemon instalado, confere /healthz e que o log não contém o token, e desinstala.
   desktop-windows-package:
