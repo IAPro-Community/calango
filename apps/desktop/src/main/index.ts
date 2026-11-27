@@ -14,12 +14,14 @@ import {
   type IpcMainInvokeEvent,
 } from 'electron';
 import { readFile } from 'node:fs/promises';
+import os from 'node:os';
 import path from 'node:path';
-import { channels, type BrowserTab, type DaemonState } from '../shared/ipc';
+import { channels, type BrowserTab, type DaemonState, type NodeInfo } from '../shared/ipc';
 import { BrowserManager } from './browser/manager';
 import { isNavigableUrl, parseBounds } from './browser/policy';
 import { DEFAULT_PREVIEW_PORTS, detectDevServers } from './browser/preview';
 import { loadProfileKey } from './browser/profileKey';
+import { nodeLabel } from '../shared/pairing';
 import { Daemon } from './daemon';
 import { PtyBridge } from './pty';
 import { messages, type Locale } from './trayMessages';
@@ -243,6 +245,11 @@ function registerIpc(): void {
   ipcMain.handle(channels.connection, (event) => {
     assertTrusted(event);
     return daemon.connectionOrThrow();
+  });
+  ipcMain.handle(channels.nodeInfo, (event): NodeInfo => {
+    assertTrusted(event);
+    const label = nodeLabel(os.hostname());
+    return label === undefined ? {} : { label };
   });
   ipcMain.handle(channels.state, (event) => {
     assertTrusted(event);

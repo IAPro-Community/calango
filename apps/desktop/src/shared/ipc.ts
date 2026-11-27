@@ -31,6 +31,7 @@ export const channels = {
   browserOpenPreview: 'calango:browser-open-preview',
   browserOpenExternal: 'calango:browser-open-external',
   browserPreviewBlocked: 'calango:browser-preview-blocked',
+  nodeInfo: 'calango:node-info',
 } as const;
 
 /** Why a terminal socket closed: the session ended on the daemon, or the connection dropped. */
@@ -43,6 +44,12 @@ export interface PtyClosed {
 
 export interface LoginItemSettings {
   openAtLogin: boolean;
+}
+
+// NodeInfo is what the pairing screen may show about this computer. It holds no secret.
+export interface NodeInfo {
+  /** Display label for the pairing QR `node` field; absent when the host name is unusable. */
+  label?: string;
 }
 
 export interface DaemonConnection {
@@ -137,6 +144,7 @@ export interface CalangoBridge {
   getState(): Promise<DaemonState>;
   getLoginItemSettings(): Promise<LoginItemSettings>;
   setLaunchAtLogin(enabled: boolean): Promise<LoginItemSettings>;
+  getNodeInfo(): Promise<NodeInfo>;
   onQuickConversation(listener: () => void): () => void;
   onState(listener: (state: DaemonState) => void): () => void;
   /**

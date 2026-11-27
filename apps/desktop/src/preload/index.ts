@@ -5,8 +5,9 @@ import type {
   CalangoBridge,
   DaemonConnection,
   DaemonState,
-  PtyClosed,
+  NodeInfo,
   PreviewBlockedEvent,
+  PtyClosed,
 } from '../shared/ipc';
 
 // Sandboxed preloads cannot require local modules, so the channel names repeat
@@ -25,6 +26,7 @@ const PTY_OUTPUT = 'calango:pty-output';
 const PTY_CLOSED = 'calango:pty-closed';
 const BROWSER_TABS_CHANGED = 'calango:browser-tabs-changed';
 const BROWSER_PREVIEW_BLOCKED = 'calango:browser-preview-blocked';
+const NODE_INFO = 'calango:node-info';
 const quickConversationListeners = new Set<() => void>();
 let quickConversationPending = false;
 
@@ -74,6 +76,7 @@ const bridge: CalangoBridge = {
   getState: () => ipcRenderer.invoke(STATE) as Promise<DaemonState>,
   getLoginItemSettings: () => ipcRenderer.invoke(GET_LOGIN_ITEM_SETTINGS),
   setLaunchAtLogin: (enabled) => ipcRenderer.invoke(SET_LAUNCH_AT_LOGIN, enabled),
+  getNodeInfo: () => ipcRenderer.invoke(NODE_INFO) as Promise<NodeInfo>,
   onQuickConversation: (listener) => {
     quickConversationListeners.add(listener);
     if (quickConversationPending) {

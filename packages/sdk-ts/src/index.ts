@@ -31,6 +31,9 @@ export type SkillImportInput = Schemas['SkillImportInput'];
 export type SkillImportResult = Schemas['SkillImportResult'];
 export type PtySession = Schemas['PtySession'];
 export type PtySessionInput = Schemas['PtySessionInput'];
+export type Device = Schemas['Device'];
+export type DeviceScope = Schemas['DeviceScope'];
+export type PairingCode = Schemas['PairingCode'];
 
 export interface ClientOptions {
   /** Base URL of the local daemon, for example http://127.0.0.1:7317. */
@@ -108,6 +111,12 @@ export interface CalangoClient {
   listPtySessions(): Promise<PtySession[]>;
   /** Ends the session and kills its whole process tree. */
   deletePtySession(sessionId: string): Promise<void>;
+  /** Issues a single-use pairing code (5 minutes). The code is returned only here. */
+  createPairingCode(scope: DeviceScope): Promise<PairingCode>;
+  /** Lists paired devices, revoked ones included. Token digests never leave the node. */
+  listDevices(): Promise<Device[]>;
+  /** Revokes a device token; its next call gets 401. */
+  revokeDevice(deviceId: string): Promise<void>;
 }
 
 export function createClient(options: ClientOptions): CalangoClient {
@@ -228,5 +237,8 @@ export function createClient(options: ClientOptions): CalangoClient {
     createPtySession: (input = {}) => request<PtySession>('POST', '/v1/pty', input),
     listPtySessions: () => request<PtySession[]>('GET', '/v1/pty'),
     deletePtySession: (sessionId) => request<void>('DELETE', `/v1/pty/${encodeURIComponent(sessionId)}`),
+    createPairingCode: (scope) => request<PairingCode>('POST', '/v1/pairing-codes', { scope }),
+    listDevices: () => request<Device[]>('GET', '/v1/devices'),
+    revokeDevice: (deviceId) => request<void>('DELETE', `/v1/devices/${encodeURIComponent(deviceId)}`),
   };
 }

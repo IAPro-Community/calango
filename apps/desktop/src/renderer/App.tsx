@@ -13,6 +13,7 @@ import { AuditScreen } from './screens/AuditScreen';
 import { BrowserScreen } from './screens/BrowserScreen';
 import { SettingsScreen } from './screens/SettingsScreen';
 import { SkillsScreen } from './screens/SkillsScreen';
+import { DevicesScreen } from './screens/DevicesScreen';
 
 // xterm.js is large; load the terminal screen only when it is opened.
 const TerminalScreen = lazy(() => import('./screens/TerminalScreen').then((m) => ({ default: m.TerminalScreen })));
@@ -27,6 +28,7 @@ type Section =
   | 'browser'
   | 'usage'
   | 'audit'
+  | 'devices'
   | 'settings';
 
 const SECTIONS: { id: Section; key: MessageKey }[] = [
@@ -39,6 +41,7 @@ const SECTIONS: { id: Section; key: MessageKey }[] = [
   { id: 'browser', key: 'navBrowser' },
   { id: 'usage', key: 'navUsage' },
   { id: 'audit', key: 'navAudit' },
+  { id: 'devices', key: 'navDevices' },
   { id: 'settings', key: 'navSettings' },
 ];
 
@@ -116,6 +119,8 @@ function SectionView({ section, client, t }: { section: Section; client: Calango
       return <UsageScreen client={client} t={t} />;
     case 'audit':
       return <AuditScreen client={client} t={t} />;
+    case 'devices':
+      return <DevicesScreen client={client} t={t} />;
     case 'settings':
       return <SettingsScreen client={client} t={t} />;
   }
