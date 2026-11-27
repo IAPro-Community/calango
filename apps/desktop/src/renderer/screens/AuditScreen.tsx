@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { AuditVerification } from '@calango/sdk-ts';
 import type { ScreenProps } from './props';
+import { Button, Card, PageHeader } from '@';
 
 type ExportFormat = 'jsonl' | 'csv';
 
@@ -48,21 +49,23 @@ export function AuditScreen({ client, t }: ScreenProps) {
   }
 
   return (
-    <section className="screen">
-      <header className="screen-header">
-        <h1>{t('auditTitle')}</h1>
-        <div className="actions">
-          <button type="button" onClick={verify} disabled={loading}>
-            {loading ? t('auditLoading') : t('auditVerify')}
-          </button>
-          <button type="button" onClick={() => download('jsonl')} disabled={exporting !== null}>
-            {exporting === 'jsonl' ? t('commonLoading') : t('auditExportJsonl')}
-          </button>
-          <button type="button" onClick={() => download('csv')} disabled={exporting !== null}>
-            {exporting === 'csv' ? t('commonLoading') : t('auditExportCsv')}
-          </button>
-        </div>
-      </header>
+    <section className="flex flex-col gap-md">
+      <PageHeader
+        title={t('auditTitle')}
+        actions={
+          <>
+            <Button variant="ghost" onClick={verify} disabled={loading}>
+              {loading ? t('auditLoading') : t('auditVerify')}
+            </Button>
+            <Button variant="ghost" onClick={() => download('jsonl')} disabled={exporting !== null}>
+              {exporting === 'jsonl' ? t('commonLoading') : t('auditExportJsonl')}
+            </Button>
+            <Button variant="ghost" onClick={() => download('csv')} disabled={exporting !== null}>
+              {exporting === 'csv' ? t('commonLoading') : t('auditExportCsv')}
+            </Button>
+          </>
+        }
+      />
       {error && (
         <p className="error" role="alert">
           {t('auditError')}
@@ -73,7 +76,7 @@ export function AuditScreen({ client, t }: ScreenProps) {
           {t('auditExportError')}
         </p>
       )}
-      <div className="card" aria-live="polite">
+      <Card aria-live="polite">
         {result === null ? (
           <p className="muted">{loading ? t('auditLoading') : t('auditNeverChecked')}</p>
         ) : (
@@ -99,7 +102,7 @@ export function AuditScreen({ client, t }: ScreenProps) {
             )}
           </>
         )}
-      </div>
+      </Card>
       {emptyExport && <output className="muted">{t('auditExportEmpty')}</output>}
     </section>
   );
