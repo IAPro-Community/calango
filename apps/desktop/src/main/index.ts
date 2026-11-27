@@ -13,6 +13,7 @@ import {
   WebContentsView,
   type IpcMainInvokeEvent,
 } from 'electron';
+import { createWriteStream, mkdirSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
@@ -34,7 +35,11 @@ const repoRoot = path.resolve(__dirname, '..', '..', '..', '..');
 const rendererRoot = path.resolve(__dirname, '..', 'renderer');
 
 const addr = loopbackAddr(process.env.CALANGO_ADDR ?? '127.0.0.1:7317');
-const binary = process.env.CALANGO_BIN ?? path.join(repoRoot, 'bin', 'calango');
+const binaryName = process.platform === 'win32' ? 'calango.exe' : 'calango';
+// The installed app carries the daemon in resources/bin (apps/desktop/electron-builder.yml).
+const binary =
+  process.env.CALANGO_BIN ??
+  (app.isPackaged ? path.join(process.resourcesPath, 'bin', binaryName) : path.join(repoRoot, 'bin', binaryName));
 
 // The daemon's CORS allowlist names this origin (cmd/calango). connect-src lists only
 // the daemon, so the renderer cannot reach any other host.
@@ -76,6 +81,7 @@ const daemon = new Daemon({
     }
     broadcastState(state);
   },
+  output: app.isPackaged ? daemonLogFile() : undefined,
 });
 
 // Terminal sockets live here, never in the renderer (ADR 0015).
@@ -91,6 +97,16 @@ function sendTo(webContentsId: number, channel: string, ...args: unknown[]): voi
       win.webContents.send(channel, ...args);
     }
   }
+}
+
+// daemonLogFile opens the log file of an installed app, which has no console. The daemon
+// never logs the API token or vault values, so the file holds no secrets.
+function daemonLogFile(): NodeJS.WritableStream {
+  const logsDir = app.getPath('logs');
+  mkdirSync(logsDir, { recursive: true });
+  const stream = createWriteStream(path.join(logsDir, 'daemon.log'), { flags: 'a' });
+  stream.on('error', (err) => console.error(`Calango could not write the daemon log: ${err.message}`));
+  return stream;
 }
 
 function loopbackAddr(value: string): string {

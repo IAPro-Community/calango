@@ -10,6 +10,7 @@
     "desktop:build": "npm run build -w apps/desktop",
     "desktop:start": "npm run start -w apps/desktop",
     "desktop:e2e": "npm run test:e2e -w apps/desktop",
+    "desktop:package:win": "npm run package:win -w apps/desktop",
     "format:go": "gofmt -w cmd internal",
     "format:go:check": "node scripts/check-go-format.mjs",
     "format:web": "npx --yes @biomejs/biome@2.2.6 format --write .",
