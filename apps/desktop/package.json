@@ -6,7 +6,7 @@
   "scripts": {
     "build:daemon": "go build -o ../../bin/calango ../../cmd/calango",
     "build:main": "tsc -p tsconfig.main.json",
-    "test:main": "npm run build:main && node --test test/startup.test.cjs",
+    "test:main": "npm run build:main && node --test test/startup.test.cjs test/a11y.test.cjs",
     "build:renderer": "vite build",
     "build": "npm run build:daemon && npm run build:main && npm run build:renderer",
     "typecheck": "tsc -p tsconfig.renderer.json --noEmit && tsc -p tsconfig.e2e.json --noEmit",

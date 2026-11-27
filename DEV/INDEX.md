@@ -102,6 +102,7 @@
 - [GOVERNANCE](../GOVERNANCE.md)
 - [Implantação da governança](GOVERNANCE_BOOTSTRAP.md)
 - [Auditoria retroativa](AUDITORIA_RETROATIVA.md)
+- [Auditoria de acessibilidade](AUDITORIA_ACESSIBILIDADE.md) — desktop e site: teclado, árvore de acessibilidade e contraste (issue #48)
 - [Planejamento de produto](PLANEJAMENTO_PRODUTO.md)
 - [GitHub Issues](https://github.com/IAPro-Community/calango/issues) — fonte operacional.
 - Qualidade e revisão técnica: PR #114 / issue #51.

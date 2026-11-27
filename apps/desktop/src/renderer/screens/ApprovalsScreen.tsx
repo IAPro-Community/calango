@@ -24,8 +24,16 @@ export function ApprovalsScreen({ client, t }: ScreenProps) {
       <header className="screen-header">
         <h1>{t('approvalTitle')}</h1>
       </header>
-      {error && <p className="error">{error}</p>}
-      {actionError && <p className="error">{actionError}</p>}
+      {error && (
+        <p className="error" role="alert">
+          {error}
+        </p>
+      )}
+      {actionError && (
+        <p className="error" role="alert">
+          {actionError}
+        </p>
+      )}
       <div className="card">
         {approvals.length === 0 ? (
           <p className="muted">{t('approvalEmpty')}</p>
