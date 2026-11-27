@@ -41,6 +41,7 @@
 | [../api/openapi.yaml](../api/openapi.yaml) | API contract (source of the TS and Dart SDKs) |
 | [../packages/tokens/tokens.json](../packages/tokens/tokens.json) | design tokens (source of CSS and ThemeData) |
 | [../packages/i18n/messages.json](../packages/i18n/messages.json) | interface catalog in en/pt-BR/es, source of the TypeScript and ARB files |
+| [PACOTE_DESKTOP_LINUX_MACOS.md](PACOTE_DESKTOP_LINUX_MACOS.md) | pacotes do desktop: .deb/AppImage validados em contêiner, gate de LICENSE/NOTICE/third_party e DMG pendente de credenciais (#40) |
 
 ## Decisions (ADR)
 
