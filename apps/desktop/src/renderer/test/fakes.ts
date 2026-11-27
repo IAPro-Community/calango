@@ -212,6 +212,12 @@ function createFakeBridge() {
       stateListeners.add(listener);
       return () => stateListeners.delete(listener);
     },
+    ptyAttach: vi.fn(async () => {}),
+    ptyInput: vi.fn(() => {}),
+    ptyResize: vi.fn(() => {}),
+    ptyDetach: vi.fn(() => {}),
+    onPtyOutput: () => () => {},
+    onPtyClosed: () => () => {},
     // The browser pane lives in Electron; component tests never mount it.
     browser: {
       listTabs: vi.fn(async () => []),
