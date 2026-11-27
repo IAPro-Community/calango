@@ -233,6 +233,12 @@ function createFakeBridge() {
       setBounds: vi.fn(async () => {}),
       clearProfile: vi.fn(async () => {}),
       onTabs: () => () => {},
+      detectServers: vi.fn(async () => []),
+      openPreview: vi.fn(async (): Promise<never> => {
+        throw new Error('browser is not available in component tests');
+      }),
+      openExternal: vi.fn(async () => false),
+      onPreviewBlocked: () => () => {},
     },
   };
 

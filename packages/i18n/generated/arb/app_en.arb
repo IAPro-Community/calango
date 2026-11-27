@@ -280,5 +280,21 @@
   "pairingOneMinuteLeft": "1 minute left before the code expires.",
   "pairingExpired": "The code expired. Generate another one to pair.",
   "pairingPaired": "New device paired.",
-  "pairingTransportNote": "Remote access between phone and computer is still in development; for now the phone reaches Calango only on test networks."
+  "pairingTransportNote": "Remote access between phone and computer is still in development; for now the phone reaches Calango only on test networks.",
+  "browserPreviewOption": "Project preview",
+  "browserPreviewNote": "The preview opens only local servers on this computer (localhost), in a profile kept apart from the agents. Links to other addresses are blocked.",
+  "browserDetectServers": "Detect local servers",
+  "browserDetecting": "Looking for local servers...",
+  "browserNoServers": "No local server answered on the common ports.",
+  "browserServerUntitled": "Untitled",
+  "browserOpenPreview": "Open preview",
+  "browserPortLabel": "Local port",
+  "browserInvalidPort": "Use a local port (1 to 65535), localhost:PORT or http://127.0.0.1:PORT.",
+  "browserAutoReload": "Reload when the server comes back",
+  "browserPreviewBlocked": "Link leaving the preview was blocked:",
+  "browserOpenInSystem": "Open in the system browser",
+  "browserPreviewOutside": "The preview only opens addresses of this local server.",
+  "browserPreviewEmpty": "No preview open. Detect a local server or enter its port.",
+  "browserClearPreviewConfirm": "Erase the preview's cookies and browsing data? Preview tabs will be closed.",
+  "browserPreviewCleared": "Preview profile cleared."
 }
