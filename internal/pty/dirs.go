@@ -63,7 +63,12 @@ func (d *RootDir) ResolveDir(_ context.Context, _ string, requested string) (str
 	if err != nil {
 		return "", fmt.Errorf("%w: directory does not exist or cannot be read", ErrInvalidInput)
 	}
-	if !within(d.root, real) {
+	real = filepath.Clean(real)
+	rootClean := filepath.Clean(d.root)
+	if real != rootClean && !strings.HasPrefix(real, rootClean+string(filepath.Separator)) {
+		return "", fmt.Errorf("%w: directory is outside the terminal workspace", ErrInvalidInput)
+	}
+	if !within(rootClean, real) {
 		return "", fmt.Errorf("%w: directory is outside the terminal workspace", ErrInvalidInput)
 	}
 	st, err := os.Stat(real)
