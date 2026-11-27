@@ -159,7 +159,18 @@
     "auditExportCsv": "Baixar CSV",
     "auditExportError": "Não foi possível exportar a auditoria.",
     "auditExportEmpty": "A exportação está vazia.",
-    "auditEmptyChain": "A cadeia não contém entradas."
+    "auditEmptyChain": "A cadeia não contém entradas.",
+    "conversationMessageLabel": "Mensagem",
+    "conversationMessagesLabel": "Mensagens da conversa",
+    "conversationAuthorPerson": "Você",
+    "conversationAuthorAgent": "Agente",
+    "conversationAuthorSystem": "Sistema",
+    "usageGroupAgent": "Agente",
+    "usageGroupRoutine": "Rotina",
+    "usageGroupProject": "Projeto",
+    "usageGroupNode": "Nó de execução",
+    "usageGroupModel": "Modelo",
+    "conversationTitleLabel": "Título (opcional)"
   },
   "en": {
     "appName": "Calango",
@@ -320,7 +331,18 @@
     "auditExportCsv": "Download CSV",
     "auditExportError": "Could not export the audit log.",
     "auditExportEmpty": "The export is empty.",
-    "auditEmptyChain": "The chain has no entries."
+    "auditEmptyChain": "The chain has no entries.",
+    "conversationMessageLabel": "Message",
+    "conversationMessagesLabel": "Conversation messages",
+    "conversationAuthorPerson": "You",
+    "conversationAuthorAgent": "Agent",
+    "conversationAuthorSystem": "System",
+    "usageGroupAgent": "Agent",
+    "usageGroupRoutine": "Routine",
+    "usageGroupProject": "Project",
+    "usageGroupNode": "Execution node",
+    "usageGroupModel": "Model",
+    "conversationTitleLabel": "Title (optional)"
   },
   "es": {
     "appName": "Calango",
@@ -481,6 +503,17 @@
     "auditExportCsv": "Descargar CSV",
     "auditExportError": "No se pudo exportar la auditoría.",
     "auditExportEmpty": "La exportación está vacía.",
-    "auditEmptyChain": "La cadena no contiene entradas."
+    "auditEmptyChain": "La cadena no contiene entradas.",
+    "conversationMessageLabel": "Mensaje",
+    "conversationMessagesLabel": "Mensajes de la conversación",
+    "conversationAuthorPerson": "Tú",
+    "conversationAuthorAgent": "Agente",
+    "conversationAuthorSystem": "Sistema",
+    "usageGroupAgent": "Agente",
+    "usageGroupRoutine": "Rutina",
+    "usageGroupProject": "Proyecto",
+    "usageGroupNode": "Nodo de ejecución",
+    "usageGroupModel": "Modelo",
+    "conversationTitleLabel": "Título (opcional)"
   }
 }

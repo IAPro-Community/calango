@@ -158,5 +158,16 @@
   "auditExportCsv": "Descargar CSV",
   "auditExportError": "No se pudo exportar la auditoría.",
   "auditExportEmpty": "La exportación está vacía.",
-  "auditEmptyChain": "La cadena no contiene entradas."
+  "auditEmptyChain": "La cadena no contiene entradas.",
+  "conversationMessageLabel": "Mensaje",
+  "conversationMessagesLabel": "Mensajes de la conversación",
+  "conversationAuthorPerson": "Tú",
+  "conversationAuthorAgent": "Agente",
+  "conversationAuthorSystem": "Sistema",
+  "usageGroupAgent": "Agente",
+  "usageGroupRoutine": "Rutina",
+  "usageGroupProject": "Proyecto",
+  "usageGroupNode": "Nodo de ejecución",
+  "usageGroupModel": "Modelo",
+  "conversationTitleLabel": "Título (opcional)"
 }

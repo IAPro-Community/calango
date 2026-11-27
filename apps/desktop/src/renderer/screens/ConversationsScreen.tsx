@@ -17,6 +17,12 @@ const RUN_STATUS_KEY: Record<RunStatus, MessageKey> = {
 
 const TERMINAL: Partial<Record<RunStatus, true>> = { done: true, failed: true, stopped: true };
 
+const AUTHOR_KEY: Record<Message['author_kind'], MessageKey> = {
+  person: 'conversationAuthorPerson',
+  agent: 'conversationAuthorAgent',
+  system: 'conversationAuthorSystem',
+};
+
 export function ConversationsScreen({ client, t }: ScreenProps) {
   const load = useCallback(async () => {
     const [conversations, agents] = await Promise.all([client.listConversations(), client.listAgents()]);
@@ -35,7 +41,8 @@ export function ConversationsScreen({ client, t }: ScreenProps) {
 
   return (
     <section className="screen split">
-      <aside className="card">
+      <h1 className="sr-only">{t('navConversations')}</h1>
+      <div className="card">
         <NewConversation client={client} t={t} agents={agents} onCreated={created} />
         {conversations.length === 0 ? (
           <p className="muted">{t('conversationEmptyList')}</p>
@@ -46,6 +53,7 @@ export function ConversationsScreen({ client, t }: ScreenProps) {
                 <button
                   type="button"
                   className={conversation.id === selected ? 'nav-item active' : 'nav-item'}
+                  aria-current={conversation.id === selected ? 'true' : undefined}
                   onClick={() => setSelected(conversation.id)}
                 >
                   {conversation.title}
@@ -54,8 +62,12 @@ export function ConversationsScreen({ client, t }: ScreenProps) {
             ))}
           </ul>
         )}
-        {error && <p className="error">{error}</p>}
-      </aside>
+        {error && (
+          <p className="error" role="alert">
+            {error}
+          </p>
+        )}
+      </div>
       <div className="card conversation">
         {selected === null ? (
           <div className="empty">
@@ -118,10 +130,14 @@ function NewConversation({
         </select>
       </label>
       <label>
-        {t('conversationPlaceholder')}
+        {t('conversationTitleLabel')}
         <input value={title} onChange={(event) => setTitle(event.target.value)} />
       </label>
-      {formError && <p className="error">{formError}</p>}
+      {formError && (
+        <p className="error" role="alert">
+          {formError}
+        </p>
+      )}
       <button type="submit">{t('actionNewConversation')}</button>
     </form>
   );
@@ -161,17 +177,23 @@ function ConversationView({ client, t, conversationId }: ScreenProps & { convers
   const messages: Message[] = data ?? [];
   return (
     <>
-      <div className="messages">
+      <div className="messages" role="log" aria-label={t('conversationMessagesLabel')}>
         {messages.map((message) => (
           <div key={message.id} className={`message ${message.author_kind}`}>
+            <span className="sr-only">{t(AUTHOR_KEY[message.author_kind])}: </span>
             {message.body}
           </div>
         ))}
-        {error && <p className="error">{error}</p>}
+        {error && (
+          <p className="error" role="alert">
+            {error}
+          </p>
+        )}
       </div>
       {runId !== null && <RunWatcher key={runId} client={client} t={t} runId={runId} />}
       <form className="composer" onSubmit={(event) => void send(event)}>
         <textarea
+          aria-label={t('conversationMessageLabel')}
           disabled={sending}
           value={draft}
           placeholder={t('conversationPlaceholder')}
@@ -188,7 +210,11 @@ function ConversationView({ client, t, conversationId }: ScreenProps & { convers
           {t('actionSend')}
         </button>
       </form>
-      {sendError && <p className="error">{sendError}</p>}
+      {sendError && (
+        <p className="error" role="alert">
+          {sendError}
+        </p>
+      )}
     </>
   );
 }
@@ -226,10 +252,18 @@ function RunWatcher({ client, t, runId }: ScreenProps & { runId: string }) {
   return (
     <>
       <div className="run">
-        <span>{status === undefined ? t('commonLoading') : t(RUN_STATUS_KEY[status])}</span>
+        <output>{status === undefined ? t('commonLoading') : t(RUN_STATUS_KEY[status])}</output>
         {run?.error_code && <span className="muted"> {run.error_code}</span>}
-        {error && <span className="error">{error}</span>}
-        {stopError && <span className="error">{stopError}</span>}
+        {error && (
+          <span className="error" role="alert">
+            {error}
+          </span>
+        )}
+        {stopError && (
+          <span className="error" role="alert">
+            {stopError}
+          </span>
+        )}
         {!terminal && (
           <button
             type="button"
@@ -248,7 +282,11 @@ function RunWatcher({ client, t, runId }: ScreenProps & { runId: string }) {
       </div>
       {data?.approvals.length ? (
         <div className="card">
-          {approvalError && <p className="error">{approvalError}</p>}
+          {approvalError && (
+            <p className="error" role="alert">
+              {approvalError}
+            </p>
+          )}
           <ul className="list">
             {data.approvals.map((approval) => (
               <li key={approval.id} className="approval">
@@ -279,7 +317,9 @@ function RunWatcher({ client, t, runId }: ScreenProps & { runId: string }) {
           </ul>
         </div>
       ) : approvalError ? (
-        <p className="error">{approvalError}</p>
+        <p className="error" role="alert">
+          {approvalError}
+        </p>
       ) : null}
     </>
   );
