@@ -5,6 +5,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -22,8 +23,12 @@ func TestKeygenAndIssueProduceAVerifiableLicense(t *testing.T) {
 		t.Fatalf("keygen: %v", err)
 	}
 	info, err := os.Stat(keyFile)
-	if err != nil || info.Mode().Perm() != 0o600 {
-		t.Fatalf("key file mode = %v, %v; want 0600", info, err)
+	if err != nil {
+		t.Fatalf("stat key file: %v", err)
+	}
+	// Windows não tem bits de permissão POSIX; o modo lido lá não diz nada.
+	if runtime.GOOS != "windows" && info.Mode().Perm() != 0o600 {
+		t.Fatalf("key file mode = %v; want 0600", info.Mode().Perm())
 	}
 	if err := run([]string{"keygen", "-out", keyFile}, io.Discard, io.Discard, clock); err == nil {
 		t.Fatal("keygen overwrote an existing key file")
