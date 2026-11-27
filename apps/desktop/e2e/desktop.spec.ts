@@ -98,7 +98,7 @@ test('escrita por conector espera aprovação e segue depois de aprovada', async
 
   await expect(page.locator('.run')).toContainText(t('runWaitingApproval'));
   const approval = page.locator('li.approval');
-  await expect(approval).toContainText('notas/create_note');
+  await expect(approval).toContainText(/notas\/.*\/create_note/);
   await approval.getByRole('button', { name: t('actionApprove'), exact: true }).click();
 
   await expect(page.locator('.message').filter({ hasText: 'nota salva: nota do teste E2E' })).toBeVisible();
