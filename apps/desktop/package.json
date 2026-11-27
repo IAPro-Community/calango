@@ -10,8 +10,9 @@
     "test:renderer": "vitest run",
     "build:renderer": "vite build",
     "build": "npm run build:daemon && npm run build:main && npm run build:renderer",
-    "typecheck": "tsc -p tsconfig.renderer.json --noEmit",
-    "start": "electron ."
+    "typecheck": "tsc -p tsconfig.renderer.json --noEmit && tsc -p tsconfig.e2e.json --noEmit",
+    "start": "electron .",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@calango/sdk-ts": "0.1.0",
@@ -26,6 +27,7 @@
     "tailwind-merge": "3.7.1"
   },
   "devDependencies": {
+    "@playwright/test": "1.65.0",
     "@tailwindcss/vite": "4.3.5",
     "@testing-library/dom": "10.4.2",
     "@testing-library/jest-dom": "7.0.1",
