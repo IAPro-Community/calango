@@ -90,7 +90,7 @@ func New(cfg Config) (*Manager, error) {
 		cfg.Runner = execRunner{}
 	}
 	if cfg.Registry == nil {
-		cfg.Registry = npmRegistry{runner: cfg.Runner, root: root, env: []string{"HOME=" + root, "XDG_CONFIG_HOME=" + filepath.Join(root, "config"), "NPM_CONFIG_USERCONFIG=" + filepath.Join(root, "npmrc"), "npm_config_cache=" + filepath.Join(root, "npm-cache"), "NPM_CONFIG_REGISTRY=https://registry.npmjs.org/", "NPM_CONFIG_UPDATE_NOTIFIER=false"}}
+		cfg.Registry = npmRegistry{runner: cfg.Runner, root: root, env: []string{"HOME=" + root, "USERPROFILE=" + root, "XDG_CONFIG_HOME=" + filepath.Join(root, "config"), "NPM_CONFIG_USERCONFIG=" + filepath.Join(root, "npmrc"), "npm_config_cache=" + filepath.Join(root, "npm-cache"), "NPM_CONFIG_REGISTRY=https://registry.npmjs.org/", "NPM_CONFIG_UPDATE_NOTIFIER=false"}}
 	}
 	return &Manager{root: root, runner: cfg.Runner, registry: cfg.Registry, audit: cfg.Audit, activeRuns: cfg.ActiveRuns}, nil
 }
@@ -393,8 +393,12 @@ func (m *Manager) writeAudit(ctx context.Context, from, to string, automatic boo
 	}
 	return m.audit(ctx, from, to, automatic, result)
 }
+
+// env isolates Maestro under home. USERPROFILE gets the same value as HOME because on
+// Windows Node and PowerShell resolve ~ from USERPROFILE; with only HOME isolated,
+// Maestro's verify compares CODEX_HOME with the real profile and fails.
 func (m *Manager) env(home string) []string {
-	return []string{"ORQUESTRADOR_MAESTRO_SKIP_CLI_UPDATE=1", "ORQUESTRADOR_MAESTRO_TELEMETRY=0", "XDG_CONFIG_HOME=" + filepath.Join(home, "config"), "HOME=" + home, "CODEX_HOME=" + filepath.Join(home, ".codex"), "NPM_CONFIG_USERCONFIG=" + filepath.Join(m.root, "npmrc"), "npm_config_cache=" + filepath.Join(m.root, "npm-cache"), "NPM_CONFIG_REGISTRY=https://registry.npmjs.org/", "NPM_CONFIG_UPDATE_NOTIFIER=false"}
+	return []string{"ORQUESTRADOR_MAESTRO_SKIP_CLI_UPDATE=1", "ORQUESTRADOR_MAESTRO_TELEMETRY=0", "XDG_CONFIG_HOME=" + filepath.Join(home, "config"), "HOME=" + home, "USERPROFILE=" + home, "CODEX_HOME=" + filepath.Join(home, ".codex"), "NPM_CONFIG_USERCONFIG=" + filepath.Join(m.root, "npmrc"), "npm_config_cache=" + filepath.Join(m.root, "npm-cache"), "NPM_CONFIG_REGISTRY=https://registry.npmjs.org/", "NPM_CONFIG_UPDATE_NOTIFIER=false"}
 }
 
 // codexHome is the stable CODEX_HOME of Maestro agents (ADR 0014). Every verified release is activated into it.
@@ -687,7 +691,7 @@ func compareVersions(a, b string) int {
 	return 0
 }
 func controlledEnvironmentKey(key string) bool {
-	for _, controlled := range []string{"HOME", "XDG_CONFIG_HOME", "CODEX_HOME", "ORQUESTRADOR_MAESTRO_SKIP_CLI_UPDATE", "ORQUESTRADOR_MAESTRO_TELEMETRY", "NPM_CONFIG_USERCONFIG", "NPM_CONFIG_CACHE", "NPM_CONFIG_REGISTRY", "NPM_CONFIG_UPDATE_NOTIFIER"} {
+	for _, controlled := range []string{"HOME", "USERPROFILE", "XDG_CONFIG_HOME", "CODEX_HOME", "ORQUESTRADOR_MAESTRO_SKIP_CLI_UPDATE", "ORQUESTRADOR_MAESTRO_TELEMETRY", "NPM_CONFIG_USERCONFIG", "NPM_CONFIG_CACHE", "NPM_CONFIG_REGISTRY", "NPM_CONFIG_UPDATE_NOTIFIER"} {
 		if strings.EqualFold(key, controlled) {
 			return true
 		}
