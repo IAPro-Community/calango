@@ -29,6 +29,8 @@ export type SkillWarning = Schemas['SkillWarning'];
 export type ImportedSkill = Schemas['ImportedSkill'];
 export type SkillImportInput = Schemas['SkillImportInput'];
 export type SkillImportResult = Schemas['SkillImportResult'];
+export type PtySession = Schemas['PtySession'];
+export type PtySessionInput = Schemas['PtySessionInput'];
 
 export interface ClientOptions {
   /** Base URL of the local daemon, for example http://127.0.0.1:7317. */
@@ -101,6 +103,11 @@ export interface CalangoClient {
   importSkill(input: SkillImportInput): Promise<SkillImportResult>;
   /** Removes the node's copy only; the source directory is untouched. */
   removeImportedSkill(skillId: string): Promise<void>;
+  /** Starts a shell in the daemon workspace. Terminal bytes flow over the WebSocket /v1/pty/{id}. */
+  createPtySession(input?: PtySessionInput): Promise<PtySession>;
+  listPtySessions(): Promise<PtySession[]>;
+  /** Ends the session and kills its whole process tree. */
+  deletePtySession(sessionId: string): Promise<void>;
 }
 
 export function createClient(options: ClientOptions): CalangoClient {
@@ -218,5 +225,8 @@ export function createClient(options: ClientOptions): CalangoClient {
     listImportedSkills: () => request<ImportedSkill[]>('GET', '/v1/skill-imports'),
     importSkill: (input) => request<SkillImportResult>('POST', '/v1/skill-imports', input),
     removeImportedSkill: (skillId) => request<void>('DELETE', `/v1/skill-imports/${encodeURIComponent(skillId)}`),
+    createPtySession: (input = {}) => request<PtySession>('POST', '/v1/pty', input),
+    listPtySessions: () => request<PtySession[]>('GET', '/v1/pty'),
+    deletePtySession: (sessionId) => request<void>('DELETE', `/v1/pty/${encodeURIComponent(sessionId)}`),
   };
 }

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { createClient, type CalangoClient } from '@calango/sdk-ts';
 import type { DaemonState } from '../shared/ipc';
 import { bridge } from './bridge';
@@ -13,7 +13,19 @@ import { AuditScreen } from './screens/AuditScreen';
 import { SettingsScreen } from './screens/SettingsScreen';
 import { SkillsScreen } from './screens/SkillsScreen';
 
-type Section = 'agents' | 'conversations' | 'approvals' | 'routines' | 'skills' | 'usage' | 'audit' | 'settings';
+// xterm.js is large; load the terminal screen only when it is opened.
+const TerminalScreen = lazy(() => import('./screens/TerminalScreen').then((m) => ({ default: m.TerminalScreen })));
+
+type Section =
+  | 'agents'
+  | 'conversations'
+  | 'approvals'
+  | 'routines'
+  | 'skills'
+  | 'terminal'
+  | 'usage'
+  | 'audit'
+  | 'settings';
 
 const SECTIONS: { id: Section; key: MessageKey }[] = [
   { id: 'agents', key: 'navAgents' },
@@ -21,6 +33,7 @@ const SECTIONS: { id: Section; key: MessageKey }[] = [
   { id: 'approvals', key: 'navApprovals' },
   { id: 'routines', key: 'navRoutines' },
   { id: 'skills', key: 'navSkills' },
+  { id: 'terminal', key: 'navTerminal' },
   { id: 'usage', key: 'navUsage' },
   { id: 'audit', key: 'navAudit' },
   { id: 'settings', key: 'navSettings' },
@@ -88,6 +101,12 @@ function SectionView({ section, client, t }: { section: Section; client: Calango
       return <RoutinesScreen client={client} t={t} />;
     case 'skills':
       return <SkillsScreen client={client} t={t} />;
+    case 'terminal':
+      return (
+        <Suspense fallback={<p className="muted">{t('commonLoading')}</p>}>
+          <TerminalScreen client={client} t={t} />
+        </Suspense>
+      );
     case 'usage':
       return <UsageScreen client={client} t={t} />;
     case 'audit':

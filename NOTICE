@@ -31,6 +31,7 @@ Go modules reviewed so far (see go.mod)
   github.com/danieljoos/wincred v1.2.3, MIT (Copyright 2014 Daniel Joos)
   golang.org/x/sys v0.28.0, BSD-3-Clause (Copyright 2009 The Go Authors)
   github.com/gorilla/websocket v1.5.3, BSD-2-Clause (Copyright 2013 The Gorilla WebSocket Authors)
+  github.com/creack/pty v1.1.24, MIT (Copyright 2011 Keith Rarick)
   github.com/modelcontextprotocol/go-sdk v1.3.0, MIT (Copyright 2025 Go MCP SDK Authors)
   github.com/google/jsonschema-go v0.4.2, MIT (Copyright 2025 JSON Schema Go Project Authors)
   github.com/yosida95/uritemplate/v3 v3.0.2, BSD-3-Clause (Copyright 2016 Kohei YOSHIDA)
@@ -42,5 +43,9 @@ Go modules reviewed so far (see go.mod)
   modernc.org/memory v1.8.2, BSD-3-Clause (Copyright 2017 The Memory Authors)
   modernc.org/mathutil v1.7.1, BSD-3-Clause (Copyright 2014 The mathutil Authors)
   Other modules in go.sum are used only by tests or are not linked into the calango binary; they are not listed here.
+
+npm packages bundled into the desktop renderer, reviewed with the terminal screen
+  @xterm/xterm 6.0.0, MIT (Copyright 2017-2019 The xterm.js authors; 2014-2016 SourceLair Private Company; 2012-2013 Christopher Jeffrey)
+  @xterm/addon-fit 0.11.0, MIT (Copyright 2019 The xterm.js authors)
 
 The trademarks and names of the projects mentioned belong to their owners.

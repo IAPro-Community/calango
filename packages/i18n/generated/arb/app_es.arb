@@ -218,5 +218,16 @@
   "skillsSkipTooManyFiles": "demasiados archivos",
   "skillsSkipTooLarge": "carpeta demasiado grande",
   "skillsSkipTooDeep": "carpetas anidadas en exceso",
-  "skillsSkipUnreadable": "sin permiso de lectura"
+  "skillsSkipUnreadable": "sin permiso de lectura",
+  "navTerminal": "Terminal",
+  "terminalNew": "Nueva terminal",
+  "terminalEnd": "Cerrar sesión",
+  "terminalIntro": "Abre un shell en la carpeta de trabajo de Calango en esta computadora. Las variables secretas de Calango no llegan a la terminal.",
+  "terminalEmpty": "No hay sesiones abiertas.",
+  "terminalConnecting": "Conectando a la terminal...",
+  "terminalConnected": "Conectada",
+  "terminalEnded": "Sesión finalizada.",
+  "terminalExitCode": "Código de salida",
+  "terminalDisconnected": "Se perdió la conexión con la terminal.",
+  "terminalLimit": "Se alcanzó el límite de sesiones de terminal. Cierra una sesión para abrir otra."
 }

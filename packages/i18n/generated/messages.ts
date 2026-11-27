@@ -219,7 +219,18 @@ export const messages = {
     "skillsSkipTooManyFiles": "arquivos demais",
     "skillsSkipTooLarge": "pasta grande demais",
     "skillsSkipTooDeep": "pastas aninhadas demais",
-    "skillsSkipUnreadable": "sem permissão de leitura"
+    "skillsSkipUnreadable": "sem permissão de leitura",
+    "navTerminal": "Terminal",
+    "terminalNew": "Novo terminal",
+    "terminalEnd": "Encerrar sessão",
+    "terminalIntro": "Abre um shell na pasta de trabalho do Calango neste computador. Variáveis secretas do Calango não chegam ao terminal.",
+    "terminalEmpty": "Nenhuma sessão aberta.",
+    "terminalConnecting": "Conectando ao terminal...",
+    "terminalConnected": "Conectado",
+    "terminalEnded": "Sessão encerrada.",
+    "terminalExitCode": "Código de saída",
+    "terminalDisconnected": "Conexão com o terminal perdida.",
+    "terminalLimit": "Limite de sessões de terminal atingido. Encerre uma sessão para abrir outra."
   },
   "en": {
     "appName": "Calango",
@@ -440,7 +451,18 @@ export const messages = {
     "skillsSkipTooManyFiles": "too many files",
     "skillsSkipTooLarge": "folder too large",
     "skillsSkipTooDeep": "folders nested too deep",
-    "skillsSkipUnreadable": "not readable"
+    "skillsSkipUnreadable": "not readable",
+    "navTerminal": "Terminal",
+    "terminalNew": "New terminal",
+    "terminalEnd": "End session",
+    "terminalIntro": "Opens a shell in Calango's working folder on this computer. Calango's secret variables never reach the terminal.",
+    "terminalEmpty": "No open sessions.",
+    "terminalConnecting": "Connecting to the terminal...",
+    "terminalConnected": "Connected",
+    "terminalEnded": "Session ended.",
+    "terminalExitCode": "Exit code",
+    "terminalDisconnected": "Lost the connection to the terminal.",
+    "terminalLimit": "Terminal session limit reached. End a session to open another."
   },
   "es": {
     "appName": "Calango",
@@ -661,7 +683,18 @@ export const messages = {
     "skillsSkipTooManyFiles": "demasiados archivos",
     "skillsSkipTooLarge": "carpeta demasiado grande",
     "skillsSkipTooDeep": "carpetas anidadas en exceso",
-    "skillsSkipUnreadable": "sin permiso de lectura"
+    "skillsSkipUnreadable": "sin permiso de lectura",
+    "navTerminal": "Terminal",
+    "terminalNew": "Nueva terminal",
+    "terminalEnd": "Cerrar sesión",
+    "terminalIntro": "Abre un shell en la carpeta de trabajo de Calango en esta computadora. Las variables secretas de Calango no llegan a la terminal.",
+    "terminalEmpty": "No hay sesiones abiertas.",
+    "terminalConnecting": "Conectando a la terminal...",
+    "terminalConnected": "Conectada",
+    "terminalEnded": "Sesión finalizada.",
+    "terminalExitCode": "Código de salida",
+    "terminalDisconnected": "Se perdió la conexión con la terminal.",
+    "terminalLimit": "Se alcanzó el límite de sesiones de terminal. Cierra una sesión para abrir otra."
   }
 } as const;
 
