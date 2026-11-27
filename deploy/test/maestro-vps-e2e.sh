@@ -160,13 +160,45 @@ isolation_check() {
 	docker exec "$NODE" test -d /data/maestro/.codex || fail "home estável do Codex ausente"
 }
 
+# ports_busy: imprime as portas 80/443 que já têm alguém escutando no host (vazio = livres).
+ports_busy() {
+	ss -Htln 2>/dev/null | awk '{print $4}' | grep -E '(^|:)(80|443)$' || true
+}
+
+# wait_ports_free: o Caddy do teste publica 80 e 443 no host. Num runner compartilhado elas podem
+# aparecer ocupadas por alguns segundos; espera até 60 s e, se continuarem, mostra quem ocupa.
+wait_ports_free() {
+	i=0
+	while [ -n "$(ports_busy)" ]; do
+		if [ "$i" -ge 60 ]; then
+			say "portas ocupadas: $(ports_busy | tr '\n' ' ')" >&2
+			sudo -n ss -tlnp 2>/dev/null | grep -E ':(80|443) ' >&2 || true
+			docker ps --format '{{.Names}} {{.Ports}}' | grep -E ':(80|443)->' >&2 || true
+			fail "portas 80/443 do host ocupadas; o teste precisa delas livres"
+		fi
+		i=$((i + 2))
+		sleep 2
+	done
+}
+
 # ---------------------------------------------------------------- fase A: registro real
 say "# Fase A: instalador, registro npm real ($IMAGE)"
 mkdir -p "$FIX"
-installer >"$WORK/install.log" 2>&1 || {
-	cat "$WORK/install.log" >&2
-	fail "instalador"
-}
+wait_ports_free
+if ! installer >"$WORK/install.log" 2>&1; then
+	# Porta tomada entre a checagem e o compose up: espera liberar e tenta uma vez mais.
+	if grep -q 'address already in use' "$WORK/install.log"; then
+		say "porta ocupada no compose up; esperando e tentando de novo" >&2
+		wait_ports_free
+		installer >"$WORK/install.log" 2>&1 || {
+			cat "$WORK/install.log" >&2
+			fail "instalador"
+		}
+	else
+		cat "$WORK/install.log" >&2
+		fail "instalador"
+	fi
+fi
 grep -q '^Imagem: .* (maestro)$' "$WORK/install.log" || fail "o instalador não reconheceu a variante maestro da imagem"
 ok "instalador subiu o nó e o Caddy (pasta de dados nova, variante maestro pelo LABEL)"
 [ "$(docker exec "$NODE" id -u)" = 65532 ] || fail "o nó não roda como uid 65532"
