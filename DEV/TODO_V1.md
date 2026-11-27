@@ -88,7 +88,7 @@ Maestro:
 - [x] Q24 Maestro CLI behavior validated in a throwaway home; Calango manager/API/scheduler, agent linking, audit, update and rollback code now exist. F1-T16 stable Codex home (ADR 0014) is in code and fake-tested; linked agents use it. Real Codex session and the migration policy for earlier per-version logins remain open.
 
 Verification and site:
-- [ ] Q25 Docker bridge networking test on a compatible machine (only `--network host` verified).
+- [x] Q25 Docker bridge validation. Done 2026-11-25: site and node images built and ran on a user-defined bridge; both `/healthz` endpoints passed; the node database survived container recreation in a named volume. See `DEV/VERIFY.md`.
 - [x] Q26 Site reviewed at desktop 1440 px and phone 390 px, in light and dark themes; no horizontal overflow at 390 px. Review found future phone/cloud/team features presented in plan cards; reconcile copy before launch (Q27).
 - [ ] Q27 Owner site items: CLA legal name, contacts (`licenca@`, `seguranca@`, `conduta@`), Caddy domain, Terms link and real prices. Also decide how to label phone/cloud/team plan features that are still roadmap items.
 
@@ -159,7 +159,7 @@ Verification and site:
 ## Remaining unchecked work — triage (2026-11-23)
 
 - **Owner-blocked:** Q03/D5 transport/legal clearance; Q06 permission to delete `/tmp/agenticos`; D1b/Q27 legal identity, terms, prices, domain and plan copy; Q17 memory capture/retention; Q18/F1-T17 verified pricing; live model/MCP and external approval authorization (F1-T04/T05/T08/T12); F1-T16 profile-migration policy; personal-data export/deletion scope; authorization for the next push.
-- **Platform-blocked:** Q13/F1-T10 Windows/macOS keyring; F1-T24 OS shortcut/tray and cross-platform login; F1-T25 signing/install/update credentials and platform verification; Q25 Docker bridge test; Q27 site hosting; F2-T07 store review.
+- **Platform-blocked:** Q13/F1-T10 Windows/macOS keyring; F1-T24 OS shortcut/tray and cross-platform login; F1-T25 signing/install/update credentials and platform verification; Q27 site hosting; F2-T07 store review.
 - **Implementable engineering:** F1-T05 JSONL usage parsing and other V1 harnesses; F1-T12 connector credentials, remaining built-ins and result durability; F1-T15 local QR; F1-T18 applicable audit coverage; database backup/restore; first-use/privacy/Maestro docs; desktop/site accessibility; reference-code/license review; tray/notification icon variants. The website favicon is simplified; publication still depends on Q27.
 - **Implementable but phase-gated:** F1-T15 mobile/VPS parts and F1-T17 project grouping; all F2–F6 tasks remain behind their preceding phase exit. F7 is post-V1. WebSocket replay is intentionally omitted; REST reload meets the reconnect contract (ADR 0015).
 
