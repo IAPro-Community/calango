@@ -283,7 +283,15 @@ func (m *capacityMonitor) refresh(ctx context.Context, a core.ProviderAccount) {
 			defer func() {
 				cleanup, stop := context.WithTimeout(context.Background(), 5*time.Second)
 				defer stop()
+				// A canceled or failed probe does not prove that the
+				// app-server process tree stopped. Keep the fence.
+				if err != nil || ctx.Err() != nil {
+					m.invalidateIdentity(account.Scope)
+					m.markLeaseFailure(a, "lease_reconciliation_required")
+					return
+				}
 				if s.leases.Release(cleanup, key, reservation, true) != nil {
+					m.invalidateIdentity(account.Scope)
 					m.markLeaseFailure(a, "lease_release_failed")
 				}
 			}()

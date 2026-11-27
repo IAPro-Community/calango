@@ -231,16 +231,15 @@ func (p *leasedCodex) Admit(ctx context.Context, req *gateway.Request) (func(err
 	}, nil
 }
 
-// canReleaseAdmission decides whether the reservation can be handed back.
-// Only outcomes that prove the turn is over (success or a fully completed
-// failure record) are quiescent. Everything else keeps the fence so the
-// account cannot be dispatched to another turn while this one may still be
-// running; the SDK requires the host to prove quiescence, never assume it.
+// canReleaseAdmission admits only a completed turn or an explicit pre-model-
+// dispatch refusal with durable accounting. A recorded error does not prove
+// process-tree quiescence; cancellation, timeout and ambiguous provider
+// failures retain the fence. Full process-tree containment is a separate gate.
 func canReleaseAdmission(result error) bool {
-	if result == nil {
-		return true
+	if errors.Is(result, gateway.ErrLedger) {
+		return false
 	}
-	// A recorded failure (ledger, cost or provider) still proves the turn
-	// ended, as long as no accounting write is missing.
-	return !errors.Is(result, gateway.ErrLedger)
+	return result == nil || errors.Is(result, harness.ErrQuotaNotDispatched) ||
+		errors.Is(result, harness.ErrNotInstalled) || errors.Is(result, harness.ErrSignedOut) ||
+		errors.Is(result, harness.ErrQuotaIdentityChanged)
 }

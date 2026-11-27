@@ -98,7 +98,7 @@ func TestAdmissionFinishRequiresQuiescence(t *testing.T) {
 	}); !errors.Is(err, lease.ErrBusy) {
 		t.Fatalf("live fence must stay held, got %v", err)
 	}
-	// Renewal failure keeps accounting alive but the lease itself is released.
+	// Expiration alone is never evidence of quiescence.
 	if err := coordinator.ReconcileExpired(context.Background(), key, 1, false); !errors.Is(err, lease.ErrReconcile) {
 		t.Fatalf("reconcile without quiescence must fail, got %v", err)
 	}

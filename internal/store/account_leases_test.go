@@ -48,7 +48,16 @@ func TestAccountLeasePersistsFenceAcrossRestart(t *testing.T) {
 	if _, err := coordinator.Acquire(ctx, key, "run-b", time.Minute, 0); !errors.Is(err, lease.ErrReconcile) {
 		t.Fatalf("expired lease without reconciliation: %v", err)
 	}
-	second, err := coordinator.Acquire(ctx, key, "run-b", time.Minute, first.Fence)
+	if err := coordinator.ReconcileExpired(ctx, key, first.Fence, false); !errors.Is(err, lease.ErrReconcile) {
+		t.Fatalf("reconciliation without independent proof: %v", err)
+	}
+	if err := coordinator.ReconcileExpired(ctx, key, first.Fence+1, true); !errors.Is(err, lease.ErrStale) {
+		t.Fatalf("wrong fencing generation: %v", err)
+	}
+	if err := coordinator.ReconcileExpired(ctx, key, first.Fence, true); err != nil {
+		t.Fatalf("reconcile with simulated independent proof: %v", err)
+	}
+	second, err := coordinator.Acquire(ctx, key, "run-b", time.Minute, 0)
 	if err != nil || second.Fence != first.Fence+1 {
 		t.Fatalf("reconciled acquisition: %+v, %v", second, err)
 	}
