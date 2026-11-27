@@ -12,6 +12,7 @@ import { UsageScreen } from './screens/UsageScreen';
 import { AuditScreen } from './screens/AuditScreen';
 import { BrowserScreen } from './screens/BrowserScreen';
 import { SettingsScreen } from './screens/SettingsScreen';
+import { DevicesScreen } from './screens/DevicesScreen';
 import { SkillsScreen } from './screens/SkillsScreen';
 
 type Section =
@@ -19,10 +20,11 @@ type Section =
   | 'conversations'
   | 'approvals'
   | 'routines'
-  | 'browser'
   | 'skills'
   | 'usage'
   | 'audit'
+  | 'devices'
+  | 'browser'
   | 'settings';
 
 const SECTIONS: { id: Section; key: MessageKey }[] = [
@@ -34,6 +36,7 @@ const SECTIONS: { id: Section; key: MessageKey }[] = [
   { id: 'skills', key: 'navSkills' },
   { id: 'usage', key: 'navUsage' },
   { id: 'audit', key: 'navAudit' },
+  { id: 'devices', key: 'navDevices' },
   { id: 'settings', key: 'navSettings' },
 ];
 
@@ -117,6 +120,8 @@ function SectionView({ section, client, t }: { section: Section; client: Calango
       return <UsageScreen client={client} t={t} />;
     case 'audit':
       return <AuditScreen client={client} t={t} />;
+    case 'devices':
+      return <DevicesScreen client={client} t={t} />;
     case 'settings':
       return <SettingsScreen client={client} t={t} />;
   }

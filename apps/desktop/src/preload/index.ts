@@ -5,6 +5,7 @@ import type {
   CalangoBridge,
   DaemonConnection,
   DaemonState,
+  NodeInfo,
   PreviewBlockedEvent,
   PtyClosed,
 } from '../shared/ipc';
@@ -17,6 +18,7 @@ const STATE_CHANGED = 'calango:state-changed';
 const GET_LOGIN_ITEM_SETTINGS = 'calango:get-login-item-settings';
 const SET_LAUNCH_AT_LOGIN = 'calango:set-launch-at-login';
 const QUICK_CONVERSATION = 'calango:quick-conversation';
+const NODE_INFO = 'calango:node-info';
 const PTY_ATTACH = 'calango:pty-attach';
 const PTY_INPUT = 'calango:pty-input';
 const PTY_RESIZE = 'calango:pty-resize';
@@ -88,6 +90,7 @@ const bridge: CalangoBridge = {
   getState: () => ipcRenderer.invoke(STATE) as Promise<DaemonState>,
   getLoginItemSettings: () => ipcRenderer.invoke(GET_LOGIN_ITEM_SETTINGS),
   setLaunchAtLogin: (enabled) => ipcRenderer.invoke(SET_LAUNCH_AT_LOGIN, enabled),
+  getNodeInfo: () => ipcRenderer.invoke(NODE_INFO) as Promise<NodeInfo>,
   onQuickConversation: (listener) => {
     quickConversationListeners.add(listener);
     if (quickConversationPending) {
