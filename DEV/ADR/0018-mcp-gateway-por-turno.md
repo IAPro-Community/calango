@@ -8,7 +8,7 @@ Codex runs with `sandbox: workspace-write` (ADR 0013). Until MCP routes its tool
 
 The module spec (`DEV/SPECS/modules/tools-mcp.md`) describes a **secret URL** per turn that lists only that agent's tools. Passing the secret in the URL puts it in the Codex argv and in any process listing and log that records the command line.
 
-The MCP client and server come from the official Go SDK, `github.com/modelcontextprotocol/go-sdk` v1.3.0 (MIT). It needs Go 1.23 (owner decision, 2026-11-23; see `DEV/HANDOFF.md`).
+The MCP client and server come from the official Go SDK, `github.com/modelcontextprotocol/go-sdk` v1.3.0 (MIT). It needs Go 1.23 (owner decision, 2026-11-23; see `DEV/HANDOFF.md`). Superseded for the version by ADR 0026: go-sdk v1.4.1 on Go 1.25.
 
 ## Decision
 

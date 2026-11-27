@@ -10,7 +10,7 @@
 
 ## Go
 
-- Go 1.23+; gofmt e go vet sem problemas; Staticcheck quando incorporado à CI.
+- Go 1.25+; gofmt e go vet sem problemas; Staticcheck quando incorporado à CI.
 - internal/core é domínio puro: sem rede, disco ou relógio global; injetar relógio.
 - Erros com contexto (fmt.Errorf com %w), sentinelas exportadas para casos distinguíveis.
 - context.Context primeiro parâmetro em operações de I/O; sem panic em produção salvo invariantes impossíveis.

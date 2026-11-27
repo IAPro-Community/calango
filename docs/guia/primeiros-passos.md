@@ -8,7 +8,7 @@ O Calango ainda não tem versão publicada. Para usar, você compila a partir do
 
 - Git.
 - Node.js 22.12 ou mais novo.
-- Go 1.23 ou mais novo (o build compila o processo `calango`).
+- Go 1.25 ou mais novo (o build compila o processo `calango`).
 - Um modelo para conversar, de um destes jeitos:
   - **Codex:** o [Codex CLI](https://github.com/openai/codex) instalado e com login feito (`codex login`);
   - **Anthropic:** uma chave da API Anthropic.

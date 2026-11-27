@@ -8,7 +8,7 @@ Nenhum pacote é assinado nem tem atualização automática. A CI não publica n
 
 ### Gerar
 
-Requisitos: Go 1.23+, Node 22.12+ e Linux x64. O electron-builder baixa o Electron, o `appimagetool` e o `fpm` das fontes oficiais dele (cache em `~/.cache/electron` e `~/.cache/electron-builder`); nada é instalado no sistema.
+Requisitos: Go 1.25+, Node 22.12+ e Linux x64. O electron-builder baixa o Electron, o `appimagetool` e o `fpm` das fontes oficiais dele (cache em `~/.cache/electron` e `~/.cache/electron-builder`); nada é instalado no sistema.
 
 ```bash
 npm ci

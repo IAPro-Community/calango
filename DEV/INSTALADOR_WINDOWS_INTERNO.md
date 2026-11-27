@@ -4,7 +4,7 @@ Pacote para testes internos do desktop Electron com o daemon `calango` embutido 
 
 ## Gerar
 
-Requisitos: Go 1.23+, Node 22.12+ e Windows. Em Linux o empacotamento para antes do instalador NSIS porque o electron-builder precisa do wine; a pasta `apps/desktop/release/win-unpacked` sai normalmente.
+Requisitos: Go 1.25+, Node 22.12+ e Windows. Em Linux o empacotamento para antes do instalador NSIS porque o electron-builder precisa do wine; a pasta `apps/desktop/release/win-unpacked` sai normalmente.
 
 ```bash
 npm ci

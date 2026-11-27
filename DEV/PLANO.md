@@ -56,7 +56,7 @@ The competitive landscape has changed: self-hosted products, agent desktops and 
 
 | Function | Choice |
 |---|---|
-| Language | Go 1.23+ |
+| Language | Go 1.25+ |
 | API | HTTP + WebSocket, OpenAPI contract (generates the TypeScript SDK) |
 | Database | pure-Go SQLite (`modernc.org/sqlite`), versioned and immutable migrations |
 | Scheduler | persisted routines (`internal/routines`): cron, intervals, quiet windows and retries; events in phase 3 |
