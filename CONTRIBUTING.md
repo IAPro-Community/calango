@@ -18,7 +18,7 @@ O TODO V1 e roadmap antigos são referências históricas até migração comple
 
 ## Ambiente
 
-Go 1.23+; Node.js 22.12+ para o workspace; Maestro conforme seus requisitos. Consulte package.json para comandos desktop.
+Go 1.25+; Node.js 22.12+ para o workspace; Maestro conforme seus requisitos. Consulte package.json para comandos desktop.
 
 ```bash
 go vet ./...
