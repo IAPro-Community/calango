@@ -44,7 +44,8 @@ describe('AgentsScreen', () => {
     const client = fakeClient({
       listAgents: async () => [],
       listProviderAccounts: async () => [],
-      createProviderAccount: async () => anAccount({ kind: 'anthropic', key: 'anthropic/work', label: 'work', secret_item: 'anthropic-work-api-key' }),
+      createProviderAccount: async () =>
+        anAccount({ kind: 'anthropic', key: 'anthropic/work', label: 'work', secret_item: 'anthropic-work-api-key' }),
       setVaultSecret: async () => {},
     });
     render(<AgentsScreen client={client} t={t} />);
