@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"calango/internal/anthropic"
@@ -19,6 +20,7 @@ import (
 
 	"github.com/IAPro-Community/IAPro-SDK/lease"
 	sdk "github.com/IAPro-Community/IAPro-SDK/providers"
+	sdkspec "github.com/IAPro-Community/IAPro-SDK/providers/spec"
 )
 
 // Repository is the persistence the service needs. The SQLite store implements it.
@@ -107,11 +109,28 @@ type View struct {
 
 // Create stores a new account. A Codex account gets its own home directory.
 func (s *Service) Create(ctx context.Context, ownerID, kind, label string) (View, error) {
-	now := s.cfg.Now()
-	a := core.ProviderAccount{OwnerID: ownerID, Kind: kind, Label: label, CreatedAt: now, UpdatedAt: now}
+	// Preserve the HTTP/domain invalid-input contract and explicit host allowlist.
+	a := core.ProviderAccount{OwnerID: ownerID, Kind: kind, Label: label}
 	if err := a.Validate(); err != nil {
 		return View{}, err
 	}
+	req := sdk.ProfileRegistration{OwnerID: ownerID, ProviderID: kind, Label: label}
+	return sdk.RegisterProfile(ctx, req, func(provider string) error {
+		if _, ok := s.manager.Lookup(provider); !ok {
+			return fmt.Errorf("%w: provider is not enabled", core.ErrInvalidInput)
+		}
+		return nil
+	}, func(label string) error {
+		if !sdk.ValidPortableLabel(label) {
+			return fmt.Errorf("%w: invalid account label", core.ErrInvalidInput)
+		}
+		return nil
+	}, s.createAccountRecord)
+}
+
+func (s *Service) createAccountRecord(ctx context.Context, req sdk.ProfileRegistration) (View, error) {
+	now := s.cfg.Now()
+	a := core.ProviderAccount{OwnerID: req.OwnerID, Kind: req.ProviderID, Label: req.Label, CreatedAt: now, UpdatedAt: now}
 	id, err := s.cfg.NewID(now)
 	if err != nil {
 		return View{}, fmt.Errorf("generate provider account id: %w", err)
@@ -242,10 +261,12 @@ func (s *Service) view(a core.ProviderAccount) View {
 
 func (s *Service) setup(a core.ProviderAccount) string {
 	if a.Kind == core.ProviderKindCodex {
+		spec := sdkspec.MustGet(core.ProviderKindCodex)
+		command := strings.Join(append([]string{"codex"}, spec.LoginCommand()...), " ")
 		if home := s.codexHome(a); home != "" {
-			return "CODEX_HOME=" + home + " codex login"
+			return "CODEX_HOME=" + home + " " + command
 		}
-		return "codex login"
+		return command
 	}
 	return "PUT /v1/vault/" + keyItem(a) + " with the API key"
 }
