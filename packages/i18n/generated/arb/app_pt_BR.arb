@@ -357,5 +357,9 @@
   "settingsThemeSystem": "Seguir o sistema",
   "settingsThemeHint": "Vale só para este computador.",
   "capacityAuthRequired": "Autenticação precisa ser verificada ou renovada no provedor.",
-  "capacityReconcile": "Conta bloqueada para recuperação segura. Procure o administrador."
+  "capacityReconcile": "Conta bloqueada para recuperação segura. Procure o administrador.",
+  "accountApiKey": "Chave da API",
+  "accountCliNote": "Siga as instruções de login exibidas após criar a conta.",
+  "accountNoProviders": "Nenhum provider está habilitado neste nó.",
+  "accountVaultDestinationMissing": "O nó não retornou o destino seguro da chave."
 }

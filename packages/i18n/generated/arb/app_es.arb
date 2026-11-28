@@ -357,5 +357,9 @@
   "settingsThemeSystem": "Seguir el sistema",
   "settingsThemeHint": "Solo se aplica a este equipo.",
   "capacityAuthRequired": "La autenticación del proveedor requiere verificación o renovación.",
-  "capacityReconcile": "Cuenta bloqueada para recuperación segura. Contacte al administrador."
+  "capacityReconcile": "Cuenta bloqueada para recuperación segura. Contacte al administrador.",
+  "accountApiKey": "Clave de API",
+  "accountCliNote": "Sigue las instrucciones de inicio de sesión que aparecen después de crear la cuenta.",
+  "accountNoProviders": "No hay proveedores habilitados en este nodo.",
+  "accountVaultDestinationMissing": "El nodo no devolvió un destino seguro para la clave."
 }

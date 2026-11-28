@@ -30,6 +30,7 @@ export function fakeClient(overrides: Partial<Methods<CalangoClient>> = {}) {
     'updateAgent',
     'pauseAll',
     'resumeAll',
+    'listProviderKinds',
     'listProviderAccounts',
     'listProviderModels',
     'createProviderAccount',
@@ -60,6 +61,13 @@ export function fakeClient(overrides: Partial<Methods<CalangoClient>> = {}) {
   for (const name of methods) {
     client[name] = vi.fn(overrides[name] ?? (() => Promise.reject(new Error(`unexpected call: ${name}`))));
   }
+  client.listProviderKinds = vi.fn(
+    overrides.listProviderKinds ??
+      (async () => [
+        { kind: 'codex', display_name: 'Codex', auth_kind: 'oauth_cli' },
+        { kind: 'anthropic', display_name: 'Anthropic', auth_kind: 'api_key' },
+      ]),
+  );
   return client as unknown as { [K in keyof CalangoClient]: ReturnType<typeof vi.fn<CalangoClient[K]>> };
 }
 

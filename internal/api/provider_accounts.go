@@ -17,34 +17,41 @@ type providerAccountBody struct {
 // providerAccountResponse is the ProviderAccount schema. It never carries a secret;
 // setup names the step that finishes the sign-in.
 type providerAccountResponse struct {
-	ID        string                 `json:"id"`
-	Kind      string                 `json:"kind"`
-	Label     string                 `json:"label"`
-	Key       string                 `json:"key"`
-	Setup     string                 `json:"setup"`
-	CreatedAt time.Time              `json:"created_at"`
-	UpdatedAt time.Time              `json:"updated_at"`
-	Capacity  providers.CapacityView `json:"capacity"`
+	ID         string                 `json:"id"`
+	Kind       string                 `json:"kind"`
+	Label      string                 `json:"label"`
+	Key        string                 `json:"key"`
+	Setup      string                 `json:"setup"`
+	CreatedAt  time.Time              `json:"created_at"`
+	UpdatedAt  time.Time              `json:"updated_at"`
+	Capacity   providers.CapacityView `json:"capacity"`
+	SecretItem string                 `json:"secret_item,omitempty"`
 }
 
 func providerAccountResponseOf(v providers.View) providerAccountResponse {
 	return providerAccountResponse{
-		ID:        v.ID,
-		Kind:      v.Kind,
-		Label:     v.Label,
-		Key:       v.Key,
-		Setup:     v.Setup,
-		CreatedAt: v.CreatedAt,
-		UpdatedAt: v.UpdatedAt,
-		Capacity:  v.Capacity,
+		ID:         v.ID,
+		Kind:       v.Kind,
+		Label:      v.Label,
+		Key:        v.Key,
+		Setup:      v.Setup,
+		CreatedAt:  v.CreatedAt,
+		UpdatedAt:  v.UpdatedAt,
+		Capacity:   v.Capacity,
+		SecretItem: v.SecretItem,
 	}
 }
 
 func (h *handler) registerProviderAccounts(mux *http.ServeMux) {
+	mux.HandleFunc("GET /v1/provider-kinds", h.need(core.PermRead, h.listProviderKinds))
 	mux.HandleFunc("GET /v1/provider-accounts", h.need(core.PermRead, h.listProviderAccounts))
 	mux.HandleFunc("POST /v1/provider-accounts", h.need(core.PermWrite, h.createProviderAccount))
 	mux.HandleFunc("DELETE /v1/provider-accounts/{id}", h.need(core.PermWrite, h.deleteProviderAccount))
 	mux.HandleFunc("POST /v1/provider-accounts/{id}/capacity/refresh", h.need(core.PermWrite, h.refreshProviderCapacity))
+}
+
+func (h *handler) listProviderKinds(w http.ResponseWriter, r *http.Request) {
+	writeJSON(w, http.StatusOK, h.accounts.ListProviderKinds())
 }
 
 func (h *handler) listProviderAccounts(w http.ResponseWriter, r *http.Request) {

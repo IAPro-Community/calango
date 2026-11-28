@@ -102,9 +102,10 @@ func NewService(cfg Config) (*Service, error) {
 type View struct {
 	core.ProviderAccount
 	// Key is the gateway name the agent chain refers to: "<kind>/<label>".
-	Key      string
-	Setup    string
-	Capacity CapacityView
+	Key        string
+	Setup      string
+	SecretItem string
+	Capacity   CapacityView
 }
 
 // Create stores a new account. A Codex account gets its own home directory.
@@ -256,7 +257,35 @@ func keyItem(a core.ProviderAccount) string {
 }
 
 func (s *Service) view(a core.ProviderAccount) View {
-	return View{ProviderAccount: a, Key: a.Name(), Setup: s.setup(a), Capacity: s.capacityView(a)}
+	v := View{ProviderAccount: a, Key: a.Name(), Setup: s.setup(a), Capacity: s.capacityView(a)}
+	if a.Kind == core.ProviderKindAnthropic {
+		v.SecretItem = keyItem(a)
+	}
+	return v
+}
+
+// ProviderKind describes a host-enabled registration, not all SDK specs.
+// Discovering a CLI does not authorize its installation or execution.
+type ProviderKind struct {
+	Kind        string `json:"kind"`
+	DisplayName string `json:"display_name"`
+	AuthKind    string `json:"auth_kind"`
+}
+
+func (s *Service) ListProviderKinds() []ProviderKind {
+	entries := s.manager.List()
+	out := make([]ProviderKind, 0, len(entries))
+	for _, entry := range entries {
+		if entry.ID == core.ProviderKindAnthropic {
+			// Direct API provider, intentionally distinct from the Claude CLI.
+			out = append(out, ProviderKind{Kind: entry.ID, DisplayName: "Anthropic", AuthKind: string(sdkspec.AuthKindAPIKey)})
+			continue
+		}
+		if spec, ok := sdkspec.Get(entry.ID); ok && spec.DisplayName != "" && spec.AuthKind != "" {
+			out = append(out, ProviderKind{Kind: entry.ID, DisplayName: spec.DisplayName, AuthKind: string(spec.AuthKind)})
+		}
+	}
+	return out
 }
 
 func (s *Service) setup(a core.ProviderAccount) string {

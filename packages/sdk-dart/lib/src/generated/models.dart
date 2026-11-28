@@ -333,6 +333,36 @@ final class ProviderAccountInput {
   }
 }
 
+final class ProviderKindDescriptor {
+  const ProviderKindDescriptor({
+    required this.kind,
+    required this.displayName,
+    required this.authKind,
+  });
+
+  factory ProviderKindDescriptor.fromJson(Map<String, Object?> json) {
+    return ProviderKindDescriptor(
+      kind: json['kind'] as String,
+      displayName: json['display_name'] as String,
+      authKind: json['auth_kind'] as String,
+    );
+  }
+
+  final String kind;
+
+  final String displayName;
+
+  final String authKind;
+
+  Map<String, Object?> toJson() {
+    return <String, Object?>{
+      'kind': kind,
+      'display_name': displayName,
+      'auth_kind': authKind,
+    };
+  }
+}
+
 final class ProviderAccount {
   const ProviderAccount({
     required this.id,
@@ -343,6 +373,7 @@ final class ProviderAccount {
     required this.createdAt,
     required this.updatedAt,
     this.capacity,
+    this.secretItem,
   });
 
   factory ProviderAccount.fromJson(Map<String, Object?> json) {
@@ -355,6 +386,7 @@ final class ProviderAccount {
       createdAt: DateTime.parse(json['created_at'] as String),
       updatedAt: DateTime.parse(json['updated_at'] as String),
       capacity: json['capacity'] == null ? null : ProviderCapacity.fromJson(json['capacity'] as Map<String, Object?>),
+      secretItem: json['secret_item'] as String?,
     );
   }
 
@@ -376,6 +408,9 @@ final class ProviderAccount {
 
   final ProviderCapacity? capacity;
 
+  /// Vault item name for an API-key account. Never the secret value.
+  final String? secretItem;
+
   Map<String, Object?> toJson() {
     return <String, Object?>{
       'id': id,
@@ -386,6 +421,7 @@ final class ProviderAccount {
       'created_at': createdAt.toUtc().toIso8601String(),
       'updated_at': updatedAt.toUtc().toIso8601String(),
       'capacity': ?capacity?.toJson(),
+      'secret_item': ?secretItem,
     };
   }
 }
