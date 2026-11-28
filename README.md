@@ -15,7 +15,7 @@
 <p align="center">
   <a href="LICENSE"><img alt="License: AGPL-3.0" src="https://img.shields.io/badge/license-AGPL--3.0-E8A600" /></a>
   <img alt="Status: under construction" src="https://img.shields.io/badge/status-under%20construction-2D7A22" />
-  <img alt="Go 1.23+" src="https://img.shields.io/badge/go-1.23%2B-00ADD8" />
+  <img alt="Go 1.25+" src="https://img.shields.io/badge/go-1.25%2B-00ADD8" />
 </p>
 
 <p align="center">
@@ -45,7 +45,7 @@ docker run --rm -p 8080:8080 calango-site
 
 Then open <http://localhost:8080>.
 
-### Run the core (Go 1.23+)
+### Run the core (Go 1.25+)
 
 ```bash
 go vet ./...
