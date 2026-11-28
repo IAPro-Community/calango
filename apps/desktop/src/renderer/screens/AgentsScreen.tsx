@@ -1,16 +1,16 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
-import type { Agent, ProviderAccount, ProviderModel } from '@calango/sdk-ts';
+import type {
+  Agent,
+  ProviderAccount,
+  ProviderAccountInput,
+  ProviderKindDescriptor,
+  ProviderModel,
+} from '@calango/sdk-ts';
 import { usePoll } from '../usePoll';
 import type { ScreenProps } from './props';
 import { Button, Card, Field, Input, PageHeader, Select, Textarea } from '@';
 
 const DEFAULT_LABEL = 'default';
-
-// The vault item for an Anthropic account. Mirrors providers.keyItem in the daemon: the
-// API returns only the account key (kind/label), not the item name.
-function anthropicKeyItem(label: string): string {
-  return label === DEFAULT_LABEL ? 'anthropic-api-key' : `anthropic-${label}-api-key`;
-}
 
 export function AgentsScreen({ client, t }: ScreenProps) {
   const load = useCallback(async () => {
@@ -366,6 +366,8 @@ function AccountCapacity({ account, t }: { account: ProviderAccount; t: ScreenPr
       {capacity.reason === 'monitor_disabled' && <p className="muted">{t('capacityDisabled')}</p>}
       {capacity.reason === 'shared_home' && <p className="muted">{t('capacitySharedHome')}</p>}
       {capacity.reason === 'identity_unverified' && <p className="muted">{t('capacityIdentity')}</p>}
+      {capacity.reason === 'auth_required' && <p className="muted">{t('capacityAuthRequired')}</p>}
+      {capacity.reason === 'lease_reconciliation_required' && <p className="muted">{t('capacityReconcile')}</p>}
       {capacity.observed_at && (
         <p className="muted">
           {t('capacityUpdated')}: {new Date(capacity.observed_at).toLocaleString()} · {capacity.source}
@@ -385,20 +387,52 @@ function AccountCapacity({ account, t }: { account: ProviderAccount; t: ScreenPr
 }
 
 function AccountForm({ client, t, onCreated }: ScreenProps & { onCreated: () => void }) {
-  const [kind, setKind] = useState<'codex' | 'anthropic'>('codex');
+  const [kinds, setKinds] = useState<ProviderKindDescriptor[]>([]);
+  const [kind, setKind] = useState('');
+  const [catalogError, setCatalogError] = useState<string | null>(null);
+  const [catalogLoading, setCatalogLoading] = useState(true);
+  const selectedKind = kinds.find((entry) => entry.kind === kind);
+  const requiresKey = selectedKind?.auth_kind === 'api_key';
   const [label, setLabel] = useState(DEFAULT_LABEL);
   const [secret, setSecret] = useState('');
   const [busy, setBusy] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
+  useEffect(() => {
+    let active = true;
+    setCatalogLoading(true);
+    setCatalogError(null);
+    setKinds([]);
+    setKind('');
+    setSecret('');
+    void client
+      .listProviderKinds()
+      .then((entries) => {
+        if (!active) return;
+        setKinds(entries);
+        setKind((entries.find((entry) => entry.kind === 'codex') ?? entries[0])?.kind ?? '');
+      })
+      .catch((err: unknown) => {
+        if (active) setCatalogError(err instanceof Error ? err.message : String(err));
+      })
+      .finally(() => {
+        if (active) setCatalogLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [client]);
+
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (!selectedKind) return;
     setBusy(true);
     setFormError(null);
     try {
-      await client.createProviderAccount({ kind, label });
-      if (kind === 'anthropic') {
-        await client.setVaultSecret(anthropicKeyItem(label), secret);
+      const created = await client.createProviderAccount({ kind: kind as ProviderAccountInput['kind'], label });
+      if (requiresKey) {
+        if (!created.secret_item) throw new Error(t('accountVaultDestinationMissing'));
+        await client.setVaultSecret(created.secret_item, secret);
         setSecret('');
       }
       onCreated();
@@ -412,10 +446,29 @@ function AccountForm({ client, t, onCreated }: ScreenProps & { onCreated: () => 
   return (
     <form className="flex flex-col gap-sm" onSubmit={(event) => void submit(event)}>
       <Field label={t('accountKind')}>
-        <Select value={kind} onChange={(event) => setKind(event.target.value as 'codex' | 'anthropic')}>
-          <option value="codex">Codex</option>
-          <option value="anthropic">Anthropic</option>
+        <Select
+          value={kind}
+          disabled={catalogLoading || kinds.length === 0}
+          onChange={(event) => {
+            setKind(event.target.value);
+            setSecret('');
+          }}
+        >
+          {kinds.map((entry) => (
+            <option key={entry.kind} value={entry.kind}>
+              {entry.display_name}
+            </option>
+          ))}
         </Select>
+        {catalogLoading && <span className="muted">{t('commonLoading')}</span>}
+        {!catalogLoading && kinds.length === 0 && !catalogError && (
+          <span className="muted">{t('accountNoProviders')}</span>
+        )}
+        {catalogError && (
+          <p className="error" role="alert">
+            {catalogError}
+          </p>
+        )}
       </Field>
       <Field label={t('accountLabel')}>
         <Input
@@ -425,8 +478,8 @@ function AccountForm({ client, t, onCreated }: ScreenProps & { onCreated: () => 
           pattern="[a-z0-9][a-z0-9-]{0,31}"
         />
       </Field>
-      {kind === 'anthropic' ? (
-        <Field label={t('accountAnthropicKey')}>
+      {requiresKey ? (
+        <Field label={t('accountApiKey')}>
           <Input
             type="password"
             value={secret}
@@ -435,16 +488,16 @@ function AccountForm({ client, t, onCreated }: ScreenProps & { onCreated: () => 
             autoComplete="off"
           />
         </Field>
-      ) : (
-        <p className="muted">{t('accountCodexNote')}</p>
-      )}
+      ) : selectedKind ? (
+        <p className="muted">{t('accountCliNote')}</p>
+      ) : null}
       <p className="muted">{t('accountSecretNote')}</p>
       {formError && (
         <p className="error" role="alert">
           {formError}
         </p>
       )}
-      <Button type="submit" disabled={busy}>
+      <Button type="submit" disabled={busy || !selectedKind}>
         {t('accountCreate')}
       </Button>
     </form>

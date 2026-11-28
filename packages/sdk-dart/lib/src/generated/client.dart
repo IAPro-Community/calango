@@ -271,6 +271,15 @@ final class CalangoClient {
     );
   }
 
+  /// List enabled provider kinds
+  Future<List<ProviderKindDescriptor>> listProviderKinds() async {
+    final response = await _transport.sendJson(
+      'GET',
+      '/v1/provider-kinds',
+    );
+    return (response as List<Object?>).map((e) => ProviderKindDescriptor.fromJson(e as Map<String, Object?>)).toList();
+  }
+
   /// List provider accounts
   Future<List<ProviderAccount>> listProviderAccounts() async {
     final response = await _transport.sendJson(

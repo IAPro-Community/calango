@@ -421,6 +421,19 @@ paths:
       summary: Resume all agents
       responses:
         "204": { description: Resumed }
+  /v1/provider-kinds:
+    get:
+      operationId: listProviderKinds
+      tags: [provider-accounts]
+      summary: List enabled provider kinds
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/ProviderKindDescriptor" }
   /v1/provider-accounts:
     get:
       operationId: listProviderAccounts
@@ -1199,6 +1212,13 @@ components:
       properties:
         kind: { type: string, enum: [codex, anthropic] }
         label: { type: string, pattern: "^[a-z0-9][a-z0-9-]{0,31}$", description: "The default label is the account that migrated agents use." }
+    ProviderKindDescriptor:
+      type: object
+      required: [kind, display_name, auth_kind]
+      properties:
+        kind: { type: string }
+        display_name: { type: string }
+        auth_kind: { type: string }
     ProviderAccount:
       type: object
       required: [id, kind, label, key, setup, created_at, updated_at]
@@ -1211,6 +1231,7 @@ components:
         created_at: { type: string, format: date-time }
         updated_at: { type: string, format: date-time }
         capacity: { $ref: "#/components/schemas/ProviderCapacity" }
+        secret_item: { type: string, description: "Vault item name for an API-key account. Never the secret value." }
     ProviderCapacity:
       type: object
       required: [account_id, status, source, reason, windows]

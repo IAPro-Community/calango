@@ -356,7 +356,13 @@ export const messages = {
     "settingsThemeDark": "Escuro",
     "settingsThemeLight": "Claro solar",
     "settingsThemeSystem": "Seguir o sistema",
-    "settingsThemeHint": "Vale só para este computador."
+    "settingsThemeHint": "Vale só para este computador.",
+    "capacityAuthRequired": "Autenticação precisa ser verificada ou renovada no provedor.",
+    "capacityReconcile": "Conta bloqueada para recuperação segura. Procure o administrador.",
+    "accountApiKey": "Chave da API",
+    "accountCliNote": "Siga as instruções de login exibidas após criar a conta.",
+    "accountNoProviders": "Nenhum provider está habilitado neste nó.",
+    "accountVaultDestinationMissing": "O nó não retornou o destino seguro da chave."
   },
   "en": {
     "appName": "Calango",
@@ -714,7 +720,13 @@ export const messages = {
     "settingsThemeDark": "Dark",
     "settingsThemeLight": "Solar light",
     "settingsThemeSystem": "Follow the system",
-    "settingsThemeHint": "Applies to this computer only."
+    "settingsThemeHint": "Applies to this computer only.",
+    "capacityAuthRequired": "Provider authentication needs verification or renewal.",
+    "capacityReconcile": "Account blocked for safe recovery. Contact the administrator.",
+    "accountApiKey": "API key",
+    "accountCliNote": "Follow the sign-in instructions shown after creating the account.",
+    "accountNoProviders": "No providers are enabled on this node.",
+    "accountVaultDestinationMissing": "The node did not return a secure key destination."
   },
   "es": {
     "appName": "Calango",
@@ -1072,7 +1084,13 @@ export const messages = {
     "settingsThemeDark": "Oscuro",
     "settingsThemeLight": "Claro solar",
     "settingsThemeSystem": "Seguir el sistema",
-    "settingsThemeHint": "Solo se aplica a este equipo."
+    "settingsThemeHint": "Solo se aplica a este equipo.",
+    "capacityAuthRequired": "La autenticación del proveedor requiere verificación o renovación.",
+    "capacityReconcile": "Cuenta bloqueada para recuperación segura. Contacte al administrador.",
+    "accountApiKey": "Clave de API",
+    "accountCliNote": "Sigue las instrucciones de inicio de sesión que aparecen después de crear la cuenta.",
+    "accountNoProviders": "No hay proveedores habilitados en este nodo.",
+    "accountVaultDestinationMissing": "El nodo no devolvió un destino seguro para la clave."
   }
 } as const;
 

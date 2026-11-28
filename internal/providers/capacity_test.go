@@ -1,10 +1,12 @@
 package providers
 
 import (
+	"errors"
 	"testing"
 	"time"
 
 	"github.com/IAPro-Community/IAPro-SDK/model"
+	sdk "github.com/IAPro-Community/IAPro-SDK/providers"
 
 	"calango/internal/core"
 )
@@ -108,5 +110,39 @@ func TestForgetPublishesRemovalAndStaysQuietWhenAbsent(t *testing.T) {
 	}
 	if len(events) != 1 || events[0].Status != string(model.UsageUnsupported) || events[0].Reason != "account_forgotten" {
 		t.Fatalf("unexpected events: %+v", events)
+	}
+}
+
+func TestCapacityProbeFailureUsesSDKAuthDiagnostic(t *testing.T) {
+	a := core.ProviderAccount{ID: "profile", OwnerID: "owner", Kind: core.ProviderKindCodex}
+	scope := model.AccountScope{ProviderID: "codex", ProfileID: a.ID, AccountID: "external", IdentityVersion: "generation"}
+	for _, tc := range []struct {
+		scope  model.AccountScope
+		err    error
+		status model.UsageStatus
+		reason string
+	}{
+		{scope, &sdk.ProbeError{Code: sdk.ProbeAuthExpired, Message: "private"}, model.UsageError, "auth_required"},
+		{scope, errors.New("unknown"), model.UsageError, "probe_failed"},
+		{model.AccountScope{}, sdk.ErrIdentityMismatch, model.UsageUnknown, "identity_unverified"},
+	} {
+		view := capacityProbeFailure(a, tc.scope, tc.err)
+		if view.Status != string(tc.status) || view.Reason != tc.reason || len(view.Windows) != 0 {
+			t.Fatalf("unexpected failure projection: %+v", view)
+		}
+	}
+}
+
+func TestCapacityRejectsFutureObservationAndProviderExpiry(t *testing.T) {
+	now := time.Now()
+	a := core.ProviderAccount{ID: "profile", OwnerID: "owner", Kind: core.ProviderKindCodex}
+	future := model.UsageSnapshot{Status: model.UsageLive, FetchedAt: now.Add(time.Second)}
+	if got := projectCapacity(a, future, nil, now, time.Minute); got.Status != "STALE" || len(got.Windows) != 0 {
+		t.Fatalf("future observation: %+v", got)
+	}
+	expired := now
+	snap := model.UsageSnapshot{Status: model.UsageLive, FetchedAt: now.Add(-time.Second), ExpiresAt: &expired}
+	if got := projectCapacity(a, snap, nil, now, time.Minute); got.Status != "STALE" || len(got.Windows) != 0 {
+		t.Fatalf("provider expiry: %+v", got)
 	}
 }

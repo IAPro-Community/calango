@@ -382,6 +382,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/provider-kinds": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List enabled provider kinds */
+        get: operations["listProviderKinds"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/provider-accounts": {
         parameters: {
             query?: never;
@@ -1069,6 +1086,11 @@ export interface components {
             /** @description The default label is the account that migrated agents use. */
             label: string;
         };
+        ProviderKindDescriptor: {
+            kind: string;
+            display_name: string;
+            auth_kind: string;
+        };
         ProviderAccount: {
             id: string;
             /** @enum {string} */
@@ -1083,6 +1105,8 @@ export interface components {
             /** Format: date-time */
             updated_at: string;
             capacity?: components["schemas"]["ProviderCapacity"];
+            /** @description Vault item name for an API-key account. Never the secret value. */
+            secret_item?: string;
         };
         ProviderCapacity: {
             account_id: string;
@@ -2105,6 +2129,26 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    listProviderKinds: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProviderKindDescriptor"][];
+                };
             };
         };
     };

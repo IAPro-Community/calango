@@ -12,6 +12,7 @@ export type Run = Schemas['Run'];
 export type RunDetail = Schemas['RunDetail'];
 export type Approval = Schemas['Approval'];
 export type ApprovalStatus = NonNullable<Approval['status']>;
+export type ProviderKindDescriptor = Schemas['ProviderKindDescriptor'];
 export type ProviderAccount = Schemas['ProviderAccount'];
 export type ProviderModel = Schemas['ProviderModel'];
 export type ProviderAccountInput = Schemas['ProviderAccountInput'];
@@ -68,6 +69,7 @@ export interface CalangoClient {
   pauseAll(): Promise<void>;
   resumeAll(): Promise<void>;
 
+  listProviderKinds(): Promise<ProviderKindDescriptor[]>;
   listProviderAccounts(): Promise<ProviderAccount[]>;
   /** Models one account can use; empty when the provider has no catalog endpoint. */
   listProviderModels(accountId: string): Promise<ProviderModel[]>;
@@ -187,6 +189,7 @@ export function createClient(options: ClientOptions): CalangoClient {
     pauseAll: () => request<void>('POST', '/v1/agents/pause-all'),
     resumeAll: () => request<void>('POST', '/v1/agents/resume-all'),
 
+    listProviderKinds: () => request<ProviderKindDescriptor[]>('GET', '/v1/provider-kinds'),
     listProviderAccounts: () => request<ProviderAccount[]>('GET', '/v1/provider-accounts'),
     listProviderModels: (accountId) =>
       request<ProviderModel[]>('GET', `/v1/provider-accounts/${encodeURIComponent(accountId)}/models`),

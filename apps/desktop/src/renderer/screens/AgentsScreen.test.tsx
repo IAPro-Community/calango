@@ -32,7 +32,7 @@ describe('AgentsScreen', () => {
     });
     render(<AgentsScreen client={client} t={t} />);
     await screen.findByText(t('agentNeedsAccount'));
-    expect(within(accountForm()).queryByLabelText(t('accountAnthropicKey'))).not.toBeInTheDocument();
+    expect(within(accountForm()).queryByLabelText(t('accountApiKey'))).not.toBeInTheDocument();
     await user.click(within(accountForm()).getByRole('button', { name: t('accountCreate') }));
     expect(client.createProviderAccount).toHaveBeenCalledWith({ kind: 'codex', label: 'default' });
     expect(client.setVaultSecret).not.toHaveBeenCalled();
@@ -44,7 +44,8 @@ describe('AgentsScreen', () => {
     const client = fakeClient({
       listAgents: async () => [],
       listProviderAccounts: async () => [],
-      createProviderAccount: async () => anAccount({ kind: 'anthropic', key: 'anthropic/work', label: 'work' }),
+      createProviderAccount: async () =>
+        anAccount({ kind: 'anthropic', key: 'anthropic/work', label: 'work', secret_item: 'anthropic-work-api-key' }),
       setVaultSecret: async () => {},
     });
     render(<AgentsScreen client={client} t={t} />);
@@ -53,7 +54,7 @@ describe('AgentsScreen', () => {
     await user.selectOptions(form.getByLabelText(t('accountKind')), 'anthropic');
     await user.clear(form.getByLabelText(t('accountLabel')));
     await user.type(form.getByLabelText(t('accountLabel')), 'work');
-    const key = form.getByLabelText(t('accountAnthropicKey'));
+    const key = form.getByLabelText(t('accountApiKey'));
     expect(key).toHaveAttribute('type', 'password');
     expect(key).toHaveAttribute('autocomplete', 'off');
     await user.type(key, 'sk-ant-teste');
@@ -62,6 +63,18 @@ describe('AgentsScreen', () => {
     expect(client.createProviderAccount).toHaveBeenCalledWith({ kind: 'anthropic', label: 'work' });
     expect(client.setVaultSecret).toHaveBeenCalledWith('anthropic-work-api-key', 'sk-ant-teste');
     expect(key).toHaveValue('');
+  });
+
+  it('lista somente os providers habilitados pelo daemon', async () => {
+    const client = fakeClient({
+      listAgents: async () => [],
+      listProviderAccounts: async () => [],
+      listProviderKinds: async () => [{ kind: 'anthropic', display_name: 'Anthropic', auth_kind: 'api_key' }],
+    });
+    render(<AgentsScreen client={client} t={t} />);
+    expect(await screen.findByRole('option', { name: 'Anthropic' })).toBeInTheDocument();
+    expect(screen.queryByRole('option', { name: 'Codex' })).not.toBeInTheDocument();
+    expect(await screen.findByLabelText(t('accountApiKey'))).toBeInTheDocument();
   });
 
   it('mostra o erro da conta no formulário', async () => {

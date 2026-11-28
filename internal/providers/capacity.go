@@ -97,7 +97,7 @@ func (s *Service) capacityView(a core.ProviderAccount) CapacityView {
 		return emptyCapacity(a, string(model.UsageUnknown), "identity_changed")
 	}
 	now := s.cfg.Now()
-	if view.ExpiresAt == nil || !now.Before(*view.ExpiresAt) {
+	if view.ExpiresAt == nil || !sdk.ObservationFresh(snap, now, s.cfg.CapacityInterval) {
 		view.Status, view.Reason = "STALE", "observation_expired"
 		view.Windows = []CapacityWindow{}
 		return view
@@ -115,7 +115,7 @@ func projectCapacity(a core.ProviderAccount, snap model.UsageSnapshot, previous 
 		expires = *snap.ExpiresAt
 	}
 	view.ExpiresAt = &expires
-	if !now.Before(expires) {
+	if !sdk.ObservationFresh(snap, now, ttl) {
 		view.Status, view.Reason = "STALE", "observation_expired"
 		return view
 	}
@@ -283,7 +283,15 @@ func (m *capacityMonitor) refresh(ctx context.Context, a core.ProviderAccount) {
 			defer func() {
 				cleanup, stop := context.WithTimeout(context.Background(), 5*time.Second)
 				defer stop()
+				// A canceled or failed probe does not prove that the
+				// app-server process tree stopped. Keep the fence.
+				if err != nil || ctx.Err() != nil {
+					m.invalidateIdentity(account.Scope)
+					m.markLeaseFailure(a, "lease_reconciliation_required")
+					return
+				}
 				if s.leases.Release(cleanup, key, reservation, true) != nil {
+					m.invalidateIdentity(account.Scope)
 					m.markLeaseFailure(a, "lease_release_failed")
 				}
 			}()
@@ -297,7 +305,7 @@ func (m *capacityMonitor) refresh(ctx context.Context, a core.ProviderAccount) {
 		err = ctx.Err()
 	}
 	now = s.cfg.Now()
-	view := emptyCapacity(a, string(model.UsageError), "probe_failed")
+	view := capacityProbeFailure(a, account.Scope, err)
 	states := make(map[capacity.ObservationKey]capacity.State)
 	if err == nil {
 		view = projectCapacity(a, snap, previous, now, s.cfg.CapacityInterval)
@@ -305,8 +313,6 @@ func (m *capacityMonitor) refresh(ctx context.Context, a core.ProviderAccount) {
 		for _, o := range observations {
 			states[o.Key] = o.State
 		}
-	} else if account.Scope == (model.AccountScope{}) {
-		view = emptyCapacity(a, string(model.UsageUnknown), "identity_unverified")
 	}
 	m.mu.Lock()
 	if m.entries[a.ID] != e {
@@ -327,7 +333,7 @@ func (m *capacityMonitor) refresh(ctx context.Context, a core.ProviderAccount) {
 	failures := e.failures
 	m.mu.Unlock()
 	persistentFailure := failures == 2
-	if s.cfg.OnCapacity != nil && (persistentFailure || (capacityChanged(oldView, view) && failures == 0)) {
+	if s.cfg.OnCapacity != nil && (persistentFailure || (capacityChanged(oldView, view) && (failures == 0 || view.Reason == "auth_required"))) {
 		s.cfg.OnCapacity(a.OwnerID, view)
 	}
 }
@@ -371,4 +377,17 @@ func (s *Service) RunCapacity(ctx context.Context) {
 		case <-ticker.C:
 		}
 	}
+}
+
+// capacityProbeFailure projects the SDK's sanitized diagnostic. Local identity
+// uncertainty never becomes quota exhaustion or an automatic fallback signal.
+func capacityProbeFailure(a core.ProviderAccount, scope model.AccountScope, err error) CapacityView {
+	if scope == (model.AccountScope{}) {
+		return emptyCapacity(a, string(model.UsageUnknown), "identity_unverified")
+	}
+	var diagnostic *sdk.ProbeError
+	if errors.As(err, &diagnostic) && sdk.ClassifyProbeError(err) == sdk.ProbeAuthExpired {
+		return emptyCapacity(a, string(model.UsageError), "auth_required")
+	}
+	return emptyCapacity(a, string(model.UsageError), "probe_failed")
 }

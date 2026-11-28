@@ -13,14 +13,15 @@ func TestProviderAccountsCreateListAndDelete(t *testing.T) {
 	created := call(t, h, http.MethodPost, "/v1/provider-accounts", testToken, `{"kind":"anthropic","label":"work"}`)
 	expectStatus(t, created, http.StatusCreated)
 	var acc struct {
-		ID    string `json:"id"`
-		Key   string `json:"key"`
-		Setup string `json:"setup"`
+		ID         string `json:"id"`
+		Key        string `json:"key"`
+		Setup      string `json:"setup"`
+		SecretItem string `json:"secret_item"`
 	}
 	if err := json.Unmarshal(created.Body.Bytes(), &acc); err != nil {
 		t.Fatalf("decode account: %v", err)
 	}
-	if acc.Key != "anthropic/work" || acc.Setup != "PUT /v1/vault/anthropic-work-api-key with the API key" {
+	if acc.Key != "anthropic/work" || acc.Setup != "PUT /v1/vault/anthropic-work-api-key with the API key" || acc.SecretItem != "anthropic-work-api-key" {
 		t.Fatalf("account = %+v", acc)
 	}
 
@@ -80,4 +81,29 @@ func TestProviderCapacityUnsupportedAndOwnerScoped(t *testing.T) {
 	}
 	expectStatus(t, call(t, h, http.MethodPost, "/v1/provider-accounts/missing/capacity/refresh", testToken, ""), http.StatusNotFound)
 	expectStatus(t, call(t, h, http.MethodPost, "/v1/provider-accounts/"+acc.ID+"/capacity/refresh", "", ""), http.StatusUnauthorized)
+}
+
+func TestProviderKindsOnlyAdvertisesEnabledAdapters(t *testing.T) {
+	h, _ := newTestEnv(t)
+	resp := call(t, h, http.MethodGet, "/v1/provider-kinds", testToken, "")
+	expectStatus(t, resp, http.StatusOK)
+	var kinds []struct {
+		Kind        string `json:"kind"`
+		DisplayName string `json:"display_name"`
+		AuthKind    string `json:"auth_kind"`
+	}
+	if err := json.Unmarshal(resp.Body.Bytes(), &kinds); err != nil {
+		t.Fatal(err)
+	}
+	seen := map[string]string{}
+	for _, k := range kinds {
+		if k.DisplayName == "" {
+			t.Fatalf("missing provider display name: %+v", k)
+		}
+		seen[k.Kind] = k.AuthKind
+	}
+	if len(seen) != 2 || seen["codex"] != "oauth_cli" || seen["anthropic"] != "api_key" {
+		t.Fatalf("unexpected enabled catalog: %+v", kinds)
+	}
+	expectStatus(t, call(t, h, http.MethodGet, "/v1/provider-kinds", "", ""), http.StatusUnauthorized)
 }

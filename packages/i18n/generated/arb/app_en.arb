@@ -355,5 +355,11 @@
   "settingsThemeDark": "Dark",
   "settingsThemeLight": "Solar light",
   "settingsThemeSystem": "Follow the system",
-  "settingsThemeHint": "Applies to this computer only."
+  "settingsThemeHint": "Applies to this computer only.",
+  "capacityAuthRequired": "Provider authentication needs verification or renewal.",
+  "capacityReconcile": "Account blocked for safe recovery. Contact the administrator.",
+  "accountApiKey": "API key",
+  "accountCliNote": "Follow the sign-in instructions shown after creating the account.",
+  "accountNoProviders": "No providers are enabled on this node.",
+  "accountVaultDestinationMissing": "The node did not return a secure key destination."
 }

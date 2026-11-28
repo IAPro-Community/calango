@@ -2,10 +2,10 @@ package core
 
 import (
 	"fmt"
-	"regexp"
 	"time"
 
 	"github.com/IAPro-Community/IAPro-SDK/model"
+	sdk "github.com/IAPro-Community/IAPro-SDK/providers"
 )
 
 // Provider kinds. An account's kind selects the adapter that runs its calls.
@@ -20,8 +20,6 @@ const MaxProvidersPerAgent = 8
 // DefaultAccountLabel names the account that keeps the pre-chain behaviour: the
 // shared Codex home, and the anthropic-api-key vault item.
 const DefaultAccountLabel = "default"
-
-var accountLabelPattern = regexp.MustCompile(`^[a-z0-9][a-z0-9-]{0,31}$`)
 
 // ProviderAccount is a named login to one provider. It holds no secret: the key
 // lives in the vault and the Codex login lives in its own home directory.
@@ -38,7 +36,7 @@ type ProviderAccount struct {
 func (a ProviderAccount) Name() string { return ProviderKeyOf(a.Kind, a.Label) }
 
 // ProviderKeyOf builds the gateway key for an account.
-func ProviderKeyOf(kind, label string) string { return kind + "/" + label }
+func ProviderKeyOf(kind, label string) string { return sdk.AccountKey(kind, label) }
 
 // Validate checks the kind and label. Errors wrap ErrInvalidInput.
 func (a ProviderAccount) Validate() error {
@@ -47,7 +45,7 @@ func (a ProviderAccount) Validate() error {
 	default:
 		return fmt.Errorf("%w: kind must be codex or anthropic", ErrInvalidInput)
 	}
-	if !accountLabelPattern.MatchString(a.Label) {
+	if !sdk.ValidPortableLabel(a.Label) {
 		return fmt.Errorf("%w: label must be 1-32 lowercase letters, digits or hyphens", ErrInvalidInput)
 	}
 	return nil

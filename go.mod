@@ -3,7 +3,7 @@ module calango
 go 1.23.0
 
 require (
-	github.com/IAPro-Community/IAPro-SDK v0.0.0-20261127004213-2ba7f61aa3ad
+	github.com/IAPro-Community/IAPro-SDK v0.0.0-20261127235909-94e05c07c1e8
 	github.com/creack/pty v1.1.24
 	github.com/gorilla/websocket v1.5.3
 	github.com/modelcontextprotocol/go-sdk v1.3.0
